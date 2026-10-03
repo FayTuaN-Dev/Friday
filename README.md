@@ -25,7 +25,12 @@ copy .env.example .env
 uv run jarvis
 ```
 
+- **Parler** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher. Appuyer pendant que Jarvis parle lui coupe la parole.
+- **Écrire** : taper son message puis Entrée.
+
 Commandes dans le chat : `/voix` (activer/couper la voix), `/reset` (nouvelle conversation), `/quit` (quitter).
+
+Choisir le micro : `uv run python -m sounddevice` liste les périphériques, puis régler `MIC_DEVICE` (numéro ou morceau du nom).
 
 Pour comparer les voix disponibles : `uv run python -m jarvis.voice.audition`, puis régler `TTS_VOICE` dans `.env`.
 
