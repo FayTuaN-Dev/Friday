@@ -29,7 +29,8 @@ src/jarvis/
 │   ├── config.py          réglages lus dans .env (Settings) + chemins (data/, logs/)
 │   └── logging.py         logs console + logs/jarvis.log
 ├── brain/
-│   ├── llm.py             Brain : discussion avec Ollama (streaming, préchargement)
+│   ├── llm.py             Brain : discussion avec Ollama (streaming, boucle d'appel d'outils)
+│   ├── events.py          ToolStarted / ToolFinished : événements émis pendant une réponse
 │   ├── prompts.py         personnalité de Jarvis (prompt système)
 │   └── conversation.py    mémoire de la conversation en cours
 ├── voice/
@@ -43,9 +44,15 @@ src/jarvis/
 │   └── audition.py        outil : écouter les voix disponibles
 ├── app/
 │   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
+│   ├── reply.py           Reply : déroulé d'une réponse (texte, voix, outils, pop-ups)
 │   ├── components.py      chargement des modèles (chacun peut échouer sans tout bloquer)
 │   └── events.py          AssistantState + contrat AssistantListener
-├── tools/                 (phase 5+) outils : recherche web, applications…
+├── tools/                 outils que le LLM peut appeler (plugins)
+│   ├── __init__.py        default_toolbox() : liste des outils actifs
+│   ├── base.py            Tool, ToolBox, ToolResult, Display (contenu à afficher), retry()
+│   ├── web_search.py      recherche internet (DuckDuckGo)
+│   ├── web_page.py        lecture d'une page (trafilatura)
+│   └── images.py          recherche et téléchargement d'images
 └── ui/
     ├── terminal.py        interface terminal
     └── desktop/           interface de bureau (PySide6)
@@ -53,6 +60,12 @@ src/jarvis/
         ├── main_window.py fenêtre principale (assemble les widgets)
         ├── bridge.py      QtBridge : événements de l'assistant → signaux Qt (thread-safe)
         ├── theme.py       couleurs et feuille de style (thème HUD)
+        ├── popups/
+        │   ├── manager.py     PopupManager : ouvre les pop-ups à côté de la fenêtre (3 max)
+        │   ├── base.py        Popup : fenêtre sans bordure, déplaçable, en fondu
+        │   ├── results.py     résultats de recherche (liens cliquables)
+        │   ├── article.py     texte d'une page web
+        │   └── images.py      galerie d'images
         └── widgets/
             ├── orb.py         cercle HUD animé (état + niveau de voix)
             ├── chat.py        fil de discussion en bulles
@@ -65,9 +78,13 @@ src/jarvis/
    → `Recorder.start()`, état **LISTENING**
 2. Relâchement → `Assistant.stop_listening()` → l'audio est déposé dans la file de l'assistant
 3. Le thread de l'assistant : `WhisperSTT.transcribe()` → `Brain.reply()` (streaming)
-4. Chaque morceau de texte part vers l'interface (`on_reply_chunk`) et vers `SentenceSplitter`
-5. Chaque phrase complète part dans `Speaker` → Piper → haut-parleurs, état **SPEAKING**
-6. Fin → état **IDLE**
+4. Si le LLM demande un outil : `Brain` l'exécute via `ToolBox` (événements `ToolStarted` /
+   `ToolFinished`), lui renvoie le résultat, et le LLM formule sa réponse (3 allers-retours max).
+   `Reply` affiche « 🔎 Recherche… » (`on_tool`), dit une phrase d'attente et ouvre le pop-up
+   (`on_display`)
+5. Chaque morceau de texte part vers l'interface (`on_reply_chunk`) et vers `SentenceSplitter`
+6. Chaque phrase complète part dans `Speaker` → Piper → haut-parleurs, état **SPEAKING**
+7. Fin → état **IDLE**
 
 ## Threads
 
@@ -83,6 +100,10 @@ L'interface Qt ne doit jamais être modifiée depuis un autre thread : `QtBridge
 
 ## Ajouter…
 
+- **un outil** : une classe `Tool` dans `tools/` (nom, description lue par le LLM, paramètres,
+  `run()` qui renvoie un `ToolResult`), inscrite dans `default_toolbox()`. Pour afficher quelque
+  chose, renvoyer un `Display` ; si c'est un nouveau type, ajouter un pop-up dans
+  `ui/desktop/popups/` et l'inscrire dans `POPUPS` (`manager.py`)
 - **un réglage** : champ dans `Settings` + lecture dans `load_settings()` (`core/config.py`)
   + ligne commentée dans `.env.example`
 - **une interface** : une classe qui implémente `AssistantListener` et appelle les méthodes

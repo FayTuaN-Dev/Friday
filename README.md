@@ -8,6 +8,7 @@ et affiche le chat, des images et des résultats dans des pop-ups.
 - **Cerveau** : Ollama (`qwen3:8b`), avec délégation à Claude Code pour le code
 - **Voix** : faster-whisper (écoute) + Piper (parole)
 - **Interface** : PySide6
+- **Outils** : recherche web, lecture de pages et images (DuckDuckGo, sans clé API), affichés en pop-ups
 
 Voir [ROADMAP.md](ROADMAP.md) pour les fonctionnalités et l'avancement, et
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour l'organisation du code.

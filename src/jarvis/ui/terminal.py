@@ -43,6 +43,18 @@ class TerminalUI(NullListener):
         print(" [interrompu]" if interrupted else "", end="\n\n")
         print(PROMPT, end="", flush=True)
 
+    def on_tool(self, label: str) -> None:
+        print(f"\n  [{label}]", flush=True)
+
+    def on_display(self, display) -> None:
+        for r in display.data.get("results", []):
+            print(f"  • {r['title']} — {r['url']}")
+        if display.kind == "article":
+            print(f"  • {display.data['url']}")
+        if display.kind == "images":
+            print(f"  ({len(display.data['images'])} images : visibles dans la fenêtre de bureau)")
+        print("Jarvis> ", end="", flush=True)
+
     def on_notice(self, text: str) -> None:
         print(f"\n({text})\n{PROMPT}", end="", flush=True)
 

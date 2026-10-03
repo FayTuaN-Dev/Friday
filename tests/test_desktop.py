@@ -72,3 +72,29 @@ def test_speech_envelope():
     env = speech_envelope(np.ones(16000, dtype=np.float32) * 0.1, 16000)
     assert env.size == 60  # une valeur par image, à 60 images par seconde
     assert 0 < env.max() <= 1
+
+
+def test_popups_open_beside_window_and_are_limited():
+    from jarvis.tools.base import Display
+    from jarvis.ui.desktop.popups.manager import MAX_OPEN
+
+    w = make_window()
+    w.show()
+    result = {"title": "Météo <Lyon>", "url": "https://meteo.fr", "snippet": "18°C"}
+    image = {"title": "x", "data": b"pas une image", "url": "u", "image": "i"}
+    displays = [
+        Display("results", "Recherche : météo", {"results": [result]}),
+        Display("article", "Article", {"url": "https://ex.fr/a", "text": "Bonjour " * 50}),
+        Display("images", "chats", {"images": [image]}),
+        Display("results", "Recherche : météo", {"results": [result]}),
+    ]
+    for d in displays:
+        w.bridge.on_display(d)
+    w.bridge.on_tool("🔎 Recherche : météo")
+    app.processEvents()
+
+    assert len(w.popups.popups) == MAX_OPEN  # le plus ancien a été fermé
+    assert w.popups.show(Display("inconnu", "?")) is None
+    w.close()
+    app.processEvents()
+    assert w.popups.popups == []

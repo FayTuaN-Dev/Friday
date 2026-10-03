@@ -6,13 +6,14 @@ from PySide6.QtWidgets import QApplication
 
 from jarvis.core.config import Settings
 from jarvis.ui.desktop.main_window import MainWindow
-from jarvis.ui.desktop.theme import stylesheet
+from jarvis.ui.desktop.theme import link_palette, stylesheet
 
 
 def run(settings: Settings) -> None:
     app = QApplication(sys.argv)
     app.setApplicationName("Jarvis")
     app.setStyleSheet(stylesheet())
+    link_palette(app)
     window = MainWindow(settings)
     window.show()
     # Les modèles se chargent en arrière-plan : la fenêtre s'affiche tout de suite.

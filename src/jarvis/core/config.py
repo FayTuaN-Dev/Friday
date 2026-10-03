@@ -29,6 +29,8 @@ class Settings:
     stt_device: str
     mic_device: int | str | None
     ptt_key: str
+    tools_enabled: bool
+    search_region: str
     log_level: str
 
 
@@ -63,5 +65,7 @@ def load_settings() -> Settings:
         stt_device=os.getenv("STT_DEVICE", "cuda"),
         mic_device=_device(os.getenv("MIC_DEVICE")),
         ptt_key=os.getenv("PTT_KEY", "home"),
+        tools_enabled=_bool("TOOLS_ENABLED", True),
+        search_region=os.getenv("SEARCH_REGION", "fr-fr"),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
     )

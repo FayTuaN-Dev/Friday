@@ -8,6 +8,7 @@ import numpy as np
 from PySide6.QtCore import QObject, Signal
 
 from jarvis.app.events import AssistantState
+from jarvis.tools.base import Display
 
 
 class QtBridge(QObject):
@@ -18,6 +19,8 @@ class QtBridge(QObject):
     reply_chunk = Signal(str)
     reply_end = Signal(bool)
     notice = Signal(str)
+    tool = Signal(str)
+    display = Signal(object)
     mic_level = Signal(float)
     speech_audio = Signal(object, int)
 
@@ -43,6 +46,12 @@ class QtBridge(QObject):
 
     def on_notice(self, text: str) -> None:
         self.notice.emit(text)
+
+    def on_tool(self, label: str) -> None:
+        self.tool.emit(label)
+
+    def on_display(self, display: Display) -> None:
+        self.display.emit(display)
 
     def on_mic_level(self, level: float) -> None:
         self.mic_level.emit(level)

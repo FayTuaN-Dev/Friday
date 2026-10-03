@@ -13,9 +13,9 @@ import numpy as np
 
 from jarvis.app.components import Components, load_components
 from jarvis.app.events import AssistantListener, AssistantState
+from jarvis.app.reply import Reply
 from jarvis.brain.llm import BrainError
 from jarvis.core.config import Settings
-from jarvis.voice.text import SentenceSplitter
 
 log = logging.getLogger(__name__)
 
@@ -137,24 +137,11 @@ class Assistant:
         self._interrupted.clear()
         self._set_state(AssistantState.THINKING)
         speaker = self.components.speaker if self.voice_on else None
-        splitter = SentenceSplitter()
         interrupted = False
         self.listener.on_reply_start()
         stream = self.components.brain.reply(text)
         try:
-            for chunk in stream:
-                if self._interrupted.is_set():
-                    interrupted = True
-                    break
-                self.listener.on_reply_chunk(chunk)
-                if speaker:
-                    for sentence in splitter.feed(chunk):
-                        speaker.say(sentence)
-            if speaker and not interrupted:
-                for sentence in splitter.flush():
-                    speaker.say(sentence)
-                speaker.wait()
-                interrupted = self._interrupted.is_set()
+            interrupted = Reply(self.listener, speaker, self._interrupted).run(stream)
         except BrainError:
             host = self.settings.ollama_host
             self.listener.on_notice(f"Impossible de joindre Ollama sur {host}. Est-il lancé ?")

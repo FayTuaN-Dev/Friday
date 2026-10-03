@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import numpy as np
 
 from jarvis.core.config import Settings
+from jarvis.tools.base import Display, Tool, ToolResult
 
 SETTINGS = Settings(
     user_name="Tony",
@@ -23,6 +24,8 @@ SETTINGS = Settings(
     stt_device="cpu",
     mic_device=None,
     ptt_key="home",
+    tools_enabled=False,
+    search_region="fr-fr",
     log_level="INFO",
 )
 
@@ -31,11 +34,21 @@ def settings(**changes) -> Settings:
     return replace(SETTINGS, **changes)
 
 
-class FakeClient:
-    """Imite ollama.Client.chat en renvoyant des morceaux prédéfinis."""
+def tool_call(name, **arguments):
+    """Un appel d'outil tel qu'Ollama le renvoie."""
+    return SimpleNamespace(function=SimpleNamespace(name=name, arguments=arguments))
 
-    def __init__(self, chunks=(), error=None):
-        self.chunks = chunks
+
+class FakeClient:
+    """Imite ollama.Client.chat.
+
+    `chunks` : morceaux de texte d'une réponse simple.
+    `rounds` : une liste de réponses successives (une par appel) ; chaque élément est
+    un morceau de texte ou un `tool_call(...)`.
+    """
+
+    def __init__(self, chunks=(), error=None, rounds=None):
+        self.rounds = list(rounds) if rounds is not None else [list(chunks)]
         self.error = error
         self.calls = []
 
@@ -43,7 +56,16 @@ class FakeClient:
         self.calls.append(kwargs)
         if self.error:
             raise self.error
-        return (SimpleNamespace(message=SimpleNamespace(content=c)) for c in self.chunks)
+        if not kwargs.get("stream"):
+            return None  # préchargement
+        items = self.rounds.pop(0) if self.rounds else []
+        return (self._chunk(item) for item in items)
+
+    @staticmethod
+    def _chunk(item):
+        if isinstance(item, str):
+            return SimpleNamespace(message=SimpleNamespace(content=item, tool_calls=None))
+        return SimpleNamespace(message=SimpleNamespace(content="", tool_calls=[item]))
 
 
 class FakeTTS:
@@ -109,6 +131,12 @@ class RecordingListener:
         self._log("notice", text)
         self.notice_received.set()
 
+    def on_tool(self, label):
+        self._log("tool", label)
+
+    def on_display(self, display):
+        self._log("display", display.kind)
+
     def on_mic_level(self, level):
         pass
 
@@ -117,3 +145,21 @@ class RecordingListener:
 
     def of(self, kind):
         return [e[1:] for e in self.events if e[0] == kind]
+
+
+class EchoTool(Tool):
+    """Outil factice : « recherche » qui répond toujours 18 degrés, avec un pop-up."""
+
+    name = "web_search"
+    description = "Recherche factice"
+    parameters = {"query": {"type": "string"}}
+    required = ("query",)
+
+    def label(self, args):
+        return f"🔎 Recherche : {args['query']}"
+
+    def run(self, query):
+        return ToolResult(
+            f"Résultat pour {query} : il fait 18 degrés.",
+            Display("results", query, {"results": []}),
+        )
