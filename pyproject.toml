@@ -1,0 +1,33 @@
+[project]
+name = "jarvis"
+version = "0.1.0"
+description = "Assistant personnel vocal local (Ollama + Claude Code)"
+authors = [
+    { name = "FayTuaN-Dev", email = "crasnier.val@proton.me" }
+]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "python-dotenv>=1.2.4",
+]
+
+[project.scripts]
+jarvis = "jarvis:main"
+
+[build-system]
+requires = ["uv_build>=0.12.22,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+]
