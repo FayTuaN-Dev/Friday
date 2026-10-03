@@ -41,8 +41,8 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [ ] Voix synchronisée avec le texte du chat
 
 ### 4. 🖥️ Application de bureau
-- [ ] Fenêtre de chat (historique, streaming, saisie clavier)
-- [ ] Indicateur d'état (veille / écoute / réfléchit / parle) avec animation audio
+- [x] Fenêtre de chat (historique, streaming, saisie clavier)
+- [x] Indicateur d'état (veille / écoute / réfléchit / parle) avec animation audio
 - [ ] Pop-ups de contenu : images, articles, résultats, code
 - [ ] Icône dans la zone de notification
 - [ ] Raccourci clavier global
@@ -74,7 +74,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [ ] Routines (« Bonjour Jarvis » → météo + agenda + news)
 
 ### 6. ⚙️ Fondations
-- [ ] Architecture modulaire (outils = plugins)
+- [ ] Architecture modulaire (outils = plugins) — couches en place, voir docs/ARCHITECTURE.md
 - [x] Config `.env` + fichier de réglages
 - [x] Logs (gestion d'erreurs : au fil des phases)
 - [ ] Confirmation avant les actions sensibles
@@ -90,7 +90,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 | 1 | Cerveau texte : chat Ollama en terminal, historique, personnalité | On lui parle au clavier | ✅ |
 | 2 | Voix de sortie : Piper, phrase par phrase | Il répond à voix haute | ✅ |
 | 3 | Voix d'entrée : push-to-talk + Whisper | 1re conversation 100 % vocale | ✅ |
-| 4 | Interface : fenêtre chat + indicateur d'état | Jarvis a un visage | ⬜ |
+| 4 | Interface : fenêtre chat + indicateur d'état | Jarvis a un visage | ✅ |
 | 5 | Premiers outils : recherche web + pop-ups images/textes | Il cherche et montre | ⬜ |
 | 6 | Mains libres : mot d'activation + interruption | Expérience naturelle | ⬜ |
 | 7 | Mémoire long terme | Il se souvient de toi | ⬜ |

@@ -1,0 +1,91 @@
+# Architecture de Jarvis
+
+## Principe
+
+Le code est découpé en **couches**. Chaque couche ne connaît que celles du dessous :
+
+```
+        ui/            ← comment on affiche (fenêtre Qt, terminal)
+         │
+        app/           ← chef d'orchestre : enchaîne écoute → réflexion → parole
+         │
+  brain/   voice/   tools/   ← briques indépendantes (LLM, audio, outils)
+         │
+        core/          ← config, logs
+```
+
+- `app/` **ne connaît aucune interface**. Il prévient un `AssistantListener` (voir `app/events.py`)
+  de tout ce qui se passe. Une nouvelle interface implémente simplement ce contrat.
+- Les briques (`brain/`, `voice/`) ne se connaissent pas entre elles : c'est `app/` qui les relie.
+- Règle : **un fichier = un rôle**, idéalement moins de 200 lignes. Quand un fichier grossit, on
+  le découpe.
+
+## Arborescence
+
+```
+src/jarvis/
+├── __init__.py            point d'entrée : `jarvis` (fenêtre) ou `jarvis --cli` (terminal)
+├── core/
+│   ├── config.py          réglages lus dans .env (Settings) + chemins (data/, logs/)
+│   └── logging.py         logs console + logs/jarvis.log
+├── brain/
+│   ├── llm.py             Brain : discussion avec Ollama (streaming, préchargement)
+│   ├── prompts.py         personnalité de Jarvis (prompt système)
+│   └── conversation.py    mémoire de la conversation en cours
+├── voice/
+│   ├── recorder.py        Recorder : capture du micro → audio 16 kHz
+│   ├── stt.py             WhisperSTT : voix → texte (faster-whisper)
+│   ├── tts.py             PiperTTS : texte → voix (Piper)
+│   ├── speaker.py         Speaker : file de phrases à dire (synthèse + lecture en parallèle)
+│   ├── text.py            découpage en phrases, nettoyage avant lecture
+│   ├── ptt.py             PushToTalk : touche globale maintenue pour parler
+│   ├── cuda.py            DLL CUDA pour Whisper sur GPU (Windows)
+│   └── audition.py        outil : écouter les voix disponibles
+├── app/
+│   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
+│   ├── components.py      chargement des modèles (chacun peut échouer sans tout bloquer)
+│   └── events.py          AssistantState + contrat AssistantListener
+├── tools/                 (phase 5+) outils : recherche web, applications…
+└── ui/
+    ├── terminal.py        interface terminal
+    └── desktop/           interface de bureau (PySide6)
+        ├── app.py         lancement de l'application Qt
+        ├── main_window.py fenêtre principale (assemble les widgets)
+        ├── bridge.py      QtBridge : événements de l'assistant → signaux Qt (thread-safe)
+        ├── theme.py       couleurs et feuille de style (thème HUD)
+        └── widgets/
+            ├── orb.py         cercle HUD animé (état + niveau de voix)
+            ├── chat.py        fil de discussion en bulles
+            └── input_bar.py   saisie, micro, voix, nouvelle conversation
+```
+
+## Le parcours d'un message vocal
+
+1. `PushToTalk` détecte l'appui sur la touche → `Assistant.start_listening()`
+   → `Recorder.start()`, état **LISTENING**
+2. Relâchement → `Assistant.stop_listening()` → l'audio est déposé dans la file de l'assistant
+3. Le thread de l'assistant : `WhisperSTT.transcribe()` → `Brain.reply()` (streaming)
+4. Chaque morceau de texte part vers l'interface (`on_reply_chunk`) et vers `SentenceSplitter`
+5. Chaque phrase complète part dans `Speaker` → Piper → haut-parleurs, état **SPEAKING**
+6. Fin → état **IDLE**
+
+## Threads
+
+| Thread | Rôle |
+|---|---|
+| principal | interface (Qt ou saisie clavier du terminal) |
+| `assistant` | transcription, LLM, enchaînement (une demande à la fois) |
+| `tts-synth` / `tts-play` | synthèse de la phrase suivante pendant la lecture de la précédente |
+| hook clavier / micro | push-to-talk et capture audio (rapides, ne font que déposer des événements) |
+
+L'interface Qt ne doit jamais être modifiée depuis un autre thread : `QtBridge` convertit les
+événements de l'assistant en signaux Qt, délivrés dans le thread principal.
+
+## Ajouter…
+
+- **un réglage** : champ dans `Settings` + lecture dans `load_settings()` (`core/config.py`)
+  + ligne commentée dans `.env.example`
+- **une interface** : une classe qui implémente `AssistantListener` et appelle les méthodes
+  publiques d'`Assistant` (`submit_text`, `start_listening`, `interrupt`…)
+- **un widget** : un fichier dans `ui/desktop/widgets/`, assemblé dans `main_window.py`
+- **des couleurs** : uniquement dans `ui/desktop/theme.py`

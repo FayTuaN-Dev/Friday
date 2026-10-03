@@ -1,4 +1,4 @@
-"""Push-to-talk : une touche globale (fonctionne même si le terminal n'a pas le focus)."""
+"""Push-to-talk : une touche globale (fonctionne même si la fenêtre n'a pas le focus)."""
 
 import logging
 from collections.abc import Callable
@@ -14,20 +14,23 @@ class PushToTalk:
         self._on_press = on_press
         self._on_release = on_release
         self._down = False
-        keyboard.on_press_key(key, self._press)
-        keyboard.on_release_key(key, self._release)
+        # Un seul crochet pour l'appui et le relâchement : il se retire proprement.
+        self._hook = keyboard.hook_key(key, self._on_event)
 
-    def _press(self, _event) -> None:
-        if self._down:  # la touche maintenue envoie des répétitions
-            return
-        self._down = True
-        self._safe(self._on_press)
+    def close(self) -> None:
+        if self._hook is not None:
+            keyboard.unhook(self._hook)
+            self._hook = None
 
-    def _release(self, _event) -> None:
-        if not self._down:
-            return
-        self._down = False
-        self._safe(self._on_release)
+    def _on_event(self, event) -> None:
+        if event.event_type == keyboard.KEY_DOWN:
+            if self._down:  # la touche maintenue envoie des répétitions
+                return
+            self._down = True
+            self._safe(self._on_press)
+        elif self._down:
+            self._down = False
+            self._safe(self._on_release)
 
     @staticmethod
     def _safe(fn: Callable[[], None]) -> None:

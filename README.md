@@ -3,11 +3,14 @@
 Assistant personnel vocal de bureau, 100 % local par défaut : on lui parle, il répond à voix haute
 et affiche le chat, des images et des résultats dans des pop-ups.
 
+<p align="center"><img src="docs/images/interface.png" width="360" alt="Interface de Jarvis"></p>
+
 - **Cerveau** : Ollama (`qwen3:8b`), avec délégation à Claude Code pour le code
 - **Voix** : faster-whisper (écoute) + Piper (parole)
 - **Interface** : PySide6
 
-Voir [ROADMAP.md](ROADMAP.md) pour les fonctionnalités et l'avancement.
+Voir [ROADMAP.md](ROADMAP.md) pour les fonctionnalités et l'avancement, et
+[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour l'organisation du code.
 
 ## Installation
 
@@ -22,13 +25,14 @@ copy .env.example .env
 ## Utilisation
 
 ```
-uv run jarvis
+uv run jarvis          # application de bureau
+uv run jarvis --cli    # version terminal
 ```
 
 - **Parler** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher. Appuyer pendant que Jarvis parle lui coupe la parole.
 - **Écrire** : taper son message puis Entrée.
 
-Commandes dans le chat : `/voix` (activer/couper la voix), `/reset` (nouvelle conversation), `/quit` (quitter).
+Dans la fenêtre, les boutons de la barre du bas permettent d'envoyer, de parler (maintenir 🎙), de couper la voix et de démarrer une nouvelle conversation. En mode terminal : `/voix` (activer/couper la voix), `/reset` (nouvelle conversation), `/quit` (quitter).
 
 Choisir le micro : `uv run python -m sounddevice` liste les périphériques, puis régler `MIC_DEVICE` (numéro ou morceau du nom).
 
