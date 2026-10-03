@@ -28,9 +28,9 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [ ] Interruption pendant qu'il parle (barge-in)
 
 ### 2. 🧠 Réfléchir
-- [ ] Discussion avec Ollama (réponse en streaming)
-- [ ] Personnalité Jarvis (prompt système)
-- [ ] Mémoire de la conversation en cours
+- [x] Discussion avec Ollama (réponse en streaming)
+- [x] Personnalité Jarvis (prompt système)
+- [x] Mémoire de la conversation en cours
 - [ ] Mémoire long terme (SQLite + embeddings)
 - [ ] Appel d'outils (tool calling)
 - [ ] Délégation à Claude Code pour le code et les tâches complexes
@@ -87,7 +87,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 | # | Phase | Livrable | Statut |
 |---|---|---|---|
 | 0 | Mise en place : `uv`, Python 3.12, git, structure, `.env` | Projet prêt | ✅ |
-| 1 | Cerveau texte : chat Ollama en terminal, historique, personnalité | On lui parle au clavier | ⬜ |
+| 1 | Cerveau texte : chat Ollama en terminal, historique, personnalité | On lui parle au clavier | ✅ |
 | 2 | Voix de sortie : Piper, phrase par phrase | Il répond à voix haute | ⬜ |
 | 3 | Voix d'entrée : push-to-talk + Whisper | 1re conversation 100 % vocale | ⬜ |
 | 4 | Interface : fenêtre chat + indicateur d'état | Jarvis a un visage | ⬜ |
