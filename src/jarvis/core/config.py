@@ -29,6 +29,10 @@ class Settings:
     stt_device: str
     mic_device: int | str | None
     ptt_key: str
+    hands_free: bool
+    wake_words: list[str]
+    follow_up_seconds: float
+    vad_silence_ms: int
     tools_enabled: bool
     search_region: str
     log_level: str
@@ -65,6 +69,14 @@ def load_settings() -> Settings:
         stt_device=os.getenv("STT_DEVICE", "cuda"),
         mic_device=_device(os.getenv("MIC_DEVICE")),
         ptt_key=os.getenv("PTT_KEY", "home"),
+        hands_free=_bool("HANDS_FREE", True),
+        wake_words=[
+            w.strip().lower()
+            for w in os.getenv("WAKE_WORDS", "jarvis,jarvie,djarvis,jarvice,jarvi").split(",")
+            if w.strip()
+        ],
+        follow_up_seconds=float(os.getenv("FOLLOW_UP_SECONDS", "8")),
+        vad_silence_ms=int(os.getenv("VAD_SILENCE_MS", "700")),
         tools_enabled=_bool("TOOLS_ENABLED", True),
         search_region=os.getenv("SEARCH_REGION", "fr-fr"),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),

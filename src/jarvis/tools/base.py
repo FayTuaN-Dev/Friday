@@ -1,6 +1,7 @@
 """Socle des outils : chaque outil est un plugin que le LLM peut décider d'appeler."""
 
 import logging
+import threading
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -8,6 +9,9 @@ from dataclasses import dataclass, field
 from typing import Any
 
 log = logging.getLogger(__name__)
+
+# Au-delà, un outil est abandonné (un site qui ne répond pas ne doit pas bloquer Jarvis)
+TOOL_TIMEOUT = 15.0
 
 
 def retry[T](fn: Callable[[], T], attempts: int = 2, delay: float = 0.5) -> T:
@@ -80,12 +84,41 @@ class ToolBox:
         tool = self._tools.get(name)
         return tool.label(args) if tool else name
 
-    def run(self, name: str, args: dict[str, Any]) -> ToolResult:
+    def run(
+        self,
+        name: str,
+        args: dict[str, Any],
+        cancelled: Callable[[], bool] = lambda: False,
+        timeout: float = TOOL_TIMEOUT,
+    ) -> ToolResult:
+        """Exécute l'outil dans son propre thread : on peut l'abandonner (interruption de
+        l'utilisateur, réseau bloqué) sans rester coincé avec lui."""
         tool = self._tools.get(name)
         if tool is None:
             return ToolResult(f"Erreur : l'outil « {name} » n'existe pas.")
-        try:
-            return tool.run(**args)
-        except Exception as e:
-            log.exception("Échec de l'outil %s(%s)", name, args)
-            return ToolResult(f"Erreur pendant « {name} » : {e}. Préviens l'utilisateur.")
+
+        outcome: list[ToolResult] = []
+        done = threading.Event()
+
+        def work() -> None:
+            try:
+                outcome.append(tool.run(**args))
+            except Exception as e:
+                log.exception("Échec de l'outil %s(%s)", name, args)
+                outcome.append(
+                    ToolResult(f"Erreur pendant « {name} » : {e}. Préviens l'utilisateur.")
+                )
+            finally:
+                done.set()
+
+        threading.Thread(target=work, daemon=True, name=f"tool-{name}").start()
+        deadline = time.monotonic() + timeout
+        while not done.wait(0.1):
+            if cancelled():
+                return ToolResult("Interrompu par l'utilisateur.")
+            if time.monotonic() > deadline:
+                log.warning("Outil %s abandonné après %.0f s", name, timeout)
+                return ToolResult(
+                    f"« {name} » n'a pas répondu à temps (internet lent ?). Préviens l'utilisateur."
+                )
+        return outcome[0]

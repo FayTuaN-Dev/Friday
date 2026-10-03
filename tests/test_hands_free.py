@@ -1,0 +1,169 @@
+import numpy as np
+import pytest
+
+from jarvis.app.wake_control import WakeControl
+from jarvis.voice.vad import FRAME, SpeechSegmenter
+from jarvis.voice.wake import is_stop, normalize, similarity, split_wake_word, wake_pattern
+
+WAKE = wake_pattern(["jarvis", "jarvie", "djarvis"])
+
+
+# --- Repérage du nom ---
+
+
+@pytest.mark.parametrize(
+    ("heard", "command"),
+    [
+        ("Jarvis, quelle heure est-il ?", "Quelle heure est-il ?"),
+        ("jarvis quelle heure est-il", "Quelle heure est-il"),
+        ("Hé Jarvis, quoi de neuf ?", "Quoi de neuf ?"),
+        ("Et Jarvie, mets de la musique.", "Mets de la musique."),  # Whisper entend « Et Jarvie »
+        ("OK Djarvis… la météo ?", "La météo ?"),
+        ("Jarvis.", ""),
+        ("Jarvis ?", ""),
+        ("Quelle heure est-il ?", None),
+        ("J'ai parlé à Jarvis hier.", None),  # le nom doit être au début
+        ("Jarvisse est un mot inventé", None),
+    ],
+)
+def test_split_wake_word(heard, command):
+    assert split_wake_word(heard, WAKE) == command
+
+
+def test_stop_commands_and_normalize():
+    assert normalize("Arrête-toi !") == "arrete toi"
+    assert is_stop("Stop.") and is_stop("Tais-toi !") and is_stop("C'est bon")
+    assert not is_stop("Stoppe la musique et mets du jazz")
+
+
+def test_similarity_detects_echo():
+    said = "Il fait dix-huit degrés à Lyon, Monsieur."
+    assert similarity("il fait 18 degrés à Lyon monsieur", said) > 0.6
+    assert similarity("Jarvis, et à Paris ?", said) < 0.6
+
+
+# --- Règles de réveil ---
+
+
+class FakeTarget:
+    def __init__(self):
+        self.calls = []
+        self.last_reply_text = ""
+        self.busy = False
+
+    def interrupt(self):
+        self.calls.append("interrupt")
+
+    def acknowledge(self):
+        self.calls.append("ack")
+
+    def submit_heard(self, text):
+        self.calls.append(("submit", text))
+
+
+class Clock:
+    def __init__(self):
+        self.now = 100.0
+
+    def __call__(self):
+        return self.now
+
+
+def make_control():
+    target, clock = FakeTarget(), Clock()
+    return WakeControl(target, ["jarvis"], follow_up_seconds=8, clock=clock), target, clock
+
+
+def test_wake_word_with_request_interrupts_then_submits():
+    control, target, _ = make_control()
+    control.on_heard("Jarvis, quelle heure est-il ?")
+    assert target.calls == ["interrupt", ("submit", "Quelle heure est-il ?")]
+
+
+def test_without_wake_word_is_ignored():
+    control, target, _ = make_control()
+    control.on_heard("Tu viens manger ?")
+    assert target.calls == []
+
+
+def test_name_alone_acknowledges_then_accepts_next_sentence():
+    control, target, clock = make_control()
+    control.on_heard("Jarvis ?")
+    assert target.calls == ["interrupt", "ack"]
+    control.open_follow_up()  # (fait par l'assistant dans acknowledge)
+    clock.now += 3
+    control.on_heard("Quel temps fait-il ?")
+    assert target.calls[-1] == ("submit", "Quel temps fait-il ?")
+    control.on_heard("Et demain ?")  # la fenêtre ne sert qu'une fois
+    assert target.calls[-1] == ("submit", "Quel temps fait-il ?")
+
+
+def test_follow_up_window_expires():
+    control, target, clock = make_control()
+    control.open_follow_up()
+    clock.now += 9
+    control.on_heard("Et demain ?")
+    assert target.calls == []
+
+
+def test_stop_only_interrupts():
+    control, target, _ = make_control()
+    control.on_heard("Jarvis, stop !")
+    assert target.calls == ["interrupt"]
+
+
+def test_short_stop_works_without_name_while_speaking():
+    control, target, _ = make_control()
+    control.on_heard("Ravi, stop.")  # au repos : ignoré
+    assert target.calls == []
+    target.busy = True
+    control.on_heard("Ravi, stop.")  # « Jarvis, stop » mal transcrit
+    control.on_heard("Tais-toi !")
+    control.on_heard("Il faut que tu arrêtes de fumer, stop")  # trop long : pas un ordre
+    assert target.calls == ["interrupt", "interrupt"]
+
+
+def test_own_echo_is_ignored_even_with_name():
+    control, target, _ = make_control()
+    target.last_reply_text = "Jarvis, à votre service. Il fait beau aujourd'hui."
+    control.open_follow_up()
+    control.on_heard("Jarvis à votre service, il fait beau aujourd'hui.")
+    control.on_heard("Il fait beau aujourd'hui")
+    assert target.calls == []
+
+
+# --- Découpage en phrases (VAD) ---
+
+
+def energy_vad(frame):
+    """Faux VAD : de la « parole » dès que le signal est fort."""
+    return 1.0 if np.abs(frame).mean() > 0.1 else 0.0
+
+
+def frames(seconds, loud):
+    n = int(seconds * 16000) // FRAME * FRAME
+    return np.full(n, 0.5 if loud else 0.0, dtype=np.float32)
+
+
+def test_segmenter_cuts_sentences_on_silence():
+    segments = []
+    seg = SpeechSegmenter(energy_vad, segments.append, silence_ms=500, preroll_ms=200)
+    audio = np.concatenate(
+        [frames(1, False), frames(1.5, True), frames(1, False), frames(0.8, True), frames(1, False)]
+    )
+    for i in range(0, audio.size, 320):  # blocs de 20 ms comme le micro
+        seg.feed(audio[i : i + 320])
+
+    assert len(segments) == 2
+    # parole + un peu d'avant (pré-enregistrement) + le silence de fin
+    assert 1.5 < segments[0].size / 16000 < 2.4
+    assert not seg.in_speech
+
+
+def test_segmenter_ignores_short_noises_and_caps_length():
+    segments = []
+    seg = SpeechSegmenter(energy_vad, segments.append, silence_ms=300, max_ms=2000)
+    seg.feed(np.concatenate([frames(0.1, True), frames(1, False)]))  # un claquement
+    assert segments == []
+    seg.feed(frames(5, True))  # quelqu'un qui parle sans s'arrêter
+    assert len(segments) == 2 and all(s.size / 16000 <= 2.1 for s in segments)

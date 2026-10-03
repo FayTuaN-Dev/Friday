@@ -30,7 +30,8 @@ uv run jarvis          # application de bureau
 uv run jarvis --cli    # version terminal
 ```
 
-- **Parler** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher. Appuyer pendant que Jarvis parle lui coupe la parole.
+- **Mains libres** : dire « **Jarvis**, quelle heure est-il ? » d'une traite. « Jarvis » seul → il répond « Oui ? » et écoute la suite. Juste après une réponse, on peut relancer sans redire son nom. Pendant qu'il parle : « Jarvis, … » lui coupe la parole, « stop » le fait taire.
+- **Push-to-talk** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher.
 - **Écrire** : taper son message puis Entrée.
 
 Dans la fenêtre, les boutons de la barre du bas permettent d'envoyer, de parler (maintenir 🎙), de couper la voix et de démarrer une nouvelle conversation. En mode terminal : `/voix` (activer/couper la voix), `/reset` (nouvelle conversation), `/quit` (quitter).

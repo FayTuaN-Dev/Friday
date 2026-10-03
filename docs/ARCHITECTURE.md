@@ -40,11 +40,16 @@ src/jarvis/
 │   ├── speaker.py         Speaker : file de phrases à dire (synthèse + lecture en parallèle)
 │   ├── text.py            découpage en phrases, nettoyage avant lecture
 │   ├── ptt.py             PushToTalk : touche globale maintenue pour parler
+│   ├── hands_free.py      HandsFreeListener : écoute continue → phrases → texte
+│   ├── vad.py             StreamingVAD (Silero) + SpeechSegmenter : découpe le flux en phrases
+│   ├── wake.py            repérage de « Jarvis » en début de phrase, ordres d'arrêt, écho
 │   ├── cuda.py            DLL CUDA pour Whisper sur GPU (Windows)
 │   └── audition.py        outil : écouter les voix disponibles
 ├── app/
 │   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
 │   ├── reply.py           Reply : déroulé d'une réponse (texte, voix, outils, pop-ups)
+│   ├── voice_inputs.py    VoiceInputs : push-to-talk + mains libres
+│   ├── wake_control.py    WakeControl : règles du mot d'activation (réveil, relance, stop, écho)
 │   ├── components.py      chargement des modèles (chacun peut échouer sans tout bloquer)
 │   └── events.py          AssistantState + contrat AssistantListener
 ├── tools/                 outils que le LLM peut appeler (plugins)
@@ -86,6 +91,19 @@ src/jarvis/
 6. Chaque phrase complète part dans `Speaker` → Piper → haut-parleurs, état **SPEAKING**
 7. Fin → état **IDLE**
 
+## Le parcours d'une demande en mains libres
+
+1. `HandsFreeListener` reçoit le micro en continu (blocs de 20 ms, convertis en 16 kHz)
+2. `SpeechSegmenter` + `StreamingVAD` repèrent une phrase : début de voix → 700 ms de silence
+3. Le thread `hands-free` la transcrit (`WhisperSTT`, avec `hotwords="Jarvis"`)
+4. `WakeControl.on_heard()` applique les règles :
+   - commence par « Jarvis » → coupe Jarvis s'il parle, puis `Assistant.submit_heard()`
+   - « Jarvis » seul → « Oui, Monsieur ? » et la phrase suivante est acceptée sans le nom
+   - juste après une réponse → relance possible sans le nom pendant `FOLLOW_UP_SECONDS`
+   - pendant qu'il parle → un ordre court (« stop », « tais-toi ») suffit
+   - ce qui ressemble à ce que Jarvis vient de dire → ignoré (écho de ses haut-parleurs)
+   - le reste → ignoré (conversation autour de l'ordinateur)
+
 ## Threads
 
 | Thread | Rôle |
@@ -94,6 +112,8 @@ src/jarvis/
 | `assistant` | transcription, LLM, enchaînement (une demande à la fois) |
 | `tts-synth` / `tts-play` | synthèse de la phrase suivante pendant la lecture de la précédente |
 | hook clavier / micro | push-to-talk et capture audio (rapides, ne font que déposer des événements) |
+| `hands-free` | transcription des phrases entendues en continu + règles de réveil |
+| `tool-<nom>` | un outil en cours ; abandonné après 15 s ou si l'utilisateur interrompt |
 
 L'interface Qt ne doit jamais être modifiée depuis un autre thread : `QtBridge` convertit les
 événements de l'assistant en signaux Qt, délivrés dans le thread principal.

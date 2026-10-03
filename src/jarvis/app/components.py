@@ -52,3 +52,11 @@ def load_components(
             components.recorder = components.stt = None
 
     return components
+
+
+def describe(settings: Settings, components: Components, inputs: list[str]) -> str:
+    """Résumé affiché sous le cercle : « Cerveau : … · Voix : … · Dites « Jarvis » »."""
+    parts = [f"Cerveau : {settings.ollama_model}"]
+    parts.append(f"Voix : {settings.tts_voice}" if components.speaker else "Voix : désactivée")
+    parts += inputs or ["Écoute : désactivée"]
+    return " · ".join(parts)

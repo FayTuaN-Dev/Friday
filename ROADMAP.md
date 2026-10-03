@@ -22,10 +22,10 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 
 ### 1. 🎙️ Écouter
 - [x] Push-to-talk (touche maintenue, configurable)
-- [ ] Détection de fin de parole (VAD — `silero-vad`)
+- [x] Détection de fin de parole (VAD — Silero, en continu)
 - [x] Transcription (`faster-whisper` large-v3-turbo sur GPU)
-- [ ] Mot d'activation « Jarvis » (`openWakeWord`)
-- [ ] Interruption pendant qu'il parle (barge-in)
+- [x] Mot d'activation « Jarvis » (repéré par Whisper : « Jarvis, … » d'une traite)
+- [x] Interruption pendant qu'il parle (« Jarvis, … » ou « stop »)
 
 ### 2. 🧠 Réfléchir
 - [x] Discussion avec Ollama (réponse en streaming)
@@ -92,7 +92,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 | 3 | Voix d'entrée : push-to-talk + Whisper | 1re conversation 100 % vocale | ✅ |
 | 4 | Interface : fenêtre chat + indicateur d'état | Jarvis a un visage | ✅ |
 | 5 | Premiers outils : recherche web + pop-ups images/textes | Il cherche et montre | ✅ |
-| 6 | Mains libres : mot d'activation + interruption | Expérience naturelle | ⬜ |
+| 6 | Mains libres : mot d'activation + interruption | Expérience naturelle | ✅ |
 | 7 | Mémoire long terme | Il se souvient de toi | ⬜ |
 | 8 | Outils perso + délégation Claude Code | Assistant du quotidien | ⬜ |
 | 9 | Finitions : tray, démarrage auto, `.exe` | Produit fini | ⬜ |

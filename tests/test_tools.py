@@ -124,3 +124,24 @@ def test_retry_recovers_from_a_passing_failure():
 
     assert retry(flaky, delay=0) == "ok"
     assert len(attempts) == 2
+
+
+class SlowTool(Tool):
+    name = "slow"
+    description = "ne répond jamais"
+    parameters = {}
+
+    def run(self):
+        import time
+
+        time.sleep(30)
+
+
+def test_toolbox_gives_up_on_slow_tools_and_on_interruption():
+    import time
+
+    box = ToolBox([SlowTool()])
+    start = time.monotonic()
+    assert "pas répondu à temps" in box.run("slow", {}, timeout=0.3).text
+    assert "Interrompu" in box.run("slow", {}, cancelled=lambda: True).text
+    assert time.monotonic() - start < 2
