@@ -4,6 +4,7 @@ import logging
 from collections.abc import Callable, Iterator
 from typing import Any
 
+import httpx
 import ollama
 
 from jarvis.brain.conversation import Conversation
@@ -13,6 +14,9 @@ from jarvis.core.config import Settings
 from jarvis.tools.base import ToolBox
 
 log = logging.getLogger(__name__)
+
+# En streaming, la bibliothèque ollama laisse passer les erreurs réseau de httpx telles quelles.
+OLLAMA_ERRORS = (ollama.ResponseError, ConnectionError, httpx.TransportError)
 
 # Nombre maximum d'allers-retours avec les outils pour une même question
 MAX_TOOL_ROUNDS = 3
@@ -43,7 +47,7 @@ class Brain:
                 keep_alive="30m",
                 options={"num_ctx": self.settings.ollama_num_ctx},
             )
-        except (ollama.ResponseError, ConnectionError) as e:
+        except OLLAMA_ERRORS as e:
             log.warning("Préchargement du modèle impossible : %s", e)
 
     def reply(
@@ -71,7 +75,7 @@ class Brain:
                     self.conversation.add("assistant", "".join(parts))
                     break
                 yield from self._run_tools(calls, "".join(parts), cancelled)
-        except (ollama.ResponseError, ConnectionError) as e:
+        except OLLAMA_ERRORS as e:
             self._forget_unanswered_question()
             log.error("Erreur Ollama : %s", e)
             raise BrainError(str(e)) from e

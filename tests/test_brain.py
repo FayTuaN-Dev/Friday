@@ -63,3 +63,12 @@ def test_interrupted_reply_keeps_history_alternating():
         {"role": "user", "content": "Explique"},
         {"role": "assistant", "content": "Je vais […]"},
     ]
+
+
+def test_ollama_down_while_streaming_is_a_brain_error():
+    import httpx
+
+    brain = Brain(SETTINGS, client=FakeClient(error=httpx.ConnectError("refusée")))
+    with pytest.raises(BrainError):
+        list(brain.reply("Salut"))
+    brain.warmup()  # ne doit pas planter non plus
