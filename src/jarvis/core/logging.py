@@ -22,4 +22,5 @@ def setup_logging(level: str = "INFO") -> None:
     root.setLevel(level)
     root.handlers = [console, file]
     # Bibliothèques trop bavardes (une ligne par requête HTTP)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
+    for noisy in ("httpx", "primp", "faster_whisper"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)

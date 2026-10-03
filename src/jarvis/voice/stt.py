@@ -2,6 +2,7 @@
 
 import logging
 import os
+import threading
 from pathlib import Path
 
 import numpy as np
@@ -26,6 +27,8 @@ def clean_transcript(text: str) -> str:
 class WhisperSTT:
     def __init__(self, model: str, device: str, models_dir: Path) -> None:
         os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+        # Push-to-talk et écoute continue transcrivent depuis deux threads : un à la fois.
+        self._lock = threading.Lock()
         register_cuda_dlls()
         from faster_whisper import WhisperModel
 
@@ -51,12 +54,18 @@ class WhisperSTT:
     def transcribe(self, audio: np.ndarray) -> str:
         if audio.size < MIN_SECONDS * WHISPER_RATE:
             return ""
+        with self._lock:
+            return self._transcribe(audio)
+
+    def _transcribe(self, audio: np.ndarray) -> str:
         segments, _ = self.model.transcribe(
             audio,
             language="fr",
             beam_size=5,
             vad_filter=True,  # ignore les silences avant/après la parole
             condition_on_previous_text=False,
-            initial_prompt="Jarvis,",  # aide Whisper à bien écrire le nom
+            # Oriente Whisper vers le nom. (Un initial_prompt="Jarvis," faisait l'inverse : Whisper
+            # croyait le nom déjà dit et le sautait — 12 réveils sur 20 contre 18 ici.)
+            hotwords="Jarvis",
         )
         return clean_transcript(" ".join(s.text for s in segments))

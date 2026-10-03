@@ -1,7 +1,7 @@
 """Cerveau de Jarvis : discussion avec le modèle local via Ollama, avec appel d'outils."""
 
 import logging
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 import ollama
@@ -46,8 +46,13 @@ class Brain:
         except (ollama.ResponseError, ConnectionError) as e:
             log.warning("Préchargement du modèle impossible : %s", e)
 
-    def reply(self, user_text: str) -> Iterator[BrainEvent]:
-        """Répond en streaming : des morceaux de texte, et des événements quand un outil sert."""
+    def reply(
+        self, user_text: str, cancelled: Callable[[], bool] = lambda: False
+    ) -> Iterator[BrainEvent]:
+        """Répond en streaming : des morceaux de texte, et des événements quand un outil sert.
+
+        `cancelled` permet d'abandonner un outil en cours si l'utilisateur interrompt Jarvis.
+        """
         self.conversation.add("user", user_text)
         parts: list[str] = []
         try:
@@ -65,7 +70,7 @@ class Brain:
                 if not calls:
                     self.conversation.add("assistant", "".join(parts))
                     break
-                yield from self._run_tools(calls, "".join(parts))
+                yield from self._run_tools(calls, "".join(parts), cancelled)
         except (ollama.ResponseError, ConnectionError) as e:
             self._forget_unanswered_question()
             log.error("Erreur Ollama : %s", e)
@@ -102,7 +107,9 @@ class Brain:
             options={"num_ctx": self.settings.ollama_num_ctx},
         )
 
-    def _run_tools(self, calls: list[Any], said: str) -> Iterator[BrainEvent]:
+    def _run_tools(
+        self, calls: list[Any], said: str, cancelled: Callable[[], bool]
+    ) -> Iterator[BrainEvent]:
         self.conversation.add(
             "assistant",
             said,
@@ -115,7 +122,7 @@ class Brain:
             name, args = call.function.name, dict(call.function.arguments)
             log.info("Outil %s(%s)", name, args)
             yield ToolStarted(name, args, self.toolbox.label(name, args))
-            result = self.toolbox.run(name, args)
+            result = self.toolbox.run(name, args, cancelled)
             self.conversation.add("tool", result.text, tool_name=name)
             yield ToolFinished(name, result)
 

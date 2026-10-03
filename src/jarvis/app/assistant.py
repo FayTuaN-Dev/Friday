@@ -11,9 +11,10 @@ from collections.abc import Callable
 
 import numpy as np
 
-from jarvis.app.components import Components, load_components
+from jarvis.app.components import Components, describe, load_components
 from jarvis.app.events import AssistantListener, AssistantState
 from jarvis.app.reply import Reply
+from jarvis.app.voice_inputs import VoiceInputs
 from jarvis.brain.llm import BrainError
 from jarvis.core.config import Settings
 
@@ -35,7 +36,9 @@ class Assistant:
         self._interrupted = threading.Event()
         self._listening = False
         self._state: AssistantState | None = None
-        self._ptt = None
+        self.inputs = VoiceInputs(settings, self)
+        self._reply: Reply | None = None
+        self._said = ""  # dernière phrase dite hors réponse (« Oui ? »), pour l'anti-écho
 
     # --- API publique (appelable depuis n'importe quel thread) ---
 
@@ -51,11 +54,33 @@ class Assistant:
         if text.strip():
             self._events.put(("text", text.strip()))
 
+    def submit_heard(self, text: str) -> None:
+        """Demande entendue en mains libres (déjà transcrite)."""
+        self._events.put(("heard", text))
+
+    def acknowledge(self) -> None:
+        """« Jarvis » tout seul : il répond et écoute la phrase suivante."""
+        self._said = f"Oui, {self.settings.user_name} ?"
+        if self.voice_on and self.components.speaker:
+            self.components.speaker.say(self._said)
+        self.listener.on_notice("Je vous écoute…")
+        self.inputs.wake.open_follow_up()
+
+    @property
+    def busy(self) -> bool:
+        return self._state in (AssistantState.THINKING, AssistantState.SPEAKING)
+
+    @property
+    def last_reply_text(self) -> str:
+        """Ce que Jarvis dit ou vient de dire (pour reconnaître son propre écho)."""
+        return f"{self._said} {self._reply.spoken if self._reply else ''}".strip()
+
     def start_listening(self) -> None:
         if not self.can_listen or self._listening:
             return
         self.interrupt()
         self._listening = True
+        self.inputs.pause()
         self.components.recorder.start()
         self._set_state(AssistantState.LISTENING)
 
@@ -65,6 +90,7 @@ class Assistant:
         self._listening = False
         self._set_state(AssistantState.THINKING)
         self._events.put(("audio", self.components.recorder.stop()))
+        self.inputs.resume()
 
     def interrupt(self) -> None:
         """Coupe la parole et la génération en cours."""
@@ -83,8 +109,7 @@ class Assistant:
         self._events.put(("reset", None))
 
     def shutdown(self) -> None:
-        if self._ptt:
-            self._ptt.close()
+        self.inputs.close()
         self.interrupt()
         self._events.put(("stop", None))
 
@@ -102,8 +127,11 @@ class Assistant:
             return
         if self.components.speaker is None:
             self.voice_on = False
-        self._setup_push_to_talk()
-        self.listener.on_ready(self._describe())
+        inputs = []
+        if self.can_listen:
+            self.inputs.start(self.components.stt)
+            inputs = self.inputs.describe()
+        self.listener.on_ready(describe(self.settings, self.components, inputs))
         self._set_state(AssistantState.IDLE)
 
         while True:
@@ -125,6 +153,9 @@ class Assistant:
         elif kind == "text":
             self.listener.on_user_message(str(payload), by_voice=False)
             self._respond(str(payload))
+        elif kind == "heard":
+            self.listener.on_user_message(str(payload), by_voice=True)
+            self._respond(str(payload))
         elif kind == "audio":
             text = self.components.stt.transcribe(payload)
             if not text:
@@ -138,10 +169,14 @@ class Assistant:
         self._set_state(AssistantState.THINKING)
         speaker = self.components.speaker if self.voice_on else None
         interrupted = False
+        self._said = ""
+        self._reply = Reply(self.listener, speaker, self._interrupted)
         self.listener.on_reply_start()
-        stream = self.components.brain.reply(text)
+        stream = self.components.brain.reply(text, self._interrupted.is_set)
         try:
-            interrupted = Reply(self.listener, speaker, self._interrupted).run(stream)
+            interrupted = self._reply.run(stream)
+            if not interrupted:
+                self.inputs.wake.open_follow_up()  # relance possible sans redire « Jarvis »
         except BrainError:
             host = self.settings.ollama_host
             self.listener.on_notice(f"Impossible de joindre Ollama sur {host}. Est-il lancé ?")
@@ -160,23 +195,3 @@ class Assistant:
         if state != self._state:
             self._state = state
             self.listener.on_state(state)
-
-    def _setup_push_to_talk(self) -> None:
-        if not self.can_listen:
-            return
-        try:
-            from jarvis.voice.ptt import PushToTalk
-
-            self._ptt = PushToTalk(self.settings.ptt_key, self.start_listening, self.stop_listening)
-        except Exception:
-            log.exception("Touche push-to-talk « %s » indisponible", self.settings.ptt_key)
-
-    def _describe(self) -> str:
-        c = self.components
-        parts = [f"Cerveau : {self.settings.ollama_model}"]
-        parts.append(f"Voix : {self.settings.tts_voice}" if c.speaker else "Voix : désactivée")
-        if self.can_listen:
-            parts.append(f"Parler : maintenir « {self.settings.ptt_key} »")
-        else:
-            parts.append("Écoute : désactivée")
-        return " · ".join(parts)
