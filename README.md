@@ -38,6 +38,8 @@ Dans la fenêtre, les boutons de la barre du bas permettent d'envoyer, de parler
 
 Choisir le micro : `uv run python -m sounddevice` liste les périphériques, puis régler `MIC_DEVICE` (numéro ou morceau du nom).
 
+Choisir la sortie audio : `OUTPUT_DEVICE` (même principe). En cas de grésillements : `uv run python -m jarvis.voice.diagnostic`.
+
 Pour comparer les voix disponibles : `uv run python -m jarvis.voice.audition`, puis régler `TTS_VOICE` dans `.env`.
 
 ## Développement

@@ -36,7 +36,12 @@ def load_components(
             from jarvis.voice.tts import PiperTTS
 
             tts = PiperTTS(settings.tts_voice, VOICES_DIR, settings.tts_speed, settings.tts_speaker)
-            components.speaker = Speaker(tts, on_play=on_speech_audio)
+            from jarvis.voice.player import AudioPlayer
+
+            player = AudioPlayer(tts.sample_rate, settings.output_device)
+            components.speaker = Speaker(
+                tts, play=player.play, stop_playback=player.stop, on_play=on_speech_audio
+            )
         except Exception:
             log.exception("Voix indisponible, Jarvis continue en mode texte")
 

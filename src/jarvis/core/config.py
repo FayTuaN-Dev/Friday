@@ -28,6 +28,7 @@ class Settings:
     stt_model: str
     stt_device: str
     mic_device: int | str | None
+    output_device: int | str | None
     ptt_key: str
     hands_free: bool
     wake_words: list[str]
@@ -68,6 +69,7 @@ def load_settings() -> Settings:
         stt_model=os.getenv("STT_MODEL", "large-v3-turbo"),
         stt_device=os.getenv("STT_DEVICE", "cuda"),
         mic_device=_device(os.getenv("MIC_DEVICE")),
+        output_device=_device(os.getenv("OUTPUT_DEVICE")),
         ptt_key=os.getenv("PTT_KEY", "home"),
         hands_free=_bool("HANDS_FREE", True),
         wake_words=[

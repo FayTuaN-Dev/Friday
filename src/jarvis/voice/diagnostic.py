@@ -13,6 +13,7 @@ import numpy as np
 import sounddevice as sd
 
 from jarvis.core.config import MODELS_DIR, VOICES_DIR, load_settings
+from jarvis.voice.player import AudioPlayer
 from jarvis.voice.recorder import resample
 
 SENTENCE = (
@@ -21,21 +22,11 @@ SENTENCE = (
 )
 
 
-def play_and_count(audio: np.ndarray, sample_rate: int) -> int:
-    """Joue l'audio et compte les moments où la carte son a manqué de données."""
-    underflows, position = [0], [0]
-
-    def callback(out, frames, _time, status) -> None:
-        if status.output_underflow:
-            underflows[0] += 1
-        chunk = audio[position[0] : position[0] + frames]
-        out[: len(chunk), 0] = chunk
-        out[len(chunk) :, 0] = 0
-        position[0] += frames
-
-    with sd.OutputStream(samplerate=sample_rate, channels=1, dtype="float32", callback=callback):
-        time.sleep(audio.size / sample_rate + 0.3)
-    return underflows[0]
+def play_and_count(player, audio: np.ndarray) -> int:
+    """Joue l'audio avec le lecteur de Jarvis et compte les coupures de la carte son."""
+    before = player.underflows
+    player.play(audio)
+    return player.underflows - before
 
 
 def busy_gpu_llm(settings, stop: threading.Event) -> None:
@@ -73,7 +64,8 @@ def main() -> None:
     stt = WhisperSTT(settings.stt_model, settings.stt_device, MODELS_DIR)
     audio = tts.synthesize(SENTENCE)
     audio16k = resample(audio, tts.sample_rate)
-    print(f"Sortie audio : {sd.query_devices(kind='output')['name']}\n")
+    player = AudioPlayer(tts.sample_rate, settings.output_device)
+    print(f"Sortie audio : {sd.query_devices(player._stream.device)['name']}\n")
 
     steps = [
         ("1. Au repos (rien d'autre ne tourne)", []),
@@ -95,11 +87,12 @@ def main() -> None:
         for load in loads:
             threading.Thread(target=load, args=(stop,), daemon=True).start()
         time.sleep(2 if loads else 0.5)  # laisse la charge démarrer
-        underflows = play_and_count(audio, tts.sample_rate)
+        underflows = play_and_count(player, audio)
         stop.set()
         print(f"   → coupures détectées par la carte son : {underflows}\n")
         time.sleep(1.5)
 
+    player.close()
     print("Terminé. Note les étapes où tu as entendu des grésillements.")
 
 
