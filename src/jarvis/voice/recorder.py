@@ -2,6 +2,7 @@
 
 import logging
 import threading
+from collections.abc import Callable
 
 import numpy as np
 import sounddevice as sd
@@ -20,8 +21,11 @@ def resample(audio: np.ndarray, src_rate: int, dst_rate: int = WHISPER_RATE) -> 
 
 
 class Recorder:
-    def __init__(self, device: int | str | None = None) -> None:
+    def __init__(
+        self, device: int | str | None = None, on_level: Callable[[float], None] | None = None
+    ) -> None:
         self.device = device
+        self._on_level = on_level  # niveau sonore (0 à 1) toutes les ~20 ms, pour l'animation
         # On enregistre à la fréquence native du micro puis on convertit en 16 kHz pour Whisper.
         self.sample_rate = int(sd.query_devices(device, kind="input")["default_samplerate"])
         self._frames: list[np.ndarray] = []
@@ -35,6 +39,7 @@ class Recorder:
             device=self.device,
             channels=1,
             dtype="float32",
+            blocksize=self.sample_rate // 50,
             callback=self._on_audio,
         )
         self._stream.start()
@@ -55,3 +60,6 @@ class Recorder:
             log.debug("Micro : %s", status)
         with self._lock:
             self._frames.append(data.copy())
+        if self._on_level:
+            rms = float(np.sqrt(np.mean(data**2)))
+            self._on_level(min(1.0, rms * 8))

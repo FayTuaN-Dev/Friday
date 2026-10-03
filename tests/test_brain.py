@@ -1,46 +1,12 @@
 from datetime import datetime
-from types import SimpleNamespace
 
 import ollama
 import pytest
+from fakes import SETTINGS, FakeClient
 
 from jarvis.brain.conversation import Conversation
 from jarvis.brain.llm import Brain, BrainError
 from jarvis.brain.prompts import build_system_prompt
-from jarvis.core.config import Settings
-
-SETTINGS = Settings(
-    user_name="Tony",
-    ollama_host="http://localhost:11434",
-    ollama_model="qwen3:8b",
-    ollama_num_ctx=8192,
-    claude_model="sonnet",
-    tts_enabled=False,
-    tts_voice="fr_FR-tom-medium",
-    tts_speaker=None,
-    tts_speed=1.0,
-    stt_enabled=False,
-    stt_model="small",
-    stt_device="cpu",
-    mic_device=None,
-    ptt_key="home",
-    log_level="INFO",
-)
-
-
-class FakeClient:
-    """Imite ollama.Client.chat en renvoyant des morceaux prédéfinis."""
-
-    def __init__(self, chunks=(), error=None):
-        self.chunks = chunks
-        self.error = error
-        self.calls = []
-
-    def chat(self, **kwargs):
-        self.calls.append(kwargs)
-        if self.error:
-            raise self.error
-        return (SimpleNamespace(message=SimpleNamespace(content=c)) for c in self.chunks)
 
 
 def test_system_prompt():

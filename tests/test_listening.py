@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import numpy as np
 
 from jarvis.core.config import _device
@@ -25,15 +27,23 @@ def test_mic_device_setting():
     assert _device("SteelSeries") == "SteelSeries"
 
 
-def test_push_to_talk_ignores_key_repeat(monkeypatch):
+def key(event_type):
+    return SimpleNamespace(event_type=event_type)
+
+
+def test_push_to_talk_ignores_key_repeat_and_unhooks(monkeypatch):
     hooks = {}
-    monkeypatch.setattr(ptt.keyboard, "on_press_key", lambda k, cb: hooks.__setitem__("p", cb))
-    monkeypatch.setattr(ptt.keyboard, "on_release_key", lambda k, cb: hooks.__setitem__("r", cb))
+    monkeypatch.setattr(ptt.keyboard, "hook_key", lambda k, cb: hooks.setdefault(k, cb))
+    monkeypatch.setattr(ptt.keyboard, "unhook", lambda h: hooks.clear())
     calls = []
-    ptt.PushToTalk("home", lambda: calls.append("start"), lambda: calls.append("stop"))
+    push = ptt.PushToTalk("home", lambda: calls.append("start"), lambda: calls.append("stop"))
 
     for _ in range(5):  # touche maintenue : Windows envoie des répétitions
-        hooks["p"](None)
-    hooks["r"](None)
-    hooks["r"](None)
+        hooks["home"](key("down"))
+    hooks["home"](key("up"))
+    hooks["home"](key("up"))
     assert calls == ["start", "stop"]
+
+    push.close()
+    push.close()  # deux fois sans erreur
+    assert hooks == {}

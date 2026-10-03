@@ -41,9 +41,11 @@ class Speaker:
         tts: TTS,
         play: PlayFn = _sounddevice_play,
         stop_playback: Callable[[], None] = _sounddevice_stop,
+        on_play: PlayFn | None = None,
     ) -> None:
         self.tts = tts
         self._play = play
+        self._on_play = on_play  # prévenu juste avant chaque phrase jouée (animation)
         self._stop_playback = stop_playback
         self._texts: queue.Queue[tuple[int, str]] = queue.Queue()
         self._audio: queue.Queue[tuple[int, np.ndarray]] = queue.Queue()
@@ -91,6 +93,8 @@ class Speaker:
             gen, audio = self._audio.get()
             try:
                 if gen == self._generation:
+                    if self._on_play:
+                        self._on_play(audio, self.tts.sample_rate)
                     self._play(audio, self.tts.sample_rate)
             except Exception:
                 log.exception("Échec de la lecture audio")

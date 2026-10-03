@@ -1,6 +1,6 @@
 import threading
 
-import numpy as np
+from fakes import FakeTTS
 
 from jarvis.voice.speaker import Speaker
 from jarvis.voice.text import SentenceSplitter, clean_for_speech
@@ -34,13 +34,6 @@ def test_splitter_keeps_decimals_and_splits_long_text():
 
 def test_clean_for_speech():
     assert clean_for_speech("**Bonjour** 😀 voir https://x.fr  !") == "Bonjour voir ce lien !"
-
-
-class FakeTTS:
-    sample_rate = 16000
-
-    def synthesize(self, text):
-        return np.full(len(text), 0.1, dtype=np.float32)
 
 
 def test_speaker_plays_in_order():
