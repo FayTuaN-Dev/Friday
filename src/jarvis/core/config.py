@@ -35,7 +35,7 @@ def load_settings() -> Settings:
         ollama_num_ctx=int(os.getenv("OLLAMA_NUM_CTX", "8192")),
         claude_model=os.getenv("CLAUDE_MODEL", "sonnet"),
         tts_enabled=os.getenv("TTS_ENABLED", "true").lower() in ("1", "true", "oui", "yes"),
-        tts_voice=os.getenv("TTS_VOICE", "fr_FR-tom-medium"),
+        tts_voice=os.getenv("TTS_VOICE", "fr_FR-siwis-medium"),
         tts_speaker=int(v) if (v := os.getenv("TTS_SPEAKER")) else None,
         tts_speed=float(os.getenv("TTS_SPEED", "1.0")),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
