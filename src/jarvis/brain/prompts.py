@@ -9,6 +9,11 @@ MOIS = [
 ]  # fmt: skip
 
 
+def french_date(day: datetime) -> str:
+    """« samedi 3 octobre 2026 »"""
+    return f"{JOURS[day.weekday()]} {day.day} {MOIS[day.month - 1]} {day.year}"
+
+
 WITH_TOOLS = """Tes outils :
 - web_search : chercher sur internet. Utilise-le pour l'actualité, les faits récents, les
   prix, les horaires, la météo, les résultats sportifs, ou dès que tu as un doute.
@@ -31,12 +36,31 @@ actualités, ni à l'agenda, ni aux fichiers, ni à l'ordinateur. N'invente jama
 informations : explique poliment que cette capacité n'est pas encore installée."""
 
 
+MEMORY = """Ta mémoire (ce que tu sais de l'utilisateur, d'une conversation à l'autre) :
+{memories}
+
+Utilise ces souvenirs naturellement quand ils sont utiles, sans les réciter. Tiens TOUJOURS
+compte de ce qui touche à la santé, aux allergies et aux préférences dans tes conseils
+(repas, sport, sorties, achats…).
+- L'utilisateur te demande de retenir quelque chose : outil remember.
+- Il corrige une information que tu as (déménagement, nouveau travail…) : outil remember
+  avec « replaces » = numéro du souvenir dépassé.
+- Il te demande d'oublier quelque chose : outil forget_memory avec le numéro entre crochets.
+- Il demande ce que tu sais sur lui : outil list_memories."""
+
+
 def build_system_prompt(
-    user_name: str, now: datetime | None = None, with_tools: bool = False
+    user_name: str,
+    now: datetime | None = None,
+    with_tools: bool = False,
+    memories: str | None = None,
 ) -> str:
+    """`memories` : None si la mémoire est désactivée, "" si elle est vide."""
     now = now or datetime.now()
     capabilities = WITH_TOOLS if with_tools else WITHOUT_TOOLS
-    date = f"{JOURS[now.weekday()]} {now.day} {MOIS[now.month - 1]} {now.year}"
+    if memories is not None:
+        capabilities += "\n\n" + MEMORY.format(memories=memories or "(vide pour l'instant)")
+    date = french_date(now)
     return f"""Tu es Jarvis, l'assistant personnel de ton utilisateur, inspiré du J.A.R.V.I.S.
 d'Iron Man.
 

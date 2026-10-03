@@ -31,6 +31,9 @@ SETTINGS = Settings(
     vad_silence_ms=700,
     tools_enabled=False,
     search_region="fr-fr",
+    memory_enabled=False,
+    memory_auto=False,
+    embed_model="embeddinggemma",
     log_level="INFO",
 )
 
@@ -141,6 +144,9 @@ class RecordingListener:
 
     def on_display(self, display):
         self._log("display", display.kind)
+
+    def on_memory(self, text):
+        self._log("memory", text)
 
     def on_mic_level(self, level):
         pass

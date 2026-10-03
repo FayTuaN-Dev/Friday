@@ -21,6 +21,7 @@ class QtBridge(QObject):
     notice = Signal(str)
     tool = Signal(str)
     display = Signal(object)
+    memory = Signal(str)
     mic_level = Signal(float)
     speech_audio = Signal(object, int)
 
@@ -52,6 +53,9 @@ class QtBridge(QObject):
 
     def on_display(self, display: Display) -> None:
         self.display.emit(display)
+
+    def on_memory(self, text: str) -> None:
+        self.memory.emit(text)
 
     def on_mic_level(self, level: float) -> None:
         self.mic_level.emit(level)

@@ -78,6 +78,11 @@ def stylesheet() -> str:
     #MicButton:pressed {{ background: {LISTENING}; color: {BG}; }}
     QToolTip {{ background: {PANEL}; color: {TEXT}; border: 1px solid {BORDER}; }}
     #ToolNotice {{ color: {THINKING}; font-family: "{FONT_HUD}"; font-size: 12px; }}
+    #MemoryNotice {{ color: {ACCENT}; font-family: "{FONT_HUD}"; font-size: 12px; }}
+    #MemoryItem {{ background: {PANEL}; border: 1px solid {BORDER}; border-radius: 8px; }}
+    #MemoryItem QLabel {{ background: transparent; }}
+    #MemoryMeta {{ color: {MUTED}; font-size: 11px; }}
+    #Hint {{ color: {MUTED}; font-size: 11px; font-style: italic; }}
 
     /* Pop-ups */
     #Popup {{ background: {BG}; border: 1px solid {ACCENT_DIM}; }}

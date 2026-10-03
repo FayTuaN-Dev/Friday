@@ -32,10 +32,14 @@ class Brain:
         settings: Settings,
         client: ollama.Client | None = None,
         toolbox: ToolBox | None = None,
+        recall: Callable[[str], str] | None = None,
     ) -> None:
         self.settings = settings
         self.client = client or ollama.Client(host=settings.ollama_host)
         self.toolbox = toolbox or ToolBox([])
+        # recall(question) → souvenirs utiles, déjà mis en forme (None : pas de mémoire)
+        self.recall = recall
+        self._memories: str | None = None
         self.conversation = Conversation()
 
     def warmup(self) -> None:
@@ -58,6 +62,7 @@ class Brain:
         `cancelled` permet d'abandonner un outil en cours si l'utilisateur interrompt Jarvis.
         """
         self.conversation.add("user", user_text)
+        self._memories = self.recall(user_text) if self.recall else None
         parts: list[str] = []
         try:
             for round_ in range(MAX_TOOL_ROUNDS + 1):
@@ -96,7 +101,9 @@ class Brain:
             {
                 "role": "system",
                 "content": build_system_prompt(
-                    self.settings.user_name, with_tools=bool(self.toolbox)
+                    self.settings.user_name,
+                    with_tools=bool(self.toolbox),
+                    memories=self._memories,
                 ),
             },
             *self.conversation.messages,

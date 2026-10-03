@@ -119,7 +119,10 @@ class Assistant:
         self._set_state(AssistantState.LOADING)
         try:
             self.components = self._loader(
-                self.settings, self.listener.on_mic_level, self._on_speech_audio
+                self.settings,
+                self.listener.on_mic_level,
+                self._on_speech_audio,
+                on_memory=self.listener.on_memory,
             )
         except Exception:
             log.exception("Chargement de Jarvis impossible")
@@ -150,11 +153,8 @@ class Assistant:
         if kind == "reset":
             self.components.brain.reset()
             self.listener.on_notice("Nouvelle conversation")
-        elif kind == "text":
-            self.listener.on_user_message(str(payload), by_voice=False)
-            self._respond(str(payload))
-        elif kind == "heard":
-            self.listener.on_user_message(str(payload), by_voice=True)
+        elif kind in ("text", "heard"):
+            self.listener.on_user_message(str(payload), by_voice=kind == "heard")
             self._respond(str(payload))
         elif kind == "audio":
             text = self.components.stt.transcribe(payload)
@@ -177,6 +177,8 @@ class Assistant:
             interrupted = self._reply.run(stream)
             if not interrupted:
                 self.inputs.wake.open_follow_up()  # relance possible sans redire « Jarvis »
+            if self.components.keeper and "remember" not in self._reply.tools_used:
+                self.components.keeper.observe(text)  # mémorisation en arrière-plan
         except BrainError:
             host = self.settings.ollama_host
             self.listener.on_notice(f"Impossible de joindre Ollama sur {host}. Est-il lancé ?")

@@ -8,6 +8,7 @@ et affiche le chat, des images et des résultats dans des pop-ups.
 - **Cerveau** : Ollama (`qwen3:8b`), avec délégation à Claude Code pour le code
 - **Voix** : faster-whisper (écoute) + Piper (parole)
 - **Interface** : PySide6
+- **Mémoire** : se souvient de vous d'une session à l'autre (SQLite local + embeddings `embeddinggemma`)
 - **Outils** : recherche web, lecture de pages et images (DuckDuckGo, sans clé API), affichés en pop-ups
 
 Voir [ROADMAP.md](ROADMAP.md) pour les fonctionnalités et l'avancement, et
@@ -19,6 +20,7 @@ Prérequis : [uv](https://docs.astral.sh/uv/) et [Ollama](https://ollama.com) av
 
 ```
 ollama pull qwen3:8b
+ollama pull embeddinggemma
 uv sync
 copy .env.example .env
 ```
@@ -31,6 +33,7 @@ uv run jarvis --cli    # version terminal
 ```
 
 - **Mains libres** : dire « **Jarvis**, quelle heure est-il ? » d'une traite. « Jarvis » seul → il répond « Oui ? » et écoute la suite. Juste après une réponse, on peut relancer sans redire son nom. Pendant qu'il parle : « Jarvis, … » lui coupe la parole, « stop » le fait taire.
+- **Mémoire** : il retient seul ce qui compte (« 🧠 Mémorisé : … »). « Retiens que… », « Oublie que… », « Qu'est-ce que tu sais sur moi ? »
 - **Push-to-talk** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher.
 - **Écrire** : taper son message puis Entrée.
 
