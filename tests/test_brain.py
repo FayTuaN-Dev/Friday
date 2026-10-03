@@ -19,6 +19,11 @@ SETTINGS = Settings(
     tts_voice="fr_FR-tom-medium",
     tts_speaker=None,
     tts_speed=1.0,
+    stt_enabled=False,
+    stt_model="small",
+    stt_device="cpu",
+    mic_device=None,
+    ptt_key="home",
     log_level="INFO",
 )
 
@@ -81,3 +86,14 @@ def test_reply_error_forgets_question():
 
 def test_warmup_never_raises():
     Brain(SETTINGS, client=FakeClient(error=ConnectionError("down"))).warmup()
+
+
+def test_interrupted_reply_keeps_history_alternating():
+    brain = Brain(SETTINGS, client=FakeClient(chunks=["Je vais", " vous", " expliquer."]))
+    stream = brain.reply("Explique")
+    next(stream)
+    stream.close()  # interruption après le premier morceau
+    assert brain.conversation.messages == [
+        {"role": "user", "content": "Explique"},
+        {"role": "assistant", "content": "Je vais […]"},
+    ]

@@ -9,8 +9,8 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 | Langage | Python 3.12 (via `uv`) | 3.12 plutôt que 3.14 : meilleure compatibilité des libs audio/IA |
 | Cerveau | Ollama `qwen3:8b` (local) | Supporte l'appel d'outils |
 | Tâches complexes / code | Claude Code (`sonnet`, modèle configurable) | Délégué par Jarvis comme un outil |
-| Transcription (STT) | `faster-whisper` (local) | Modèle `small` ou `medium` selon la VRAM restante |
-| Voix (TTS) | Piper (local, voix FR) | Option cloud plus tard si besoin |
+| Transcription (STT) | `faster-whisper` large-v3-turbo (local, GPU) | ~0,5 s par phrase ; `small` en secours si la VRAM manque |
+| Voix (TTS) | Piper `fr_FR-siwis-medium` (local) | Option cloud plus tard si besoin |
 | Interface | PySide6 (Qt) | |
 | Matériel | RTX 3070 (8 Go VRAM) | qwen3:8b ≈ 5,2 Go : il reste ~2,5 Go pour Whisper |
 
@@ -21,9 +21,9 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 ## Fonctionnalités
 
 ### 1. 🎙️ Écouter
-- [ ] Push-to-talk (touche maintenue)
+- [x] Push-to-talk (touche maintenue, configurable)
 - [ ] Détection de fin de parole (VAD — `silero-vad`)
-- [ ] Transcription (`faster-whisper`)
+- [x] Transcription (`faster-whisper` large-v3-turbo sur GPU)
 - [ ] Mot d'activation « Jarvis » (`openWakeWord`)
 - [ ] Interruption pendant qu'il parle (barge-in)
 
@@ -89,7 +89,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 | 0 | Mise en place : `uv`, Python 3.12, git, structure, `.env` | Projet prêt | ✅ |
 | 1 | Cerveau texte : chat Ollama en terminal, historique, personnalité | On lui parle au clavier | ✅ |
 | 2 | Voix de sortie : Piper, phrase par phrase | Il répond à voix haute | ✅ |
-| 3 | Voix d'entrée : push-to-talk + Whisper | 1re conversation 100 % vocale | ⬜ |
+| 3 | Voix d'entrée : push-to-talk + Whisper | 1re conversation 100 % vocale | ✅ |
 | 4 | Interface : fenêtre chat + indicateur d'état | Jarvis a un visage | ⬜ |
 | 5 | Premiers outils : recherche web + pop-ups images/textes | Il cherche et montre | ⬜ |
 | 6 | Mains libres : mot d'activation + interruption | Expérience naturelle | ⬜ |

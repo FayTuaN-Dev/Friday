@@ -10,6 +10,7 @@ ROOT_DIR = Path(__file__).resolve().parents[3]
 DATA_DIR = ROOT_DIR / "data"
 LOGS_DIR = ROOT_DIR / "logs"
 VOICES_DIR = DATA_DIR / "voices"
+MODELS_DIR = DATA_DIR / "models"
 
 
 @dataclass(frozen=True)
@@ -23,7 +24,26 @@ class Settings:
     tts_voice: str
     tts_speaker: int | None
     tts_speed: float
+    stt_enabled: bool
+    stt_model: str
+    stt_device: str
+    mic_device: int | str | None
+    ptt_key: str
     log_level: str
+
+
+def _bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if not value:
+        return default
+    return value.strip().lower() in ("1", "true", "oui", "yes")
+
+
+def _device(value: str | None) -> int | str | None:
+    """Périphérique audio : numéro, morceau de nom, ou vide pour celui de Windows."""
+    if not value:
+        return None
+    return int(value) if value.isdigit() else value
 
 
 def load_settings() -> Settings:
@@ -34,9 +54,14 @@ def load_settings() -> Settings:
         ollama_model=os.getenv("OLLAMA_MODEL", "qwen3:8b"),
         ollama_num_ctx=int(os.getenv("OLLAMA_NUM_CTX", "8192")),
         claude_model=os.getenv("CLAUDE_MODEL", "sonnet"),
-        tts_enabled=os.getenv("TTS_ENABLED", "true").lower() in ("1", "true", "oui", "yes"),
+        tts_enabled=_bool("TTS_ENABLED", True),
         tts_voice=os.getenv("TTS_VOICE", "fr_FR-siwis-medium"),
         tts_speaker=int(v) if (v := os.getenv("TTS_SPEAKER")) else None,
         tts_speed=float(os.getenv("TTS_SPEED", "1.0")),
+        stt_enabled=_bool("STT_ENABLED", True),
+        stt_model=os.getenv("STT_MODEL", "large-v3-turbo"),
+        stt_device=os.getenv("STT_DEVICE", "cuda"),
+        mic_device=_device(os.getenv("MIC_DEVICE")),
+        ptt_key=os.getenv("PTT_KEY", "home"),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
     )

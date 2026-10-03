@@ -61,6 +61,12 @@ class Brain:
             self.conversation.messages.pop()  # on oublie la question restée sans réponse
             log.error("Erreur Ollama : %s", e)
             raise BrainError(str(e)) from e
+        except BaseException:
+            # Interrompu (push-to-talk, Ctrl+C) : on garde ce qui a été dit, pour que
+            # l'historique reste une alternance question / réponse.
+            said = "".join(parts).strip()
+            self.conversation.add("assistant", f"{said} […]" if said else "[interrompu]")
+            raise
 
         self.conversation.add("assistant", "".join(parts))
 
