@@ -21,3 +21,5 @@ def setup_logging(level: str = "INFO") -> None:
     root = logging.getLogger()
     root.setLevel(level)
     root.handlers = [console, file]
+    # Bibliothèques trop bavardes (une ligne par requête HTTP)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
