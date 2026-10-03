@@ -23,6 +23,7 @@ SETTINGS = Settings(
     stt_model="small",
     stt_device="cpu",
     mic_device=None,
+    output_device=None,
     ptt_key="home",
     hands_free=False,
     wake_words=["jarvis", "jarvie"],

@@ -38,13 +38,15 @@ src/jarvis/
 │   ├── stt.py             WhisperSTT : voix → texte (faster-whisper)
 │   ├── tts.py             PiperTTS : texte → voix (Piper)
 │   ├── speaker.py         Speaker : file de phrases à dire (synthèse + lecture en parallèle)
+│   ├── player.py          AudioPlayer : sortie audio ouverte en permanence (pas de grésillement)
 │   ├── text.py            découpage en phrases, nettoyage avant lecture
 │   ├── ptt.py             PushToTalk : touche globale maintenue pour parler
 │   ├── hands_free.py      HandsFreeListener : écoute continue → phrases → texte
 │   ├── vad.py             StreamingVAD (Silero) + SpeechSegmenter : découpe le flux en phrases
 │   ├── wake.py            repérage de « Jarvis » en début de phrase, ordres d'arrêt, écho
 │   ├── cuda.py            DLL CUDA pour Whisper sur GPU (Windows)
-│   └── audition.py        outil : écouter les voix disponibles
+│   ├── audition.py        outil : écouter les voix disponibles
+│   └── diagnostic.py      outil : chercher l'origine de grésillements (voix sous charge)
 ├── app/
 │   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
 │   ├── reply.py           Reply : déroulé d'une réponse (texte, voix, outils, pop-ups)
