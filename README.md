@@ -25,7 +25,9 @@ copy .env.example .env
 uv run jarvis
 ```
 
-Commandes dans le chat : `/reset` (nouvelle conversation), `/quit` (quitter).
+Commandes dans le chat : `/voix` (activer/couper la voix), `/reset` (nouvelle conversation), `/quit` (quitter).
+
+Pour comparer les voix disponibles : `uv run python -m jarvis.voice.audition`, puis régler `TTS_VOICE` dans `.env`.
 
 ## Développement
 

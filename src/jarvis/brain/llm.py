@@ -22,6 +22,18 @@ class Brain:
         self.client = client or ollama.Client(host=settings.ollama_host)
         self.conversation = Conversation()
 
+    def warmup(self) -> None:
+        """Charge le modèle en mémoire vidéo dès le démarrage (sans générer de texte)."""
+        try:
+            self.client.chat(
+                model=self.settings.ollama_model,
+                messages=[],
+                keep_alive="30m",
+                options={"num_ctx": self.settings.ollama_num_ctx},
+            )
+        except (ollama.ResponseError, ConnectionError) as e:
+            log.warning("Préchargement du modèle impossible : %s", e)
+
     def reply(self, user_text: str) -> Iterator[str]:
         """Envoie le message et renvoie la réponse morceau par morceau (streaming)."""
         self.conversation.add("user", user_text)

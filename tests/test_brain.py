@@ -15,6 +15,10 @@ SETTINGS = Settings(
     ollama_model="qwen3:8b",
     ollama_num_ctx=8192,
     claude_model="sonnet",
+    tts_enabled=False,
+    tts_voice="fr_FR-tom-medium",
+    tts_speaker=None,
+    tts_speed=1.0,
     log_level="INFO",
 )
 
@@ -73,3 +77,7 @@ def test_reply_error_forgets_question():
     brain.client = FakeClient(error=ollama.ResponseError("model not found"))
     with pytest.raises(BrainError):
         list(brain.reply("Salut"))
+
+
+def test_warmup_never_raises():
+    Brain(SETTINGS, client=FakeClient(error=ConnectionError("down"))).warmup()
