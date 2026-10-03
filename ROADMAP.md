@@ -36,8 +36,8 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [ ] Délégation à Claude Code pour le code et les tâches complexes
 
 ### 3. 🔊 Parler
-- [ ] Synthèse vocale Piper
-- [ ] Lecture phrase par phrase (latence réduite)
+- [x] Synthèse vocale Piper
+- [x] Lecture phrase par phrase (latence réduite)
 - [ ] Voix synchronisée avec le texte du chat
 
 ### 4. 🖥️ Application de bureau
@@ -88,7 +88,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 |---|---|---|---|
 | 0 | Mise en place : `uv`, Python 3.12, git, structure, `.env` | Projet prêt | ✅ |
 | 1 | Cerveau texte : chat Ollama en terminal, historique, personnalité | On lui parle au clavier | ✅ |
-| 2 | Voix de sortie : Piper, phrase par phrase | Il répond à voix haute | ⬜ |
+| 2 | Voix de sortie : Piper, phrase par phrase | Il répond à voix haute | ✅ |
 | 3 | Voix d'entrée : push-to-talk + Whisper | 1re conversation 100 % vocale | ⬜ |
 | 4 | Interface : fenêtre chat + indicateur d'état | Jarvis a un visage | ⬜ |
 | 5 | Premiers outils : recherche web + pop-ups images/textes | Il cherche et montre | ⬜ |
