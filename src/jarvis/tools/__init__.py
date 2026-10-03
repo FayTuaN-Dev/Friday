@@ -12,7 +12,7 @@ def default_toolbox(settings: Settings, memory=None) -> ToolBox:
         from jarvis.tools.web_search import WebSearchTool
 
         tools += [
-            WebSearchTool(settings.search_region),
+            WebSearchTool(settings.search_region, backend=settings.search_backend),
             ReadWebPageTool(),
             ImageSearchTool(settings.search_region),
         ]

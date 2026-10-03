@@ -58,6 +58,7 @@ src/jarvis/
 │   ├── voice_inputs.py    VoiceInputs : push-to-talk + mains libres
 │   ├── memory_keeper.py   MemoryKeeper : mémorisation automatique en arrière-plan
 │   ├── wake_control.py    WakeControl : règles du mot d'activation (réveil, relance, stop, écho)
+│   ├── hands_free_target.py  ce que l'écoute mains libres demande à l'assistant (« Oui ? »…)
 │   ├── components.py      chargement des modèles (chacun peut échouer sans tout bloquer)
 │   └── events.py          AssistantState + contrat AssistantListener
 ├── tools/                 outils que le LLM peut appeler (plugins)
@@ -109,7 +110,9 @@ src/jarvis/
 4. `WakeControl.on_heard()` applique les règles :
    - commence par « Jarvis » → coupe Jarvis s'il parle, puis `Assistant.submit_heard()`
    - « Jarvis » seul → « Oui, Monsieur ? » et la phrase suivante est acceptée sans le nom
-   - juste après une réponse → relance possible sans le nom pendant `FOLLOW_UP_SECONDS`
+   - juste après une réponse ou un « Oui ? » → relance possible sans le nom pendant
+     `FOLLOW_UP_SECONDS` (comparé au moment où la phrase **commence**, pas à sa transcription)
+   - une phrase sans le nom juste après cette fenêtre → signalée (« commencez par Jarvis »)
    - pendant qu'il parle → un ordre court (« stop », « tais-toi ») suffit
    - ce qui ressemble à ce que Jarvis vient de dire → ignoré (écho de ses haut-parleurs)
    - le reste → ignoré (conversation autour de l'ordinateur)

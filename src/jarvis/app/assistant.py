@@ -38,7 +38,6 @@ class Assistant:
         self._state: AssistantState | None = None
         self.inputs = VoiceInputs(settings, self)
         self._reply: Reply | None = None
-        self._said = ""  # dernière phrase dite hors réponse (« Oui ? »), pour l'anti-écho
 
     # --- API publique (appelable depuis n'importe quel thread) ---
 
@@ -58,22 +57,14 @@ class Assistant:
         """Demande entendue en mains libres (déjà transcrite)."""
         self._events.put(("heard", text))
 
-    def acknowledge(self) -> None:
-        """« Jarvis » tout seul : il répond et écoute la phrase suivante."""
-        self._said = f"Oui, {self.settings.user_name} ?"
-        if self.voice_on and self.components.speaker:
-            self.components.speaker.say(self._said)
-        self.listener.on_notice("Je vous écoute…")
-        self.inputs.wake.open_follow_up()
-
     @property
     def busy(self) -> bool:
         return self._state in (AssistantState.THINKING, AssistantState.SPEAKING)
 
     @property
-    def last_reply_text(self) -> str:
-        """Ce que Jarvis dit ou vient de dire (pour reconnaître son propre écho)."""
-        return f"{self._said} {self._reply.spoken if self._reply else ''}".strip()
+    def reply_spoken(self) -> str:
+        """Ce que Jarvis a dit dans sa réponse en cours (ou la dernière)."""
+        return self._reply.spoken if self._reply else ""
 
     def start_listening(self) -> None:
         if not self.can_listen or self._listening:
@@ -169,7 +160,6 @@ class Assistant:
         self._set_state(AssistantState.THINKING)
         speaker = self.components.speaker if self.voice_on else None
         interrupted = False
-        self._said = ""
         self._reply = Reply(self.listener, speaker, self._interrupted)
         self.listener.on_reply_start()
         stream = self.components.brain.reply(text, self._interrupted.is_set)

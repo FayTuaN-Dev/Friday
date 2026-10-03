@@ -31,6 +31,7 @@ SETTINGS = Settings(
     vad_silence_ms=700,
     tools_enabled=False,
     search_region="fr-fr",
+    search_backend="auto",
     memory_enabled=False,
     memory_auto=False,
     embed_model="embeddinggemma",

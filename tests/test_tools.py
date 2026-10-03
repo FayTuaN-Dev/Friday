@@ -73,7 +73,7 @@ def test_toolbox_handles_unknown_and_failing_tools():
 
 
 class FakeDDGS:
-    def text(self, query, region, max_results):
+    def text(self, query, region, max_results, backend="auto"):
         return [{"title": "Météo Lyon", "href": "https://meteo.fr/lyon", "body": "18°C"}]
 
     def images(self, query, region, max_results):

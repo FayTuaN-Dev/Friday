@@ -36,6 +36,7 @@ class Settings:
     vad_silence_ms: int
     tools_enabled: bool
     search_region: str
+    search_backend: str
     memory_enabled: bool
     memory_auto: bool
     embed_model: str
@@ -84,6 +85,7 @@ def load_settings() -> Settings:
         vad_silence_ms=int(os.getenv("VAD_SILENCE_MS", "700")),
         tools_enabled=_bool("TOOLS_ENABLED", True),
         search_region=os.getenv("SEARCH_REGION", "fr-fr"),
+        search_backend=os.getenv("SEARCH_BACKEND", "auto"),
         memory_enabled=_bool("MEMORY_ENABLED", True),
         memory_auto=_bool("MEMORY_AUTO", True),
         embed_model=os.getenv("EMBED_MODEL", "embeddinggemma"),

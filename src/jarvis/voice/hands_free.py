@@ -18,7 +18,7 @@ class HandsFreeListener:
     def __init__(
         self,
         transcribe: Callable[[np.ndarray], str],
-        on_heard: Callable[[str], None],
+        on_heard: Callable[[str, float], None],  # (texte, moment où la phrase a commencé)
         device: int | str | None = None,
         silence_ms: int = 700,
     ) -> None:
@@ -27,7 +27,7 @@ class HandsFreeListener:
         self.device = device
         self.sample_rate = int(sd.query_devices(device, kind="input")["default_samplerate"])
         self.segmenter = SpeechSegmenter(StreamingVAD(), self._segments_put, silence_ms=silence_ms)
-        self._segments: queue.Queue[np.ndarray | None] = queue.Queue()
+        self._segments: queue.Queue[tuple[np.ndarray, float] | None] = queue.Queue()
         self._paused = threading.Event()
         self._stream: sd.InputStream | None = None
 
@@ -70,14 +70,15 @@ class HandsFreeListener:
             log.exception("Erreur de détection de parole")
 
     def _segments_put(self, segment: np.ndarray) -> None:
-        self._segments.put(segment)
+        self._segments.put((segment, self.segmenter.started_at))
 
     def _transcribe_loop(self) -> None:
-        while (segment := self._segments.get()) is not None:
+        while (item := self._segments.get()) is not None:
+            segment, started_at = item
             try:
                 text = self._transcribe(segment)
                 if text:
                     log.info("Entendu : %s", text)
-                    self._on_heard(text)
+                    self._on_heard(text, started_at)
             except Exception:
                 log.exception("Erreur de transcription en continu")

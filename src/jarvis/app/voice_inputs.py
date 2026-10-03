@@ -1,18 +1,25 @@
 """Les deux façons de parler à Jarvis : la touche push-to-talk et l'écoute mains libres."""
 
 import logging
+from typing import TYPE_CHECKING
 
-from jarvis.app.wake_control import WakeControl, WakeTarget
+from jarvis.app.hands_free_target import HandsFreeTarget
+from jarvis.app.wake_control import WakeControl
 from jarvis.core.config import Settings
+
+if TYPE_CHECKING:
+    from jarvis.app.assistant import Assistant
 
 log = logging.getLogger(__name__)
 
 
 class VoiceInputs:
-    def __init__(self, settings: Settings, assistant: WakeTarget) -> None:
+    def __init__(self, settings: Settings, assistant: "Assistant") -> None:
         self.settings = settings
         self.assistant = assistant
-        self.wake = WakeControl(assistant, settings.wake_words, settings.follow_up_seconds)
+        target = HandsFreeTarget(assistant)
+        self.wake = WakeControl(target, settings.wake_words, settings.follow_up_seconds)
+        target.wake = self.wake
         self.ptt = None
         self.hands_free = None
 

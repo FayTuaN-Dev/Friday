@@ -14,15 +14,20 @@ class WebSearchTool(Tool):
     parameters = {"query": {"type": "string", "description": "La recherche, en mots-clés"}}
     required = ("query",)
 
-    def __init__(self, region: str = "fr-fr", max_results: int = 5) -> None:
+    def __init__(self, region: str = "fr-fr", max_results: int = 5, backend: str = "auto") -> None:
         self.region = region
         self.max_results = max_results
+        self.backend = backend  # « auto » : ddgs passe d'un moteur à l'autre si l'un refuse
 
     def label(self, args: dict) -> str:
         return f"🔎 Recherche : {args.get('query', '')}"
 
     def run(self, query: str) -> ToolResult:
-        hits = retry(lambda: DDGS().text(query, region=self.region, max_results=self.max_results))
+        hits = retry(
+            lambda: DDGS().text(
+                query, region=self.region, max_results=self.max_results, backend=self.backend
+            )
+        )
         if not hits:
             return ToolResult(f"Aucun résultat pour « {query} ».")
         results = [{"title": h["title"], "url": h["href"], "snippet": h["body"]} for h in hits]
