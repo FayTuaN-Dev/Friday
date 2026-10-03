@@ -1,15 +1,21 @@
-"""Cerveau de Jarvis : discussion avec le modèle local via Ollama."""
+"""Cerveau de Jarvis : discussion avec le modèle local via Ollama, avec appel d'outils."""
 
 import logging
 from collections.abc import Iterator
+from typing import Any
 
 import ollama
 
 from jarvis.brain.conversation import Conversation
+from jarvis.brain.events import BrainEvent, ToolFinished, ToolStarted
 from jarvis.brain.prompts import build_system_prompt
 from jarvis.core.config import Settings
+from jarvis.tools.base import ToolBox
 
 log = logging.getLogger(__name__)
+
+# Nombre maximum d'allers-retours avec les outils pour une même question
+MAX_TOOL_ROUNDS = 3
 
 
 class BrainError(RuntimeError):
@@ -17,9 +23,15 @@ class BrainError(RuntimeError):
 
 
 class Brain:
-    def __init__(self, settings: Settings, client: ollama.Client | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        client: ollama.Client | None = None,
+        toolbox: ToolBox | None = None,
+    ) -> None:
         self.settings = settings
         self.client = client or ollama.Client(host=settings.ollama_host)
+        self.toolbox = toolbox or ToolBox([])
         self.conversation = Conversation()
 
     def warmup(self) -> None:
@@ -34,31 +46,28 @@ class Brain:
         except (ollama.ResponseError, ConnectionError) as e:
             log.warning("Préchargement du modèle impossible : %s", e)
 
-    def reply(self, user_text: str) -> Iterator[str]:
-        """Envoie le message et renvoie la réponse morceau par morceau (streaming)."""
+    def reply(self, user_text: str) -> Iterator[BrainEvent]:
+        """Répond en streaming : des morceaux de texte, et des événements quand un outil sert."""
         self.conversation.add("user", user_text)
-        messages = [
-            {"role": "system", "content": build_system_prompt(self.settings.user_name)},
-            *self.conversation.messages,
-        ]
-
         parts: list[str] = []
         try:
-            stream = self.client.chat(
-                model=self.settings.ollama_model,
-                messages=messages,
-                stream=True,
-                think=False,  # le mode « réflexion » de qwen3 est trop lent pour la voix
-                keep_alive="30m",  # garde le modèle chargé en mémoire vidéo
-                options={"num_ctx": self.settings.ollama_num_ctx},
-            )
-            for chunk in stream:
-                text = chunk.message.content
-                if text:
-                    parts.append(text)
-                    yield text
+            for round_ in range(MAX_TOOL_ROUNDS + 1):
+                parts = []
+                calls: list[Any] = []
+                # Au dernier tour, plus d'outils : le modèle doit conclure.
+                use_tools = bool(self.toolbox) and round_ < MAX_TOOL_ROUNDS
+                for chunk in self._chat(use_tools):
+                    if chunk.message.content:
+                        parts.append(chunk.message.content)
+                        yield chunk.message.content
+                    calls.extend(chunk.message.tool_calls or [])
+
+                if not calls:
+                    self.conversation.add("assistant", "".join(parts))
+                    break
+                yield from self._run_tools(calls, "".join(parts))
         except (ollama.ResponseError, ConnectionError) as e:
-            self.conversation.messages.pop()  # on oublie la question restée sans réponse
+            self._forget_unanswered_question()
             log.error("Erreur Ollama : %s", e)
             raise BrainError(str(e)) from e
         except BaseException:
@@ -67,8 +76,51 @@ class Brain:
             said = "".join(parts).strip()
             self.conversation.add("assistant", f"{said} […]" if said else "[interrompu]")
             raise
-
-        self.conversation.add("assistant", "".join(parts))
+        finally:
+            self.conversation.compact_tool_results()
 
     def reset(self) -> None:
         self.conversation.reset()
+
+    def _chat(self, use_tools: bool) -> Iterator[Any]:
+        messages = [
+            {
+                "role": "system",
+                "content": build_system_prompt(
+                    self.settings.user_name, with_tools=bool(self.toolbox)
+                ),
+            },
+            *self.conversation.messages,
+        ]
+        return self.client.chat(
+            model=self.settings.ollama_model,
+            messages=messages,
+            tools=self.toolbox.schemas() if use_tools else None,
+            stream=True,
+            think=False,  # le mode « réflexion » de qwen3 est trop lent pour la voix
+            keep_alive="30m",  # garde le modèle chargé en mémoire vidéo
+            options={"num_ctx": self.settings.ollama_num_ctx},
+        )
+
+    def _run_tools(self, calls: list[Any], said: str) -> Iterator[BrainEvent]:
+        self.conversation.add(
+            "assistant",
+            said,
+            tool_calls=[
+                {"function": {"name": c.function.name, "arguments": dict(c.function.arguments)}}
+                for c in calls
+            ],
+        )
+        for call in calls:
+            name, args = call.function.name, dict(call.function.arguments)
+            log.info("Outil %s(%s)", name, args)
+            yield ToolStarted(name, args, self.toolbox.label(name, args))
+            result = self.toolbox.run(name, args)
+            self.conversation.add("tool", result.text, tool_name=name)
+            yield ToolFinished(name, result)
+
+    def _forget_unanswered_question(self) -> None:
+        """Retire la question (et les éventuels appels d'outils) restée sans réponse."""
+        while self.conversation.messages:
+            if self.conversation.messages.pop()["role"] == "user":
+                break

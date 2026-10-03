@@ -8,6 +8,7 @@ from jarvis.app.events import AssistantState
 from jarvis.core.config import Settings
 from jarvis.ui.desktop import theme
 from jarvis.ui.desktop.bridge import QtBridge
+from jarvis.ui.desktop.popups.manager import PopupManager
 from jarvis.ui.desktop.widgets.chat import ChatView
 from jarvis.ui.desktop.widgets.input_bar import InputBar
 from jarvis.ui.desktop.widgets.orb import HudOrb
@@ -33,6 +34,7 @@ class MainWindow(QMainWindow):
         self.chat = ChatView()
         self.input = InputBar(settings.ptt_key)
         self.input.setEnabled(False)
+        self.popups = PopupManager(self)
 
         # Contenu limité en largeur et centré : reste lisible même en plein écran.
         content = QWidget()
@@ -66,6 +68,8 @@ class MainWindow(QMainWindow):
         b.reply_chunk.connect(self.chat.append_jarvis)
         b.reply_end.connect(self.chat.end_jarvis)
         b.notice.connect(self.chat.add_notice)
+        b.tool.connect(self.chat.add_tool)
+        b.display.connect(self.popups.show)
         b.mic_level.connect(self.orb.set_mic_level)
         b.speech_audio.connect(self.orb.play_speech)
 
@@ -93,5 +97,6 @@ class MainWindow(QMainWindow):
         self.assistant.reset()
 
     def closeEvent(self, event) -> None:
+        self.popups.close_all()
         self.assistant.shutdown()
         super().closeEvent(event)

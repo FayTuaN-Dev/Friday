@@ -77,4 +77,40 @@ def stylesheet() -> str:
     QPushButton:disabled {{ color: {BORDER}; border-color: {BORDER}; }}
     #MicButton:pressed {{ background: {LISTENING}; color: {BG}; }}
     QToolTip {{ background: {PANEL}; color: {TEXT}; border: 1px solid {BORDER}; }}
+    #ToolNotice {{ color: {THINKING}; font-family: "{FONT_HUD}"; font-size: 12px; }}
+
+    /* Pop-ups */
+    #Popup {{ background: {BG}; border: 1px solid {ACCENT_DIM}; }}
+    #PopupHeader {{ background: {PANEL}; border-bottom: 1px solid {BORDER}; }}
+    #PopupTitle {{
+        background: transparent; color: {ACCENT}; font-family: "{FONT_HUD}";
+        font-size: 12px; letter-spacing: 1px;
+    }}
+    #PopupClose {{
+        min-width: 24px; min-height: 24px; max-width: 24px; max-height: 24px;
+        border-radius: 12px; font-size: 11px;
+    }}
+    #PopupClose:hover {{ border-color: {ERROR}; color: {ERROR}; }}
+    #ResultCard {{ background: {PANEL}; border: 1px solid {BORDER}; border-radius: 8px; }}
+    #ResultCard:hover {{ border-color: {ACCENT_DIM}; }}
+    #ResultCard QLabel {{ background: transparent; }}
+    #Link {{ font-size: 14px; font-weight: 600; }}
+    #Domain {{ color: {LISTENING}; font-size: 11px; }}
+    #Snippet {{ color: {MUTED}; font-size: 12px; }}
+    #Article {{
+        background: {PANEL}; border: 1px solid {BORDER}; border-radius: 8px;
+        padding: 8px; font-size: 13px;
+    }}
+    #ImageTile {{ background: {PANEL}; border: 1px solid {BORDER}; border-radius: 6px; }}
+    #ImageTile:hover {{ border-color: {ACCENT}; }}
     """
+
+
+def link_palette(app) -> None:
+    """Couleur des liens cliquables (non réglable par feuille de style)."""
+    from PySide6.QtGui import QColor, QPalette
+
+    palette = app.palette()
+    palette.setColor(QPalette.Link, QColor(ACCENT))
+    palette.setColor(QPalette.LinkVisited, QColor(ACCENT_DIM))
+    app.setPalette(palette)

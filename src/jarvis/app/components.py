@@ -8,6 +8,7 @@ import numpy as np
 
 from jarvis.brain.llm import Brain
 from jarvis.core.config import MODELS_DIR, VOICES_DIR, Settings
+from jarvis.tools import default_toolbox
 from jarvis.voice.speaker import Speaker
 
 log = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ def load_components(
     on_mic_level: Callable[[float], None],
     on_speech_audio: Callable[[np.ndarray, int], None],
 ) -> Components:
-    brain = Brain(settings)
+    brain = Brain(settings, toolbox=default_toolbox(settings))
     brain.warmup()
     components = Components(brain=brain)
 

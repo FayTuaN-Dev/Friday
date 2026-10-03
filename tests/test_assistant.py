@@ -1,10 +1,20 @@
 import pytest
-from fakes import SETTINGS, FakeClient, FakeRecorder, FakeSTT, FakeTTS, RecordingListener
+from fakes import (
+    SETTINGS,
+    EchoTool,
+    FakeClient,
+    FakeRecorder,
+    FakeSTT,
+    FakeTTS,
+    RecordingListener,
+    tool_call,
+)
 
 from jarvis.app.assistant import Assistant
 from jarvis.app.components import Components
 from jarvis.app.events import AssistantState as S
 from jarvis.brain.llm import Brain
+from jarvis.tools.base import ToolBox
 from jarvis.voice.speaker import Speaker
 
 TIMEOUT = 3
@@ -85,3 +95,31 @@ def test_toggle_voice_and_reset():
     assert listener.notice_received.wait(TIMEOUT)
     assert listener.of("notice") == [("Nouvelle conversation",)]
     assistant.shutdown()
+
+
+def test_tool_use_triggers_notice_display_and_filler():
+    spoken = []
+    listener = RecordingListener()
+
+    def loader(settings, on_mic_level, on_speech_audio):
+        client = FakeClient(rounds=[[tool_call("web_search", query="météo")], ["18 degrés."]])
+        speaker = Speaker(FakeTTS(), play=lambda a, sr: None, stop_playback=lambda: None)
+        speaker.say = spoken.append
+        speaker.wait = lambda: None
+        return Components(
+            brain=Brain(settings, client=client, toolbox=ToolBox([EchoTool()])),
+            speaker=speaker,
+        )
+
+    assistant = Assistant(SETTINGS, listener, loader=loader)
+    assistant.voice_on = True
+    assistant.start()
+    assert listener.ready.wait(TIMEOUT)
+    assistant.submit_text("Quel temps fait-il ?")
+    assert listener.reply_done.wait(TIMEOUT)
+    assistant.shutdown()
+
+    assert listener.of("tool") == [("🔎 Recherche : météo",)]
+    assert listener.of("display") == [("results",)]
+    assert len(spoken) == 2  # une phrase d'attente, puis la réponse
+    assert spoken[-1] == "18 degrés."

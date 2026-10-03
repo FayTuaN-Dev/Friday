@@ -32,7 +32,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Personnalité Jarvis (prompt système)
 - [x] Mémoire de la conversation en cours
 - [ ] Mémoire long terme (SQLite + embeddings)
-- [ ] Appel d'outils (tool calling)
+- [x] Appel d'outils (tool calling)
 - [ ] Délégation à Claude Code pour le code et les tâches complexes
 
 ### 3. 🔊 Parler
@@ -43,17 +43,17 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 ### 4. 🖥️ Application de bureau
 - [x] Fenêtre de chat (historique, streaming, saisie clavier)
 - [x] Indicateur d'état (veille / écoute / réfléchit / parle) avec animation audio
-- [ ] Pop-ups de contenu : images, articles, résultats, code
+- [x] Pop-ups de contenu : images, articles, résultats (code : plus tard)
 - [ ] Icône dans la zone de notification
 - [ ] Raccourci clavier global
 - [ ] Écran de réglages (voix, micro, modèles)
 
 ### 5. 🛠️ Outils
 **Information**
-- [ ] Recherche web + résumé
-- [ ] Lecture/résumé d'une page web
-- [ ] Recherche d'images → pop-up
-- [ ] Météo, actualités, date/heure
+- [x] Recherche web + résumé
+- [x] Lecture/résumé d'une page web
+- [x] Recherche d'images → pop-up
+- [ ] Météo, actualités, date/heure — via la recherche web pour l'instant ; un outil météo dédié serait plus fiable
 
 **Productivité**
 - [ ] Minuteurs, alarmes, rappels
@@ -74,7 +74,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [ ] Routines (« Bonjour Jarvis » → météo + agenda + news)
 
 ### 6. ⚙️ Fondations
-- [ ] Architecture modulaire (outils = plugins) — couches en place, voir docs/ARCHITECTURE.md
+- [x] Architecture modulaire (outils = plugins), voir docs/ARCHITECTURE.md
 - [x] Config `.env` + fichier de réglages
 - [x] Logs (gestion d'erreurs : au fil des phases)
 - [ ] Confirmation avant les actions sensibles
@@ -91,7 +91,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 | 2 | Voix de sortie : Piper, phrase par phrase | Il répond à voix haute | ✅ |
 | 3 | Voix d'entrée : push-to-talk + Whisper | 1re conversation 100 % vocale | ✅ |
 | 4 | Interface : fenêtre chat + indicateur d'état | Jarvis a un visage | ✅ |
-| 5 | Premiers outils : recherche web + pop-ups images/textes | Il cherche et montre | ⬜ |
+| 5 | Premiers outils : recherche web + pop-ups images/textes | Il cherche et montre | ✅ |
 | 6 | Mains libres : mot d'activation + interruption | Expérience naturelle | ⬜ |
 | 7 | Mémoire long terme | Il se souvient de toi | ⬜ |
 | 8 | Outils perso + délégation Claude Code | Assistant du quotidien | ⬜ |

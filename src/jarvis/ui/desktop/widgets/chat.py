@@ -66,12 +66,12 @@ class ChatView(QScrollArea):
         self._add_bubble(Bubble("VOUS 🎙" if by_voice else "VOUS", text, from_user=True), True)
 
     def start_jarvis(self) -> None:
-        self._current = Bubble("JARVIS", "", from_user=False)
-        self._add_bubble(self._current, False)
+        self._current = None  # la bulle naît avec le premier mot
 
     def append_jarvis(self, text: str) -> None:
         if self._current is None:
-            self.start_jarvis()
+            self._current = Bubble("JARVIS", "", from_user=False)
+            self._add_bubble(self._current, False)
         self._current.append(text)
 
     def end_jarvis(self, interrupted: bool) -> None:
@@ -79,8 +79,12 @@ class ChatView(QScrollArea):
             self._current.append(" […]")
         self._current = None
 
-    def add_notice(self, text: str) -> None:
-        label = QLabel(text, objectName="Notice")
+    def add_tool(self, label: str) -> None:
+        self.add_notice(label, "ToolNotice")
+        self._current = None  # la suite de la réponse s'affiche sous l'outil
+
+    def add_notice(self, text: str, kind: str = "Notice") -> None:
+        label = QLabel(text, objectName=kind)
         label.setAlignment(Qt.AlignCenter)
         label.setWordWrap(True)
         self._layout.addWidget(label)
