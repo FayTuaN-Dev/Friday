@@ -34,6 +34,8 @@ class SetTimerTool(Tool):
             due = resolve(now, delay=duration)
         except ValueError as e:
             return ToolResult(f"Minuteur non lancé : {e}. Demande la durée.")
+        if label.strip().lower() in ("minuteur", "timer", "compte à rebours"):
+            label = ""  # « Minuteur Minuteur terminé » sinon
         text = f"Minuteur {label or f'de {duration}'} terminé"
         self.store.add_reminder(text, due)
         return ToolResult(f"Minuteur de {duration} lancé, il sonnera à {due:%H:%M:%S}.")

@@ -150,3 +150,8 @@ def test_spoken_durations(spoken, seconds):
     from jarvis.agenda.durations import parse_duration
 
     assert parse_duration(spoken).total_seconds() == seconds
+
+
+def test_timer_label_is_not_repeated(store):
+    SetTimerTool(store, clock=lambda: NOW).run("3 minutes", label="Minuteur")
+    assert store.pending()[0].text == "Minuteur de 3 minutes terminé"
