@@ -13,6 +13,7 @@ from pathlib import Path
 import numpy as np
 
 from friday.app.attachments import Attachments
+from friday.app.briefing_trigger import morning_request
 from friday.app.components import Components, describe, load_components
 from friday.app.confirmations import ConfirmationGate
 from friday.app.events import AssistantListener, AssistantState
@@ -137,6 +138,7 @@ class Assistant:
             inputs = self.inputs.describe()
         self.listener.on_ready(describe(self.settings, self.components, inputs))
         self.set_state(AssistantState.IDLE)
+        self._events.put(("briefing", None))  # briefing du matin, s'il est dû
 
         while True:
             kind, payload = self._events.get()
@@ -159,6 +161,8 @@ class Assistant:
             self._respond(self.attachments.wrap(str(payload)))
         elif kind == "done":  # une tâche de fond (Claude) est terminée
             self._announce(*payload)
+        elif kind == "briefing" and (request := morning_request(self.components.briefing)):
+            self._respond(request)
         elif kind == "audio":
             text = self.components.stt.transcribe(payload)
             if not text:

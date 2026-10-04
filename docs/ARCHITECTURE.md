@@ -64,11 +64,16 @@ src/friday/
 │   ├── search.py          FileFinder : recherche par nom (fautes tolérées, mois/année = date)
 │   ├── content_search.py  recherche de mots dans les documents (limitée dans le temps)
 │   └── opener.py          ouvrir un fichier / le montrer dans l'explorateur
+├── briefing/              briefing du matin (data/briefing.json)
+│   ├── config.py          BriefingConfig : activé, plage horaire, rubriques (voix ou réglages)
+│   ├── sections.py        contenu de chaque rubrique (None = rien à dire : silence)
+│   └── briefing.py        Briefing : quand le faire, collecte en parallèle, gestion des rubriques
 ├── vision/                voir l'écran
 │   ├── capture.py         capture de l'écran sous la souris (mss), réduite à 1600 px
 │   └── reader.py          ScreenReader : le modèle de vision local décrit et recopie l'écran
 ├── app/
 │   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
+│   ├── briefing_trigger.py briefing automatique : une fois par jour, au premier démarrage du matin
 │   ├── attachments.py     fichiers glissés + presse-papier joints à la demande (par Friday, pas le LLM)
 │   ├── reply.py           Reply : déroulé d'une réponse (texte, voix, outils, pop-ups)
 │   ├── voice_inputs.py    VoiceInputs : push-to-talk (appui/relâchement) + mains libres
@@ -87,6 +92,7 @@ src/friday/
 │   ├── images.py          recherche et téléchargement d'images
 │   ├── files.py           read_file (par parties) / read_clipboard / copy_to_clipboard
 │   ├── file_search.py     search_files / open_file
+│   ├── briefing.py        morning_briefing / configure_briefing
 │   ├── popups.py          close_popups : Friday ferme ses propres pop-ups
 │   ├── screen.py          look_at_screen (local) / ask_claude_about_screen (secours, confirmé)
 │   ├── weather.py         météo actuelle + 7 jours (Open-Meteo, sans clé)
