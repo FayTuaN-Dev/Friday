@@ -1,4 +1,4 @@
-"""Outils : volume du PC, touches multimédia (lecture, piste suivante…) et musique."""
+"""Outils : touches multimédia (lecture, piste suivante…) et recherche de musique."""
 
 import os
 import webbrowser
@@ -13,57 +13,6 @@ MEDIA_KEYS = {
     "next": "next track",
     "previous": "previous track",
 }
-
-
-class Volume:
-    """Volume général de Windows (pycaw)."""
-
-    def _endpoint(self):
-        import comtypes
-        from pycaw.pycaw import AudioUtilities
-
-        comtypes.CoInitialize()  # chaque outil tourne dans son propre thread
-        return AudioUtilities.GetSpeakers().EndpointVolume
-
-    def get(self) -> int:
-        return round(self._endpoint().GetMasterVolumeLevelScalar() * 100)
-
-    def set(self, level: int) -> None:
-        self._endpoint().SetMasterVolumeLevelScalar(max(0, min(100, level)) / 100, None)
-
-    def mute(self, muted: bool) -> None:
-        self._endpoint().SetMute(int(muted), None)
-
-
-class VolumeTool(Tool):
-    name = "set_volume"
-    description = (
-        "Règle le volume de l'ordinateur : un niveau précis (0 à 100), une variation "
-        "(+10 pour monter, -10 pour baisser), ou couper / remettre le son."
-    )
-    parameters = {
-        "level": {"type": "integer", "description": "Niveau voulu, de 0 à 100"},
-        "change": {"type": "integer", "description": "Variation : +10, -20…"},
-        "mute": {"type": "boolean", "description": "true = couper le son, false = le remettre"},
-    }
-
-    def __init__(self, volume=None) -> None:
-        self.volume = volume or Volume()
-
-    def label(self, args: dict) -> str:
-        return "🔊 Volume"
-
-    def run(self, level: int | None = None, change: int | None = None,
-            mute: bool | None = None) -> ToolResult:  # fmt: skip
-        if mute is not None:
-            self.volume.mute(bool(mute))
-            return ToolResult("Son coupé." if mute else "Son remis.")
-        if level is None and change is None:
-            return ToolResult(f"Le volume est à {self.volume.get()} %.")
-        target = int(level) if level is not None else self.volume.get() + int(change)
-        self.volume.set(target)
-        self.volume.mute(False)
-        return ToolResult(f"Volume réglé à {max(0, min(100, target))} %.")
 
 
 class MediaTool(Tool):

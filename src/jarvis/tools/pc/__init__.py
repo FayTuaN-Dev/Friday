@@ -11,7 +11,8 @@ def pc_tools() -> list[Tool]:
         return []
     from jarvis.tools.pc.apps import CloseAppTool, OpenAppTool
     from jarvis.tools.pc.apps_index import AppIndex
-    from jarvis.tools.pc.media import MediaTool, PlayMusicTool, VolumeTool
+    from jarvis.tools.pc.media import MediaTool, PlayMusicTool
+    from jarvis.tools.pc.volume import VolumeTool
     from jarvis.tools.pc.web import OpenWebsiteTool
 
     index = AppIndex()
