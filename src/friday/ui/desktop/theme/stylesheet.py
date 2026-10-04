@@ -17,6 +17,7 @@ def _window(p: Palette) -> str:
     #Shell {{
         background: {p.bg}; border: 1px solid {p.accent_glow}; border-radius: 22px;
     }}
+    #Shell[native="true"] {{ border: none; border-radius: 0; }}
     #TitleBar, #TitleBar QLabel {{ background: transparent; }}
     #Title {{
         font-family: "{FONT_HUD}"; font-size: 15px; color: {p.accent}; letter-spacing: 7px;

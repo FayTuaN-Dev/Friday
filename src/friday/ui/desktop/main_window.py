@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QMainWindow, QV
 from friday.app.assistant import Assistant
 from friday.app.events import AssistantState
 from friday.core.config import Settings
-from friday.ui.desktop import preferences, theme
+from friday.ui.desktop import native_window, preferences, theme
 from friday.ui.desktop.bridge import QtBridge
 from friday.ui.desktop.popups.manager import PopupManager
 from friday.ui.desktop.widgets.chat import ChatView
@@ -28,7 +28,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("F.R.I.D.A.Y.")
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)  # coins arrondis
+        # Coins arrondis : par Windows 11 si possible (fenêtre opaque, ne clignote pas au
+        # redimensionnement), sinon par transparence.
+        self.native_corners = native_window.native_corners_available()
+        if not self.native_corners:
+            self.setAttribute(Qt.WA_TranslucentBackground)
         self.resize(540, 860)
         self.setMinimumSize(420, 620)
         self._preferences_path = preferences_path
@@ -57,6 +61,7 @@ class MainWindow(QMainWindow):
     def _build_layout(self) -> None:
         shell = QWidget(objectName="Shell")
         shell.setAttribute(Qt.WA_StyledBackground)
+        shell.setProperty("native", self.native_corners)
         # Contenu limité en largeur et centré : reste lisible même en plein écran.
         content = QWidget()
         content.setMaximumWidth(MAX_CONTENT_WIDTH)
@@ -79,7 +84,9 @@ class MainWindow(QMainWindow):
         outer.setSpacing(0)
         outer.addWidget(self.title_bar)
         outer.addLayout(centered, 1)
-        self.frame = ResizableFrame(shell)
+        self.frame = ResizableFrame(shell, opaque=self.native_corners)
+        if self.native_corners:
+            native_window.round_corners(self)
         self.setCentralWidget(self.frame)
 
     def _connect(self) -> None:
@@ -116,6 +123,9 @@ class MainWindow(QMainWindow):
         self.title_bar.refresh(palette)
         self.input.refresh(palette)
         self.orb.set_base_color(self.base)
+        if self.native_corners:  # fine bordure Windows, à la couleur de Friday
+            native_window.set_border_color(self, QColor(palette.accent).darker(250))
+        self.frame.update()
         self.show_state(self.state)
         if save:
             preferences.save({"color": self.base.name()}, self._preferences_path)

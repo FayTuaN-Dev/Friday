@@ -93,6 +93,7 @@ src/friday/
         ├── main_window.py fenêtre principale sans bordure (assemble les widgets, applique la couleur)
         ├── bridge.py      QtBridge : événements de l'assistant → signaux Qt (thread-safe)
         ├── icons.py       icônes fines au trait (SVG), colorées par le thème
+        ├── native_window.py coins arrondis natifs de Windows 11 (pas de clignotement)
         ├── preferences.py préférences choisies dans l'appli (couleur), data/interface.json
         ├── theme/
         │   ├── palette.py     une couleur de base → toute la palette (fond, bulles, états…)
