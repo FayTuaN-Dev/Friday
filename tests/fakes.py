@@ -37,6 +37,7 @@ SETTINGS = Settings(
     search_region="fr-fr",
     search_backend="auto",
     home_city="",
+    pc_control=False,
     memory_enabled=False,
     memory_auto=False,
     embed_model="embeddinggemma",

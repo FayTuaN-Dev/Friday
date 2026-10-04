@@ -19,6 +19,10 @@ def default_toolbox(settings: Settings, memory=None, on_background=None) -> Tool
             ReadWebPageTool(),
             ImageSearchTool(settings.search_region),
         ]
+    if settings.pc_control:
+        from jarvis.tools.pc import pc_tools
+
+        tools += pc_tools()
     if settings.claude_enabled and on_background is not None:
         from jarvis.tools.claude_code import CancelClaudeTool, ClaudeCodeJob, ClaudeCodeTool
 

@@ -62,8 +62,8 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [ ] Calculs et conversions
 
 **Contrôle du PC**
-- [ ] Ouvrir/fermer applications et sites
-- [ ] Volume, musique (Spotify)
+- [x] Ouvrir/fermer applications (menu Démarrer, fermeture avec confirmation) et sites
+- [x] Volume, musique (touches multimédia, recherche Spotify)
 - [ ] Recherche/lecture/résumé de fichiers
 - [ ] Presse-papier
 - [ ] Capture d'écran + analyse

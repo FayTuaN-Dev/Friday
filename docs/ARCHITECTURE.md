@@ -70,6 +70,12 @@ src/jarvis/
 │   ├── images.py          recherche et téléchargement d'images
 │   ├── weather.py         météo actuelle + 7 jours (Open-Meteo, sans clé)
 │   ├── claude_code.py     délégation à Claude Code (CLI `claude`, compte Pro), en arrière-plan
+│   ├── pc/                contrôle du PC (Windows uniquement)
+│   │   ├── apps_index.py  AppIndex : applis du menu Démarrer (Get-StartApps), recherche tolérante
+│   │   ├── apps.py        open_app / close_app (fermeture propre WM_CLOSE, avec confirmation)
+│   │   ├── windows.py     processus d'une appli (psutil) et fermeture de ses fenêtres
+│   │   ├── media.py       set_volume (pycaw), media_control (touches multimédia), play_music
+│   │   └── web.py         open_website
 │   ├── weather_codes.py   codes météo WMO → texte français + icône
 │   └── memory.py          remember / forget_memory / list_memories
 └── ui/

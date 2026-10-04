@@ -41,6 +41,7 @@ class Settings:
     search_region: str
     search_backend: str
     home_city: str
+    pc_control: bool
     memory_enabled: bool
     memory_auto: bool
     embed_model: str
@@ -96,6 +97,7 @@ def load_settings() -> Settings:
         search_region=os.getenv("SEARCH_REGION", "fr-fr"),
         search_backend=os.getenv("SEARCH_BACKEND", "auto"),
         home_city=os.getenv("HOME_CITY", ""),
+        pc_control=_bool("PC_CONTROL", True),
         memory_enabled=_bool("MEMORY_ENABLED", True),
         memory_auto=_bool("MEMORY_AUTO", True),
         embed_model=os.getenv("EMBED_MODEL", "embeddinggemma"),

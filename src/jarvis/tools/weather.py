@@ -26,7 +26,7 @@ class WeatherTool(Tool):
         "Donne la météo actuelle et les prévisions des 7 prochains jours pour une ville. "
         "À utiliser pour toute question de météo, de température, de pluie ou de vent. "
         "Sans ville précisée : donne la ville de l'utilisateur si ta mémoire la connaît, "
-        "sinon laisse « city » vide (sa ville par défaut sera utilisée)."
+        "sinon laisse « city » vide (sa ville par défaut sera utilisée). Ne devine jamais."
     )
     parameters = {"city": {"type": "string", "description": "La ville (vide = chez l'utilisateur)"}}
 
