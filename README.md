@@ -9,7 +9,7 @@ et affiche le chat, des images et des résultats dans des pop-ups.
 - **Voix** : faster-whisper (écoute) + Piper (parole)
 - **Interface** : PySide6
 - **Mémoire** : se souvient de vous d'une session à l'autre (SQLite local + embeddings `embeddinggemma`)
-- **Outils** : recherche web, lecture de pages et images (DuckDuckGo, sans clé API), affichés en pop-ups
+- **Outils** : météo (Open-Meteo), recherche web, lecture de pages et images, sans clé API, affichés en pop-ups
 
 Voir [ROADMAP.md](ROADMAP.md) pour les fonctionnalités et l'avancement, et
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour l'organisation du code.

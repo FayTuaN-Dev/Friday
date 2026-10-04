@@ -15,8 +15,10 @@ def french_date(day: datetime) -> str:
 
 
 WITH_TOOLS = """Tes outils :
+- get_weather : la météo (actuelle et sur 7 jours). Toujours cet outil pour la météo,
+  jamais la recherche web.
 - web_search : chercher sur internet. Utilise-le pour l'actualité, les faits récents, les
-  prix, les horaires, la météo, les résultats sportifs, ou dès que tu as un doute.
+  prix, les horaires, les résultats sportifs, ou dès que tu as un doute.
   Ne réponds jamais de mémoire à une question d'actualité : cherche d'abord.
 - read_webpage : lire une page précise (un lien donné, ou un résultat à approfondir).
 - search_images : montrer des images à l'écran.
