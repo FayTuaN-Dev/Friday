@@ -59,7 +59,11 @@ src/friday/
 │   └── scheduler.py       ReminderScheduler : déclenche à l'heure, rattrape les manqués
 ├── files/                 fichiers et presse-papier (sans dépendre des outils)
 │   ├── readers.py         read_document : texte d'un PDF (pypdf), Word (python-docx), texte
-│   └── clipboard.py       presse-papier Windows (ctypes) : texte ou fichiers copiés
+│   ├── clipboard.py       presse-papier Windows (ctypes) : texte ou fichiers copiés
+│   ├── folders.py         dossiers autorisés (Documents, Bureau, Téléchargements, Images)
+│   ├── search.py          FileFinder : recherche par nom (fautes tolérées, mois/année = date)
+│   ├── content_search.py  recherche de mots dans les documents (limitée dans le temps)
+│   └── opener.py          ouvrir un fichier / le montrer dans l'explorateur
 ├── app/
 │   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
 │   ├── attachments.py     fichiers glissés + presse-papier joints à la demande (par Friday, pas le LLM)
@@ -79,6 +83,7 @@ src/friday/
 │   ├── web_page.py        lecture d'une page (trafilatura)
 │   ├── images.py          recherche et téléchargement d'images
 │   ├── files.py           read_file (par parties) / read_clipboard / copy_to_clipboard
+│   ├── file_search.py     search_files / open_file
 │   ├── weather.py         météo actuelle + 7 jours (Open-Meteo, sans clé)
 │   ├── claude_code.py     délégation à Claude Code (CLI `claude`, compte Pro), en arrière-plan
 │   ├── pc/                contrôle du PC (Windows uniquement)
@@ -113,6 +118,7 @@ src/friday/
         │   ├── memories.py    « Ce que je sais sur vous »
         │   ├── weather.py     météo du jour + 7 jours
         │   ├── claude.py      compte rendu de Claude Code + fichiers + dossier
+        │   ├── files.py       fichiers trouvés (ouvrir, montrer dans le dossier)
         │   └── items.py       liste générique (rappels, notes)
         └── widgets/
             ├── holo/          noyau holographique animé (état + niveau de voix)

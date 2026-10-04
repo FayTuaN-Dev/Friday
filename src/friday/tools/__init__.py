@@ -20,9 +20,15 @@ def default_toolbox(settings: Settings, memory=None, on_background=None, agenda=
             ImageSearchTool(settings.search_region),
         ]
     if settings.files_access:
+        from friday.files.folders import search_folders
+        from friday.files.search import FileFinder
+        from friday.tools.file_search import OpenFileTool, SearchFilesTool
         from friday.tools.files import CopyToClipboardTool, ReadClipboardTool, ReadFileTool
 
-        tools += [ReadFileTool(), ReadClipboardTool(), CopyToClipboardTool()]
+        tools += [
+            ReadFileTool(), ReadClipboardTool(), CopyToClipboardTool(),
+            SearchFilesTool(FileFinder(search_folders())), OpenFileTool(),
+        ]  # fmt: skip
     if settings.pc_control:
         from friday.tools.pc import pc_tools
 

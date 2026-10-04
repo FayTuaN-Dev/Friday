@@ -7,6 +7,7 @@ from friday.tools.base import Display
 from friday.ui.desktop.popups.article import ArticlePopup
 from friday.ui.desktop.popups.base import Popup
 from friday.ui.desktop.popups.claude import ClaudePopup
+from friday.ui.desktop.popups.files import FilesPopup
 from friday.ui.desktop.popups.images import ImagesPopup
 from friday.ui.desktop.popups.items import ItemsPopup
 from friday.ui.desktop.popups.memories import MemoriesPopup
@@ -21,6 +22,7 @@ POPUPS = {
     "weather": WeatherPopup,
     "claude": ClaudePopup,
     "items": ItemsPopup,
+    "files": FilesPopup,
 }
 MAX_OPEN = 3
 GAP = 12  # espace entre la fenêtre et le pop-up
