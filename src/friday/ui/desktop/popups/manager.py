@@ -4,9 +4,11 @@ from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QWidget
 
 from friday.tools.base import Display
+from friday.tools.popups import CLOSE
 from friday.ui.desktop.popups.article import ArticlePopup
 from friday.ui.desktop.popups.base import Popup
 from friday.ui.desktop.popups.claude import ClaudePopup
+from friday.ui.desktop.popups.files import FilesPopup
 from friday.ui.desktop.popups.images import ImagesPopup
 from friday.ui.desktop.popups.items import ItemsPopup
 from friday.ui.desktop.popups.memories import MemoriesPopup
@@ -21,6 +23,7 @@ POPUPS = {
     "weather": WeatherPopup,
     "claude": ClaudePopup,
     "items": ItemsPopup,
+    "files": FilesPopup,
 }
 MAX_OPEN = 3
 GAP = 12  # espace entre la fenêtre et le pop-up
@@ -33,6 +36,9 @@ class PopupManager:
         self.popups: list[Popup] = []
 
     def show(self, display: Display) -> Popup | None:
+        if display.kind == CLOSE:  # Friday ferme ses propres fenêtres
+            self.close_last() if display.data.get("which") == "last" else self.close_all()
+            return None
         popup_class = POPUPS.get(display.kind)
         if popup_class is None:
             return None
@@ -45,6 +51,10 @@ class PopupManager:
         self.popups.append(popup)
         popup.show_animated()
         return popup
+
+    def close_last(self) -> None:
+        if self.popups:
+            self.popups[-1].close()
 
     def close_all(self) -> None:
         for popup in list(self.popups):

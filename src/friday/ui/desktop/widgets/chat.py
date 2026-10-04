@@ -21,6 +21,8 @@ class Bubble(QFrame):
         header.setAlignment(Qt.AlignRight if from_user else Qt.AlignLeft)
         self.label = QLabel(text, objectName="BubbleText")
         self.label.setWordWrap(True)
+        if not from_user:  # le modèle écrit parfois en Markdown : affiché mis en forme
+            self.label.setTextFormat(Qt.MarkdownText)
         self.label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         layout.addWidget(header)
         layout.addWidget(self.label)

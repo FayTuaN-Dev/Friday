@@ -187,3 +187,30 @@ def test_dropped_file_is_attached(tmp_path):
     mime.setUrls([QUrl.fromLocalFile(str(path)), QUrl.fromLocalFile(str(tmp_path)),
                   QUrl("https://exemple.fr")])  # fmt: skip
     assert dropped_files(mime) == [path]  # ni dossier, ni lien web
+
+
+def test_friday_bubbles_render_markdown():
+    from PySide6.QtCore import Qt
+
+    from friday.ui.desktop.widgets.chat import Bubble
+
+    assert Bubble("Friday", "**ticket.pdf**", from_user=False).label.textFormat() == Qt.MarkdownText
+    assert Bubble("Vous", "**pas touché**", from_user=True).label.textFormat() != Qt.MarkdownText
+
+
+def test_friday_can_close_her_popups():
+    from friday.tools.base import Display
+    from friday.tools.popups import ClosePopupsTool
+
+    w = make_window()
+    result = {"title": "t", "url": "https://ex.fr", "snippet": "s"}
+    for _ in range(2):
+        w.bridge.on_display(Display("results", "Recherche", {"results": [result]}))
+    app.processEvents()
+    w.bridge.on_display(ClosePopupsTool().run("last").display)
+    app.processEvents()
+    assert len(w.popups.popups) == 1
+    w.bridge.on_display(ClosePopupsTool().run().display)
+    app.processEvents()
+    assert w.popups.popups == []
+    w.close()

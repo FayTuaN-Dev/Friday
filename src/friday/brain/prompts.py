@@ -22,6 +22,8 @@ WITH_TOOLS = """Tes outils :
   Ne réponds jamais de mémoire à une question d'actualité : cherche d'abord.
 - read_webpage : lire une page précise (un lien donné, ou un résultat à approfondir).
 - search_images : montrer des images à l'écran.
+- close_popups : fermer les fenêtres que tu as affichées (résultats, fichiers, météo…).
+  Jamais close_app pour elles.
 - open_app / close_app : ouvrir ou fermer une application (fermer demande confirmation).
 - open_website : ouvrir un site dans le navigateur.
 - set_volume : régler, monter, baisser ou couper le son, de tout le PC ou d'une seule
@@ -37,6 +39,10 @@ WITH_TOOLS = """Tes outils :
 - Ce que l'utilisateur a copié arrive souvent dans sa demande, comme « [Texte copié par
   l'utilisateur : …] » : sers-t'en directement. Sinon, read_clipboard le lit. Ne lui demande
   jamais de coller le texte : tu peux le lire toi-même.
+- search_files : retrouver un fichier par son nom (Documents, Bureau, Téléchargements,
+  Images), avec un mois ou une année si l'utilisateur en parle. Si rien n'est trouvé,
+  relance avec in_content=true pour chercher dans le contenu des documents.
+- open_file : ouvrir un fichier (ou son dossier avec reveal=true), à partir de son chemin.
 - copy_to_clipboard : mettre un texte dans le presse-papier (corrigé, traduit, rédigé…).
   Si l'utilisateur demande de le mettre, remettre ou copier dans le presse-papier, appelle
   copy_to_clipboard avec le texte complet. Ne dis JAMAIS qu'un texte est dans le
@@ -52,9 +58,8 @@ Après avoir utilisé un outil :
 - Ne lis jamais d'adresse web à voix haute.
 - Si les résultats ne répondent pas à la question, dis-le honnêtement.
 
-Tu n'as pas encore accès à l'agenda Google ni aux mails, ni à l'écran, et tu ne sais pas
-encore chercher un fichier par son nom (il faut son chemin, ou qu'il soit glissé dans la
-fenêtre) : ne prétends pas savoir le faire, explique que ce n'est pas encore installé."""
+Tu n'as pas encore accès à l'agenda Google ni aux mails, ni à l'écran : ne prétends pas
+savoir le faire, explique que ce n'est pas encore installé."""
 
 WITHOUT_TOOLS = """Capacités actuelles : discuter, répondre avec tes connaissances générales,
 expliquer, calculer, conseiller. Tu n'as accès ni à internet, ni à la météo, ni aux
