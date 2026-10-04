@@ -3,8 +3,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from jarvis.tools.pc import volume as volume_module
-from jarvis.tools.pc.volume import AppAudio, Volume, VolumeTool
+from friday.tools.pc import volume as volume_module
+from friday.tools.pc.volume import AppAudio, Volume, VolumeTool
 
 
 @pytest.fixture(autouse=True)
@@ -95,8 +95,8 @@ def test_locked_volume_with_nothing_playing_says_so(monkeypatch):
     assert "n'a pas pu" in VolumeTool(volume).run(level=15).text  # plus de faux « c'est fait »
 
 
-def test_apps_skip_jarvis_and_system_audio(monkeypatch):
-    """Toutes les sorties sont parcourues ; Jarvis, Sonar et audiodg ne sont jamais touchés."""
+def test_apps_skip_friday_and_system_audio(monkeypatch):
+    """Toutes les sorties sont parcourues ; Friday, Sonar et audiodg ne sont jamais touchés."""
     import comtypes
     import psutil
     from pycaw import pycaw

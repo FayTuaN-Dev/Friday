@@ -3,11 +3,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from jarvis.tools.pc import apps_index, windows
-from jarvis.tools.pc.apps import CloseAppTool, OpenAppTool
-from jarvis.tools.pc.apps_index import App, AppIndex
-from jarvis.tools.pc.media import MediaTool, PlayMusicTool
-from jarvis.tools.pc.web import OpenWebsiteTool
+from friday.tools.pc import apps_index, windows
+from friday.tools.pc.apps import CloseAppTool, OpenAppTool
+from friday.tools.pc.apps_index import App, AppIndex
+from friday.tools.pc.media import MediaTool, PlayMusicTool
+from friday.tools.pc.web import OpenWebsiteTool
 
 APPS = [
     App("Spotify", "SpotifyAB.SpotifyMusic_zpdnekdrzrea0!Spotify"),

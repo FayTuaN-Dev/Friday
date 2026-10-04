@@ -1,4 +1,4 @@
-# Architecture de Jarvis
+# Architecture de Friday
 
 ## Principe
 
@@ -23,15 +23,15 @@ Le code est découpé en **couches**. Chaque couche ne connaît que celles du de
 ## Arborescence
 
 ```
-src/jarvis/
-├── __init__.py            point d'entrée : `jarvis` (fenêtre) ou `jarvis --cli` (terminal)
+src/friday/
+├── __init__.py            point d'entrée : `friday` (fenêtre) ou `friday --cli` (terminal)
 ├── core/
 │   ├── config.py          réglages lus dans .env (Settings) + chemins (data/, logs/)
-│   └── logging.py         logs console + logs/jarvis.log
+│   └── logging.py         logs console + logs/friday.log
 ├── brain/
 │   ├── llm.py             Brain : discussion avec Ollama (streaming, boucle d'appel d'outils)
 │   ├── events.py          ToolStarted / ToolFinished : événements émis pendant une réponse
-│   ├── prompts.py         personnalité de Jarvis (prompt système)
+│   ├── prompts.py         personnalité de Friday (prompt système)
 │   └── conversation.py    mémoire de la conversation en cours
 ├── voice/
 │   ├── recorder.py        Recorder : capture du micro → audio 16 kHz
@@ -43,7 +43,7 @@ src/jarvis/
 │   ├── ptt.py             PushToTalk : touche globale maintenue pour parler
 │   ├── hands_free.py      HandsFreeListener : écoute continue → phrases → texte
 │   ├── vad.py             StreamingVAD (Silero) + SpeechSegmenter : découpe le flux en phrases
-│   ├── wake.py            repérage de « Jarvis » en début de phrase, ordres d'arrêt, écho
+│   ├── wake.py            repérage de « Friday » en début de phrase, ordres d'arrêt, écho
 │   ├── cuda.py            DLL CUDA pour Whisper sur GPU (Windows)
 │   ├── audition.py        outil : écouter les voix disponibles
 │   ├── diagnostic.py      outil : chercher l'origine de grésillements (voix sous charge)
@@ -63,7 +63,7 @@ src/jarvis/
 │   ├── voice_inputs.py    VoiceInputs : push-to-talk (appui/relâchement) + mains libres
 │   ├── confirmations.py   ConfirmationGate : « Je lance ? » → oui / non (voix, clavier, bouton)
 │   ├── memory_keeper.py   MemoryKeeper : mémorisation automatique en arrière-plan
-│   ├── reminders.py       rappel échu → carillon + annonce par Jarvis
+│   ├── reminders.py       rappel échu → carillon + annonce par Friday
 │   ├── wake_control.py    WakeControl : règles du mot d'activation (réveil, relance, stop, écho)
 │   ├── hands_free_target.py  ce que l'écoute mains libres demande à l'assistant (« Oui ? »…)
 │   ├── components.py      chargement des modèles (chacun peut échouer sans tout bloquer)
@@ -128,15 +128,17 @@ src/jarvis/
 
 1. `HandsFreeListener` reçoit le micro en continu (blocs de 20 ms, convertis en 16 kHz)
 2. `SpeechSegmenter` + `StreamingVAD` repèrent une phrase : début de voix → 700 ms de silence
-3. Le thread `hands-free` la transcrit (`WhisperSTT`, avec `hotwords="Jarvis"`)
+3. Le thread `hands-free` la transcrit (`WhisperSTT`, avec `hotwords="Friday"`)
 4. `WakeControl.on_heard()` applique les règles :
-   - commence par « Jarvis » → coupe Jarvis s'il parle, puis `Assistant.submit_heard()`
-   - « Jarvis » seul → « Oui, Monsieur ? » et la phrase suivante est acceptée sans le nom
+   - si le nom manque au début, ce début est retranscrit dans la langue du nom (`WAKE_LANGUAGE`,
+     « Friday » est anglais) : Whisper réglé en français saute souvent un mot anglais
+   - commence par « Friday » → coupe Friday s'il parle, puis `Assistant.submit_heard()`
+   - « Friday » seul → « Oui, Monsieur ? » et la phrase suivante est acceptée sans le nom
    - juste après une réponse ou un « Oui ? » → relance possible sans le nom pendant
      `FOLLOW_UP_SECONDS` (comparé au moment où la phrase **commence**, pas à sa transcription)
-   - une phrase sans le nom juste après cette fenêtre → signalée (« commencez par Jarvis »)
+   - une phrase sans le nom juste après cette fenêtre → signalée (« commencez par Friday »)
    - pendant qu'il parle → un ordre court (« stop », « tais-toi ») suffit
-   - ce qui ressemble à ce que Jarvis vient de dire → ignoré (écho de ses haut-parleurs)
+   - ce qui ressemble à ce que Friday vient de dire → ignoré (écho de ses haut-parleurs)
    - le reste → ignoré (conversation autour de l'ordinateur)
 
 ## La mémoire
@@ -156,10 +158,10 @@ src/jarvis/
 - Un outil marqué `needs_confirmation = True` (aujourd'hui : `ask_claude_code`) n'est jamais lancé
   directement. `Brain` émet une `ConfirmationRequest` ; `Reply` dit la question et
   `ConfirmationGate` l'affiche (carte avec boutons) ; la réponse arrive d'un autre thread (clic,
-  « oui » au clavier, ou à la voix **sans redire « Jarvis »**). Pas de réponse en 60 s ou
+  « oui » au clavier, ou à la voix **sans redire « Friday »**). Pas de réponse en 60 s ou
   interruption : rien n'est lancé.
 - `ask_claude_code` lance le CLI `claude -p … --permission-mode acceptEdits` dans
-  `CLAUDE_WORKSPACE`, **en arrière-plan** (thread `claude`) : Jarvis reste disponible. À la fin,
+  `CLAUDE_WORKSPACE`, **en arrière-plan** (thread `claude`) : Friday reste disponible. À la fin,
   `on_background` dépose le résultat dans la file de l'assistant, qui ouvre le pop-up et
   **annonce** lui-même la fin (une réponse déclenchée par un message automatique).
   `cancel_claude_task` arrête la tâche.

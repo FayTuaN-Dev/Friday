@@ -2,8 +2,8 @@ import threading
 
 from fakes import FakeTTS
 
-from jarvis.voice.speaker import Speaker
-from jarvis.voice.text import SentenceSplitter, clean_for_speech
+from friday.voice.speaker import Speaker
+from friday.voice.text import SentenceSplitter, clean_for_speech
 
 
 def feed_all(splitter, chunks):

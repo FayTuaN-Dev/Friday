@@ -4,9 +4,9 @@ import ollama
 import pytest
 from fakes import SETTINGS, FakeClient
 
-from jarvis.brain.conversation import Conversation
-from jarvis.brain.llm import Brain, BrainError
-from jarvis.brain.prompts import build_system_prompt
+from friday.brain.conversation import Conversation
+from friday.brain.llm import Brain, BrainError
+from friday.brain.prompts import build_system_prompt
 
 
 def test_system_prompt():

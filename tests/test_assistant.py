@@ -10,12 +10,12 @@ from fakes import (
     tool_call,
 )
 
-from jarvis.app.assistant import Assistant
-from jarvis.app.components import Components
-from jarvis.app.events import AssistantState as S
-from jarvis.brain.llm import Brain
-from jarvis.tools.base import ToolBox
-from jarvis.voice.speaker import Speaker
+from friday.app.assistant import Assistant
+from friday.app.components import Components
+from friday.app.events import AssistantState as S
+from friday.brain.llm import Brain
+from friday.tools.base import ToolBox
+from friday.voice.speaker import Speaker
 
 TIMEOUT = 3
 
@@ -23,8 +23,8 @@ TIMEOUT = 3
 @pytest.fixture(autouse=True)
 def no_global_keyboard_hook(monkeypatch):
     """Les tests ne doivent pas intercepter le vrai clavier."""
-    monkeypatch.setattr("jarvis.voice.ptt.keyboard.hook_key", lambda key, cb: cb)
-    monkeypatch.setattr("jarvis.voice.ptt.keyboard.unhook", lambda hook: None)
+    monkeypatch.setattr("friday.voice.ptt.keyboard.hook_key", lambda key, cb: cb)
+    monkeypatch.setattr("friday.voice.ptt.keyboard.unhook", lambda hook: None)
 
 
 def make_assistant(chunks=("Il est ", "midi. ", "Bonne journée."), voice=True, ears=False):

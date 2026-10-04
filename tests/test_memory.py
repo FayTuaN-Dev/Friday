@@ -8,13 +8,13 @@ import numpy as np
 import pytest
 from fakes import SETTINGS, FakeClient
 
-from jarvis.app.memory_keeper import MemoryKeeper
-from jarvis.brain.llm import Brain
-from jarvis.memory import service as service_module
-from jarvis.memory.extractor import Fact, FactExtractor, date_relative_terms
-from jarvis.memory.service import MemoryService, format_memories
-from jarvis.memory.store import Memory, MemoryStore
-from jarvis.tools.memory import ForgetTool, ListMemoriesTool, RememberTool
+from friday.app.memory_keeper import MemoryKeeper
+from friday.brain.llm import Brain
+from friday.memory import service as service_module
+from friday.memory.extractor import Fact, FactExtractor, date_relative_terms
+from friday.memory.service import MemoryService, format_memories
+from friday.memory.store import Memory, MemoryStore
+from friday.tools.memory import ForgetTool, ListMemoriesTool, RememberTool
 
 
 class FakeEmbedder:

@@ -1,4 +1,4 @@
-# 🤖 Jarvis — Roadmap
+# 🤖 Friday — Roadmap
 
 Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et affiche le chat, des images et des résultats dans des pop-ups.
 
@@ -8,7 +8,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 |---|---|---|
 | Langage | Python 3.12 (via `uv`) | 3.12 plutôt que 3.14 : meilleure compatibilité des libs audio/IA |
 | Cerveau | Ollama `qwen3:8b` (local) | Supporte l'appel d'outils |
-| Tâches complexes / code | Claude Code (`sonnet`, modèle configurable) | Délégué par Jarvis comme un outil |
+| Tâches complexes / code | Claude Code (`sonnet`, modèle configurable) | Délégué par Friday comme un outil |
 | Transcription (STT) | `faster-whisper` large-v3-turbo (local, GPU) | ~0,5 s par phrase ; `small` en secours si la VRAM manque |
 | Voix (TTS) | Piper `fr_FR-siwis-medium` (local) | Option cloud plus tard si besoin |
 | Interface | PySide6 (Qt) | |
@@ -24,12 +24,12 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Push-to-talk (touche maintenue, configurable)
 - [x] Détection de fin de parole (VAD — Silero, en continu)
 - [x] Transcription (`faster-whisper` large-v3-turbo sur GPU)
-- [x] Mot d'activation « Jarvis » (repéré par Whisper : « Jarvis, … » d'une traite)
-- [x] Interruption pendant qu'il parle (« Jarvis, … » ou « stop »)
+- [x] Mot d'activation « Friday » (repéré par Whisper : « Friday, … » d'une traite)
+- [x] Interruption pendant qu'il parle (« Friday, … » ou « stop »)
 
 ### 2. 🧠 Réfléchir
 - [x] Discussion avec Ollama (réponse en streaming)
-- [x] Personnalité Jarvis (prompt système)
+- [x] Personnalité Friday (prompt système)
 - [x] Mémoire de la conversation en cours
 - [x] Mémoire long terme (SQLite + embeddings embeddinggemma, mémorisation automatique)
 - [x] Appel d'outils (tool calling)
@@ -71,7 +71,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 **Bonus (plus tard)**
 - [ ] Domotique (Home Assistant)
 - [ ] Webcam / vision
-- [ ] Routines (« Bonjour Jarvis » → météo + agenda + news)
+- [ ] Routines (« Bonjour Friday » → météo + agenda + news)
 
 ### 6. ⚙️ Fondations
 - [x] Architecture modulaire (outils = plugins), voir docs/ARCHITECTURE.md
@@ -89,7 +89,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
   Brave Search API (2 000 recherches/mois) ou Tavily (1 000/mois, pensé pour les assistants IA).
   Choix actuel : s'en passer tant que possible.
 - **Lancer directement une playlist Spotify** (« mets le mix Nova ») : impossible sans l'API
-  Spotify (application développeur gratuite + connexion au compte). Aujourd'hui Jarvis ouvre la
+  Spotify (application développeur gratuite + connexion au compte). Aujourd'hui Friday ouvre la
   recherche et il faut cliquer sur le résultat.
 - **Agenda et mails Google** : demande une connexion OAuth au compte Google (création d'un
   projet Google Cloud). À faire si besoin, en réutilisant la confirmation pour l'envoi de mails.
@@ -104,7 +104,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 | 1 | Cerveau texte : chat Ollama en terminal, historique, personnalité | On lui parle au clavier | ✅ |
 | 2 | Voix de sortie : Piper, phrase par phrase | Il répond à voix haute | ✅ |
 | 3 | Voix d'entrée : push-to-talk + Whisper | 1re conversation 100 % vocale | ✅ |
-| 4 | Interface : fenêtre chat + indicateur d'état | Jarvis a un visage | ✅ |
+| 4 | Interface : fenêtre chat + indicateur d'état | Friday a un visage | ✅ |
 | 5 | Premiers outils : recherche web + pop-ups images/textes | Il cherche et montre | ✅ |
 | 6 | Mains libres : mot d'activation + interruption | Expérience naturelle | ✅ |
 | 7 | Mémoire long terme | Il se souvient de toi | ✅ |

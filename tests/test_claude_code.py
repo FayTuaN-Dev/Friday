@@ -6,22 +6,22 @@ from types import SimpleNamespace
 import pytest
 from fakes import SETTINGS, FakeClient, RecordingListener, tool_call
 
-from jarvis.app.assistant import Assistant
-from jarvis.app.components import Components
-from jarvis.app.confirmations import ConfirmationGate, classify
-from jarvis.brain.events import ConfirmationRequest, ToolFinished, ToolStarted
-from jarvis.brain.llm import Brain
-from jarvis.tools import claude_code
-from jarvis.tools.base import Tool, ToolBox, ToolResult
-from jarvis.tools.claude_code import CancelClaudeTool, ClaudeCodeJob, ClaudeCodeTool
+from friday.app.assistant import Assistant
+from friday.app.components import Components
+from friday.app.confirmations import ConfirmationGate, classify
+from friday.brain.events import ConfirmationRequest, ToolFinished, ToolStarted
+from friday.brain.llm import Brain
+from friday.tools import claude_code
+from friday.tools.base import Tool, ToolBox, ToolResult
+from friday.tools.claude_code import CancelClaudeTool, ClaudeCodeJob, ClaudeCodeTool
 
 TIMEOUT = 5
 
 
 @pytest.fixture(autouse=True)
 def no_global_keyboard_hook(monkeypatch):
-    monkeypatch.setattr("jarvis.voice.ptt.keyboard.hook_key", lambda key, cb: cb)
-    monkeypatch.setattr("jarvis.voice.ptt.keyboard.unhook", lambda hook: None)
+    monkeypatch.setattr("friday.voice.ptt.keyboard.hook_key", lambda key, cb: cb)
+    monkeypatch.setattr("friday.voice.ptt.keyboard.unhook", lambda hook: None)
 
 
 # --- Confirmation ---
@@ -228,7 +228,7 @@ def test_assistant_confirms_by_voice_then_announces_completion():
     assert listener.reply_done.wait(TIMEOUT)
     listener.reply_done.clear()
     job.release.set()  # Claude termine
-    assert listener.reply_done.wait(TIMEOUT)  # Jarvis l'annonce de lui-même
+    assert listener.reply_done.wait(TIMEOUT)  # Friday l'annonce de lui-même
     assistant.shutdown()
 
     assert [u[0] for u in listener.of("user")] == ["Demande à Claude d'écrire a.py"]

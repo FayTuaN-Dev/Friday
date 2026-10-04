@@ -3,18 +3,18 @@ from datetime import datetime
 import numpy as np
 import pytest
 
-from jarvis.agenda.scheduler import ReminderScheduler
-from jarvis.agenda.store import AgendaStore
-from jarvis.agenda.times import describe, parse_time, resolve
-from jarvis.app.reminders import announcement
-from jarvis.tools.notes import AddNoteTool, ListNotesTool, RemoveNoteTool, list_key
-from jarvis.tools.reminders import (
+from friday.agenda.scheduler import ReminderScheduler
+from friday.agenda.store import AgendaStore
+from friday.agenda.times import describe, parse_time, resolve
+from friday.app.reminders import announcement
+from friday.tools.notes import AddNoteTool, ListNotesTool, RemoveNoteTool, list_key
+from friday.tools.reminders import (
     CancelReminderTool,
     ListRemindersTool,
     SetReminderTool,
     SetTimerTool,
 )
-from jarvis.voice.sounds import chime
+from friday.voice.sounds import chime
 
 NOW = datetime(2026, 10, 4, 14, 30)  # un dimanche, 14 h 30
 
@@ -70,7 +70,7 @@ def store(tmp_path):
 def test_reminders_persist_and_fire_once(tmp_path):
     first = AgendaStore(tmp_path / "a.db")
     first.add_reminder("Appeler maman", datetime(2026, 10, 4, 15, 0))
-    store = AgendaStore(tmp_path / "a.db")  # Jarvis redémarré
+    store = AgendaStore(tmp_path / "a.db")  # Friday redémarré
     fired = []
     clock = iter([datetime(2026, 10, 4, 14, 59), datetime(2026, 10, 4, 15, 0, 1)])
     scheduler = ReminderScheduler(store, lambda r, late: fired.append((r.text, late)),
@@ -128,7 +128,7 @@ def test_note_tools(store):
 
 
 def test_announcement_and_chime():
-    from jarvis.agenda.store import Reminder
+    from friday.agenda.store import Reminder
 
     reminder = Reminder(1, "Appeler maman", datetime(2026, 10, 3, 20, 0))
     assert "RAPPEL : Appeler maman" in announcement(reminder, late=False)
@@ -147,7 +147,7 @@ def test_announcement_and_chime():
     ],
 )  # fmt: skip
 def test_spoken_durations(spoken, seconds):
-    from jarvis.agenda.durations import parse_duration
+    from friday.agenda.durations import parse_duration
 
     assert parse_duration(spoken).total_seconds() == seconds
 
