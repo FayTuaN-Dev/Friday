@@ -18,6 +18,10 @@ class HandsFreeTarget:
         return self.assistant.busy
 
     @property
+    def awaiting_confirmation(self) -> bool:
+        return self.assistant.confirm.waiting
+
+    @property
     def last_reply_text(self) -> str:
         """Ce que Jarvis dit ou vient de dire (pour reconnaître son propre écho)."""
         return f"{self._said} {self.assistant.reply_spoken}".strip()

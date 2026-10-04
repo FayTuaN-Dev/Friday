@@ -2,10 +2,10 @@
 
 import random
 import threading
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 
 from jarvis.app.events import AssistantListener
-from jarvis.brain.events import BrainEvent, ToolFinished, ToolStarted
+from jarvis.brain.events import BrainEvent, ConfirmationRequest, ToolFinished, ToolStarted
 from jarvis.voice.speaker import Speaker
 from jarvis.voice.text import SentenceSplitter
 
@@ -19,8 +19,10 @@ class Reply:
         listener: AssistantListener,
         speaker: Speaker | None,
         interrupted: threading.Event,
+        on_confirm: Callable[[ConfirmationRequest], None] = lambda request: request.answer(False),
     ) -> None:
         self.listener = listener
+        self.on_confirm = on_confirm  # enregistre la question en attente de « oui » / « non »
         self.speaker = speaker
         self.interrupted = interrupted
         self._splitter = SentenceSplitter()
@@ -41,6 +43,10 @@ class Reply:
                 if not self.spoken:
                     self._say([random.choice(FILLERS)])
                 self.listener.on_tool(event.label)
+            elif isinstance(event, ConfirmationRequest):
+                self._say(self._splitter.flush())
+                self._say([event.question])
+                self.on_confirm(event)
             elif isinstance(event, ToolFinished) and event.result.display:
                 self.listener.on_display(event.result.display)
 

@@ -47,6 +47,8 @@ class Tool(ABC):
     description: str  # lue par le LLM pour savoir quand utiliser l'outil
     parameters: dict[str, dict[str, Any]]  # propriétés JSON Schema
     required: tuple[str, ...] = ()
+    needs_confirmation = False  # True : l'utilisateur doit dire « oui » avant l'exécution
+    timeout = TOOL_TIMEOUT
 
     @abstractmethod
     def run(self, **kwargs: Any) -> ToolResult: ...
@@ -54,6 +56,13 @@ class Tool(ABC):
     def label(self, args: dict[str, Any]) -> str:
         """Phrase courte affichée pendant l'exécution (ex. « Recherche : météo Lyon »)."""
         return self.name
+
+    def confirmation(self, args: dict[str, Any]) -> str:
+        """Question posée avant d'exécuter un outil sensible."""
+        return f"Je lance « {self.label(args)} » ?"
+
+    def cancel(self) -> None:  # noqa: B027 (facultatif : la plupart des outils n'ont rien à faire)
+        """Appelé si l'outil est abandonné (délai dépassé, interruption) : à libérer ici."""
 
     def schema(self) -> dict[str, Any]:
         return {
@@ -84,12 +93,17 @@ class ToolBox:
         tool = self._tools.get(name)
         return tool.label(args) if tool else name
 
+    def confirmation(self, name: str, args: dict[str, Any]) -> str | None:
+        """La question à poser avant d'exécuter cet outil, ou None s'il n'en faut pas."""
+        tool = self._tools.get(name)
+        return tool.confirmation(args) if tool and tool.needs_confirmation else None
+
     def run(
         self,
         name: str,
         args: dict[str, Any],
         cancelled: Callable[[], bool] = lambda: False,
-        timeout: float = TOOL_TIMEOUT,
+        timeout: float | None = None,
     ) -> ToolResult:
         """Exécute l'outil dans son propre thread : on peut l'abandonner (interruption de
         l'utilisateur, réseau bloqué) sans rester coincé avec lui."""
@@ -112,12 +126,15 @@ class ToolBox:
                 done.set()
 
         threading.Thread(target=work, daemon=True, name=f"tool-{name}").start()
+        timeout = tool.timeout if timeout is None else timeout
         deadline = time.monotonic() + timeout
         while not done.wait(0.1):
             if cancelled():
+                tool.cancel()
                 return ToolResult("Interrompu par l'utilisateur.")
             if time.monotonic() > deadline:
                 log.warning("Outil %s abandonné après %.0f s", name, timeout)
+                tool.cancel()
                 return ToolResult(
                     f"« {name} » n'a pas répondu à temps (internet lent ?). Préviens l'utilisateur."
                 )

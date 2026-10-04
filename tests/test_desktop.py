@@ -111,3 +111,25 @@ def test_weather_popup_renders():
     popup.show()
     app.processEvents()
     popup.close()
+
+
+def test_confirmation_card_and_claude_popup():
+    from jarvis.tools.base import Display
+    from jarvis.ui.desktop.popups.claude import ClaudePopup
+
+    w = make_window()
+    answers = []
+    w.bridge.on_confirmation("Je confie à Claude : écrire a.py. Je lance ?")
+    app.processEvents()
+    card = w.chat._cards[0]
+    card.answered.connect(answers.append)
+    card.yes.click()
+    assert answers == [True] and not card.yes.isEnabled()
+    w.close()
+
+    data = {"ok": True, "result": "# Fait\n```python\nprint(1)\n```", "files": ["a.py"],
+            "seconds": 75, "workspace": "."}  # fmt: skip
+    popup = ClaudePopup(Display("claude", "Écrire a.py", data))
+    popup.show()
+    app.processEvents()
+    popup.close()

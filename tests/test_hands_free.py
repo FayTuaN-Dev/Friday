@@ -50,6 +50,7 @@ class FakeTarget:
         self.calls = []
         self.last_reply_text = ""
         self.busy = False
+        self.awaiting_confirmation = False
 
     def interrupt(self):
         self.calls.append("interrupt")
@@ -202,3 +203,11 @@ def test_segmenter_records_when_speech_started():
     seg = SpeechSegmenter(energy_vad, segments.append, silence_ms=300, clock=lambda: next(times))
     seg.feed(np.concatenate([frames(0.5, False), frames(1, True), frames(0.5, False)]))
     assert len(segments) == 1 and seg.started_at == 0  # 1er appel à l'horloge = début
+
+
+def test_confirmation_answer_needs_no_name():
+    control, target, _ = make_control()
+    target.awaiting_confirmation = True
+    control.on_heard("Oui, vas-y.")
+    control.on_heard("Jarvis, non.")
+    assert target.calls == [("submit", "Oui, vas-y."), ("submit", "Non.")]

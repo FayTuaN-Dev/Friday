@@ -11,7 +11,7 @@ from jarvis.app.memory_keeper import MemoryKeeper
 from jarvis.brain.llm import Brain
 from jarvis.core.config import DATA_DIR, MODELS_DIR, VOICES_DIR, Settings
 from jarvis.memory.service import MemoryService, format_memories
-from jarvis.tools import default_toolbox
+from jarvis.tools import ToolResult, default_toolbox
 from jarvis.voice.speaker import Speaker
 
 log = logging.getLogger(__name__)
@@ -32,13 +32,14 @@ def load_components(
     on_mic_level: Callable[[float], None],
     on_speech_audio: Callable[[np.ndarray, int], None],
     on_memory: Callable[[str], None] = lambda text: None,
+    on_background: Callable[[str, ToolResult], None] | None = None,
 ) -> Components:
     client = ollama.Client(host=settings.ollama_host)
     memory = load_memory(settings, client)
     brain = Brain(
         settings,
         client=client,
-        toolbox=default_toolbox(settings, memory),
+        toolbox=default_toolbox(settings, memory, on_background),
         recall=(lambda question: format_memories(memory.relevant(question))) if memory else None,
     )
     brain.warmup()

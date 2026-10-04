@@ -2,6 +2,7 @@
 
 import threading
 from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 
 import numpy as np
@@ -15,6 +16,9 @@ SETTINGS = Settings(
     ollama_model="qwen3:8b",
     ollama_num_ctx=8192,
     claude_model="sonnet",
+    claude_enabled=False,
+    claude_workspace=Path("Jarvis-Workspace"),
+    claude_timeout=900.0,
     tts_enabled=False,
     tts_voice="fr_FR-siwis-medium",
     tts_speaker=None,
@@ -113,6 +117,7 @@ class RecordingListener:
         self.ready = threading.Event()
         self.reply_done = threading.Event()
         self.notice_received = threading.Event()
+        self.confirm_asked = threading.Event()
 
     def _log(self, *event):
         self.events.append(event)
@@ -149,6 +154,10 @@ class RecordingListener:
 
     def on_memory(self, text):
         self._log("memory", text)
+
+    def on_confirmation(self, question):
+        self._log("confirm", question)
+        self.confirm_asked.set()
 
     def on_mic_level(self, level):
         pass

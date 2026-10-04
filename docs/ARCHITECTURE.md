@@ -55,7 +55,8 @@ src/jarvis/
 ├── app/
 │   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
 │   ├── reply.py           Reply : déroulé d'une réponse (texte, voix, outils, pop-ups)
-│   ├── voice_inputs.py    VoiceInputs : push-to-talk + mains libres
+│   ├── voice_inputs.py    VoiceInputs : push-to-talk (appui/relâchement) + mains libres
+│   ├── confirmations.py   ConfirmationGate : « Je lance ? » → oui / non (voix, clavier, bouton)
 │   ├── memory_keeper.py   MemoryKeeper : mémorisation automatique en arrière-plan
 │   ├── wake_control.py    WakeControl : règles du mot d'activation (réveil, relance, stop, écho)
 │   ├── hands_free_target.py  ce que l'écoute mains libres demande à l'assistant (« Oui ? »…)
@@ -68,6 +69,7 @@ src/jarvis/
 │   ├── web_page.py        lecture d'une page (trafilatura)
 │   ├── images.py          recherche et téléchargement d'images
 │   ├── weather.py         météo actuelle + 7 jours (Open-Meteo, sans clé)
+│   ├── claude_code.py     délégation à Claude Code (CLI `claude`, compte Pro), en arrière-plan
 │   ├── weather_codes.py   codes météo WMO → texte français + icône
 │   └── memory.py          remember / forget_memory / list_memories
 └── ui/
@@ -84,10 +86,12 @@ src/jarvis/
         │   ├── article.py     texte d'une page web
         │   ├── images.py      galerie d'images
         │   ├── memories.py    « Ce que je sais sur vous »
-        │   └── weather.py     météo du jour + 7 jours
+        │   ├── weather.py     météo du jour + 7 jours
+        │   └── claude.py      compte rendu de Claude Code + fichiers + dossier
         └── widgets/
             ├── orb.py         cercle HUD animé (état + niveau de voix)
             ├── chat.py        fil de discussion en bulles
+            ├── confirm_card.py  carte « Je lance ? » [Lancer] / [Annuler]
             └── input_bar.py   saisie, micro, voix, nouvelle conversation
 ```
 
@@ -132,6 +136,19 @@ src/jarvis/
   évite les doublons (score ≥ 0,90) et applique les remplacements. L'interface affiche
   « 🧠 Mémorisé : … » (`on_memory`)
 
+## Les actions sensibles et Claude Code
+
+- Un outil marqué `needs_confirmation = True` (aujourd'hui : `ask_claude_code`) n'est jamais lancé
+  directement. `Brain` émet une `ConfirmationRequest` ; `Reply` dit la question et
+  `ConfirmationGate` l'affiche (carte avec boutons) ; la réponse arrive d'un autre thread (clic,
+  « oui » au clavier, ou à la voix **sans redire « Jarvis »**). Pas de réponse en 60 s ou
+  interruption : rien n'est lancé.
+- `ask_claude_code` lance le CLI `claude -p … --permission-mode acceptEdits` dans
+  `CLAUDE_WORKSPACE`, **en arrière-plan** (thread `claude`) : Jarvis reste disponible. À la fin,
+  `on_background` dépose le résultat dans la file de l'assistant, qui ouvre le pop-up et
+  **annonce** lui-même la fin (une réponse déclenchée par un message automatique).
+  `cancel_claude_task` arrête la tâche.
+
 ## Threads
 
 | Thread | Rôle |
@@ -142,6 +159,7 @@ src/jarvis/
 | hook clavier / micro | push-to-talk et capture audio (rapides, ne font que déposer des événements) |
 | `hands-free` | transcription des phrases entendues en continu + règles de réveil |
 | `memory` | mémorisation automatique après chaque réponse |
+| `claude` | une tâche Claude Code (plusieurs minutes possibles) |
 | `tool-<nom>` | un outil en cours ; abandonné après 15 s ou si l'utilisateur interrompt |
 
 L'interface Qt ne doit jamais être modifiée depuis un autre thread : `QtBridge` convertit les

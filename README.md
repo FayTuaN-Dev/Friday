@@ -34,6 +34,7 @@ uv run jarvis --cli    # version terminal
 
 - **Mains libres** : dire « **Jarvis**, quelle heure est-il ? » d'une traite. « Jarvis » seul → il répond « Oui ? » et écoute la suite. Juste après une réponse, on peut relancer sans redire son nom. Pendant qu'il parle : « Jarvis, … » lui coupe la parole, « stop » le fait taire.
 - **Mémoire** : il retient seul ce qui compte (« 🧠 Mémorisé : … »). « Retiens que… », « Oublie que… », « Qu'est-ce que tu sais sur moi ? »
+- **Claude Code** : « Jarvis, demande à Claude d'écrire… » → il demande confirmation (« oui », ou bouton), Claude travaille en arrière-plan dans `CLAUDE_WORKSPACE`, et Jarvis prévient quand c'est fini. Utilise le CLI `claude` connecté au compte Pro, sans clé API.
 - **Push-to-talk** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher.
 - **Écrire** : taper son message puis Entrée.
 
