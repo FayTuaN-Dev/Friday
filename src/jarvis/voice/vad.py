@@ -44,7 +44,7 @@ class SpeechSegmenter:
         silence_ms: int = 700,
         min_speech_ms: int = 250,
         preroll_ms: int = 500,  # le « J » de Jarvis est détecté avec un temps de retard
-        max_ms: int = 20_000,
+        max_ms: int = 45_000,  # une demande peut enchaîner plusieurs choses
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.vad = vad

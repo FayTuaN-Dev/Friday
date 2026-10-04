@@ -36,10 +36,12 @@ class HandsFreeTarget:
         """« Jarvis » tout seul : il répond, puis écoute la phrase suivante."""
         a = self.assistant
         self._said = f"Oui, {a.settings.user_name} ?"
+        # Ouverte tout de suite : on enchaîne souvent la demande pendant qu'il répond « Oui ? ».
+        self.wake.open_follow_up()
         a.listener.on_notice("Je vous écoute…")
         if a.voice_on and a.components.speaker:
             a.components.speaker.say(self._said)
-            a.components.speaker.wait()  # la fenêtre d'écoute part quand il a fini de parler
+            a.components.speaker.wait()  # puis prolongée à partir de la fin de sa réponse
         self.wake.open_follow_up()
 
     def on_ignored(self, text: str) -> None:

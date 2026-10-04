@@ -18,8 +18,9 @@ MEDIA_KEYS = {
 class MediaTool(Tool):
     name = "media_control"
     description = (
-        "Contrôle la musique ou la vidéo en cours (Spotify, YouTube…) : mettre en pause ou "
-        "reprendre, piste suivante, piste précédente."
+        "Contrôle la musique ou la vidéo (Spotify, YouTube…) : lancer la lecture (de ce qui est "
+        "affiché ou était en cours), mettre en pause, piste suivante, piste précédente. "
+        "« Lance la musique », « change de musique », « suivante » : c'est cet outil."
     )
     parameters = {"action": {"type": "string", "enum": list(MEDIA_KEYS), "description": "L'action"}}
     required = ("action",)
@@ -57,6 +58,10 @@ class PlayMusicTool(Tool):
     def run(self, query: str) -> ToolResult:
         if self.has_spotify:
             self.open_uri(f"spotify:search:{quote(query)}")
-            return ToolResult(f"Recherche « {query} » ouverte dans Spotify.")
+            return ToolResult(
+                f"Recherche « {query} » ouverte dans Spotify. Dis à l'utilisateur d'ouvrir le "
+                "résultat voulu (playlist, album…) ; dès qu'il le demande, lance la lecture avec "
+                "media_control (play_pause)."
+            )
         self.open_url(f"https://www.youtube.com/results?search_query={quote(query)}")
         return ToolResult(f"Recherche « {query} » ouverte sur YouTube.")

@@ -46,18 +46,24 @@ src/jarvis/
 │   ├── wake.py            repérage de « Jarvis » en début de phrase, ordres d'arrêt, écho
 │   ├── cuda.py            DLL CUDA pour Whisper sur GPU (Windows)
 │   ├── audition.py        outil : écouter les voix disponibles
-│   └── diagnostic.py      outil : chercher l'origine de grésillements (voix sous charge)
+│   ├── diagnostic.py      outil : chercher l'origine de grésillements (voix sous charge)
+│   └── sounds.py          sons synthétisés (carillon des rappels)
 ├── memory/                mémoire long terme (data/memory.db)
 │   ├── store.py           MemoryStore : souvenirs dans SQLite (texte + vecteur de sens)
 │   ├── embedder.py        Embedder : texte → vecteur (embeddinggemma via Ollama, sur CPU)
 │   ├── service.py         MemoryService : retenir (sans doublon), oublier, souvenirs utiles
 │   └── extractor.py       FactExtractor : le LLM tire les faits durables d'une phrase (JSON)
+├── agenda/                rappels et notes (data/agenda.db)
+│   ├── store.py           AgendaStore : rappels et listes dans SQLite
+│   ├── times.py           calcul des dates (« 18:00 » + « demain » → date exacte)
+│   └── scheduler.py       ReminderScheduler : déclenche à l'heure, rattrape les manqués
 ├── app/
 │   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
 │   ├── reply.py           Reply : déroulé d'une réponse (texte, voix, outils, pop-ups)
 │   ├── voice_inputs.py    VoiceInputs : push-to-talk (appui/relâchement) + mains libres
 │   ├── confirmations.py   ConfirmationGate : « Je lance ? » → oui / non (voix, clavier, bouton)
 │   ├── memory_keeper.py   MemoryKeeper : mémorisation automatique en arrière-plan
+│   ├── reminders.py       rappel échu → carillon + annonce par Jarvis
 │   ├── wake_control.py    WakeControl : règles du mot d'activation (réveil, relance, stop, écho)
 │   ├── hands_free_target.py  ce que l'écoute mains libres demande à l'assistant (« Oui ? »…)
 │   ├── components.py      chargement des modèles (chacun peut échouer sans tout bloquer)
@@ -77,7 +83,9 @@ src/jarvis/
 │   │   ├── media.py       set_volume (pycaw), media_control (touches multimédia), play_music
 │   │   └── web.py         open_website
 │   ├── weather_codes.py   codes météo WMO → texte français + icône
-│   └── memory.py          remember / forget_memory / list_memories
+│   ├── memory.py          remember / forget_memory / list_memories
+│   ├── reminders.py       set_timer / set_reminder / list_reminders / cancel_reminder
+│   └── notes.py           add_note / list_notes / remove_note
 └── ui/
     ├── terminal.py        interface terminal
     └── desktop/           interface de bureau (PySide6)
@@ -93,7 +101,8 @@ src/jarvis/
         │   ├── images.py      galerie d'images
         │   ├── memories.py    « Ce que je sais sur vous »
         │   ├── weather.py     météo du jour + 7 jours
-        │   └── claude.py      compte rendu de Claude Code + fichiers + dossier
+        │   ├── claude.py      compte rendu de Claude Code + fichiers + dossier
+        │   └── items.py       liste générique (rappels, notes)
         └── widgets/
             ├── orb.py         cercle HUD animé (état + niveau de voix)
             ├── chat.py        fil de discussion en bulles
@@ -166,6 +175,7 @@ src/jarvis/
 | `hands-free` | transcription des phrases entendues en continu + règles de réveil |
 | `memory` | mémorisation automatique après chaque réponse |
 | `claude` | une tâche Claude Code (plusieurs minutes possibles) |
+| `reminders` | vérifie chaque seconde si un rappel est échu |
 | `tool-<nom>` | un outil en cours ; abandonné après 15 s ou si l'utilisateur interrompt |
 
 L'interface Qt ne doit jamais être modifiée depuis un autre thread : `QtBridge` convertit les
