@@ -25,6 +25,7 @@ class Reply:
         self.interrupted = interrupted
         self._splitter = SentenceSplitter()
         self.spoken = ""  # tout ce qui a été envoyé à la voix
+        self.tools_used: list[str] = []
 
     def run(self, events: Iterator[BrainEvent]) -> bool:
         """Joue la réponse jusqu'au bout. Renvoie True si elle a été interrompue."""
@@ -35,6 +36,7 @@ class Reply:
                 self.listener.on_reply_chunk(event)
                 self._say(self._splitter.feed(event))
             elif isinstance(event, ToolStarted):
+                self.tools_used.append(event.name)
                 self._say(self._splitter.flush())  # ce qui a été dit avant l'outil
                 if not self.spoken:
                     self._say([random.choice(FILLERS)])

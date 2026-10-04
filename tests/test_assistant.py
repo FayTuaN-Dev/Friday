@@ -30,7 +30,7 @@ def no_global_keyboard_hook(monkeypatch):
 def make_assistant(chunks=("Il est ", "midi. ", "Bonne journée."), voice=True, ears=False):
     listener = RecordingListener()
 
-    def loader(settings, on_mic_level, on_speech_audio):
+    def loader(settings, on_mic_level, on_speech_audio, **_):
         speaker = None
         if voice:
             speaker = Speaker(
@@ -101,7 +101,7 @@ def test_tool_use_triggers_notice_display_and_filler():
     spoken = []
     listener = RecordingListener()
 
-    def loader(settings, on_mic_level, on_speech_audio):
+    def loader(settings, on_mic_level, on_speech_audio, **_):
         client = FakeClient(rounds=[[tool_call("web_search", query="météo")], ["18 degrés."]])
         speaker = Speaker(FakeTTS(), play=lambda a, sr: None, stop_playback=lambda: None)
         speaker.say = spoken.append

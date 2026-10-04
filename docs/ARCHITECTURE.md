@@ -9,7 +9,7 @@ Le code est découpé en **couches**. Chaque couche ne connaît que celles du de
          │
         app/           ← chef d'orchestre : enchaîne écoute → réflexion → parole
          │
-  brain/   voice/   tools/   ← briques indépendantes (LLM, audio, outils)
+  brain/  voice/  memory/  tools/   ← briques indépendantes (LLM, audio, mémoire, outils)
          │
         core/          ← config, logs
 ```
@@ -47,11 +47,18 @@ src/jarvis/
 │   ├── cuda.py            DLL CUDA pour Whisper sur GPU (Windows)
 │   ├── audition.py        outil : écouter les voix disponibles
 │   └── diagnostic.py      outil : chercher l'origine de grésillements (voix sous charge)
+├── memory/                mémoire long terme (data/memory.db)
+│   ├── store.py           MemoryStore : souvenirs dans SQLite (texte + vecteur de sens)
+│   ├── embedder.py        Embedder : texte → vecteur (embeddinggemma via Ollama, sur CPU)
+│   ├── service.py         MemoryService : retenir (sans doublon), oublier, souvenirs utiles
+│   └── extractor.py       FactExtractor : le LLM tire les faits durables d'une phrase (JSON)
 ├── app/
 │   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
 │   ├── reply.py           Reply : déroulé d'une réponse (texte, voix, outils, pop-ups)
 │   ├── voice_inputs.py    VoiceInputs : push-to-talk + mains libres
+│   ├── memory_keeper.py   MemoryKeeper : mémorisation automatique en arrière-plan
 │   ├── wake_control.py    WakeControl : règles du mot d'activation (réveil, relance, stop, écho)
+│   ├── hands_free_target.py  ce que l'écoute mains libres demande à l'assistant (« Oui ? »…)
 │   ├── components.py      chargement des modèles (chacun peut échouer sans tout bloquer)
 │   └── events.py          AssistantState + contrat AssistantListener
 ├── tools/                 outils que le LLM peut appeler (plugins)
@@ -59,7 +66,8 @@ src/jarvis/
 │   ├── base.py            Tool, ToolBox, ToolResult, Display (contenu à afficher), retry()
 │   ├── web_search.py      recherche internet (DuckDuckGo)
 │   ├── web_page.py        lecture d'une page (trafilatura)
-│   └── images.py          recherche et téléchargement d'images
+│   ├── images.py          recherche et téléchargement d'images
+│   └── memory.py          remember / forget_memory / list_memories
 └── ui/
     ├── terminal.py        interface terminal
     └── desktop/           interface de bureau (PySide6)
@@ -72,7 +80,8 @@ src/jarvis/
         │   ├── base.py        Popup : fenêtre sans bordure, déplaçable, en fondu
         │   ├── results.py     résultats de recherche (liens cliquables)
         │   ├── article.py     texte d'une page web
-        │   └── images.py      galerie d'images
+        │   ├── images.py      galerie d'images
+        │   └── memories.py    « Ce que je sais sur vous »
         └── widgets/
             ├── orb.py         cercle HUD animé (état + niveau de voix)
             ├── chat.py        fil de discussion en bulles
@@ -101,10 +110,24 @@ src/jarvis/
 4. `WakeControl.on_heard()` applique les règles :
    - commence par « Jarvis » → coupe Jarvis s'il parle, puis `Assistant.submit_heard()`
    - « Jarvis » seul → « Oui, Monsieur ? » et la phrase suivante est acceptée sans le nom
-   - juste après une réponse → relance possible sans le nom pendant `FOLLOW_UP_SECONDS`
+   - juste après une réponse ou un « Oui ? » → relance possible sans le nom pendant
+     `FOLLOW_UP_SECONDS` (comparé au moment où la phrase **commence**, pas à sa transcription)
+   - une phrase sans le nom juste après cette fenêtre → signalée (« commencez par Jarvis »)
    - pendant qu'il parle → un ordre court (« stop », « tais-toi ») suffit
    - ce qui ressemble à ce que Jarvis vient de dire → ignoré (écho de ses haut-parleurs)
    - le reste → ignoré (conversation autour de l'ordinateur)
+
+## La mémoire
+
+- **Rappel** : à chaque question, `Brain` demande à `MemoryService.relevant()` les souvenirs
+  utiles (tous s'il y en a ≤ 40, sinon les 12 plus proches par le sens) et les met dans le
+  prompt système, numérotés : `[3] L'utilisateur est allergique aux arachides.`
+- **Sur demande** : « retiens que… » → outil `remember` (avec `replaces` pour une correction),
+  « oublie que… » → `forget_memory` avec le numéro, « que sais-tu sur moi ? » → `list_memories`
+- **Automatique** : après chaque réponse, `MemoryKeeper` (thread `memory`) fait relire la phrase
+  par `FactExtractor`, qui renvoie les faits durables en JSON (souvent aucun). `MemoryService`
+  évite les doublons (score ≥ 0,90) et applique les remplacements. L'interface affiche
+  « 🧠 Mémorisé : … » (`on_memory`)
 
 ## Threads
 
@@ -115,6 +138,7 @@ src/jarvis/
 | `tts-synth` / `tts-play` | synthèse de la phrase suivante pendant la lecture de la précédente |
 | hook clavier / micro | push-to-talk et capture audio (rapides, ne font que déposer des événements) |
 | `hands-free` | transcription des phrases entendues en continu + règles de réveil |
+| `memory` | mémorisation automatique après chaque réponse |
 | `tool-<nom>` | un outil en cours ; abandonné après 15 s ou si l'utilisateur interrompt |
 
 L'interface Qt ne doit jamais être modifiée depuis un autre thread : `QtBridge` convertit les

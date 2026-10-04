@@ -7,9 +7,15 @@ from jarvis.tools.base import Display
 from jarvis.ui.desktop.popups.article import ArticlePopup
 from jarvis.ui.desktop.popups.base import Popup
 from jarvis.ui.desktop.popups.images import ImagesPopup
+from jarvis.ui.desktop.popups.memories import MemoriesPopup
 from jarvis.ui.desktop.popups.results import ResultsPopup
 
-POPUPS = {"results": ResultsPopup, "article": ArticlePopup, "images": ImagesPopup}
+POPUPS = {
+    "results": ResultsPopup,
+    "article": ArticlePopup,
+    "images": ImagesPopup,
+    "memories": MemoriesPopup,
+}
 MAX_OPEN = 3
 GAP = 12  # espace entre la fenêtre et le pop-up
 CASCADE = 36  # décalage entre pop-ups successifs

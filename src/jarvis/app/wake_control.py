@@ -11,6 +11,8 @@ log = logging.getLogger(__name__)
 
 # Au-delà de cette part de mots communs avec ce que Jarvis vient de dire, c'est son écho.
 ECHO_SIMILARITY = 0.6
+# Une phrase sans le nom, entendue peu après la fin d'une fenêtre de relance, est signalée.
+RECENT_SECONDS = 20.0
 
 
 class WakeTarget(Protocol):
@@ -20,6 +22,7 @@ class WakeTarget(Protocol):
     def interrupt(self) -> None: ...
     def acknowledge(self) -> None: ...
     def submit_heard(self, text: str) -> None: ...
+    def on_ignored(self, text: str) -> None: ...
 
 
 class WakeControl:
@@ -43,12 +46,16 @@ class WakeControl:
         self.pattern = wake_pattern(wake_words)
         self.follow_up_seconds = follow_up_seconds
         self._clock = clock
-        self._follow_up_until = 0.0
+        # Au démarrage, aucune fenêtre récente : rien n'est signalé.
+        self._follow_up_until = float("-inf")
 
     def open_follow_up(self) -> None:
         self._follow_up_until = self._clock() + self.follow_up_seconds
 
-    def on_heard(self, text: str) -> None:
+    def on_heard(self, text: str, spoken_at: float | None = None) -> None:
+        """`spoken_at` : quand la phrase a COMMENCÉ (une longue phrase commencée dans la
+        fenêtre de relance compte, même si sa transcription se termine après)."""
+        spoken_at = self._clock() if spoken_at is None else spoken_at
         if self._is_echo(text):
             log.debug("Écho de Jarvis ignoré : %s", text)
             return
@@ -60,10 +67,13 @@ class WakeControl:
 
         command = split_wake_word(text, self.pattern)
         if command is None:
-            if self._clock() > self._follow_up_until:
-                return  # conversation autour de l'ordinateur, pas pour Jarvis
+            if spoken_at > self._follow_up_until:
+                # Juste après un échange, c'était sans doute pour lui : on le signale.
+                if spoken_at - self._follow_up_until < RECENT_SECONDS:
+                    self.target.on_ignored(text)
+                return  # sinon : conversation autour de l'ordinateur, pas pour Jarvis
             command = text
-        self._follow_up_until = 0.0
+        self._follow_up_until = float("-inf")  # la fenêtre ne sert qu'une fois
 
         if is_stop(command):
             self.target.interrupt()

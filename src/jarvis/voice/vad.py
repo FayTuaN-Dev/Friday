@@ -1,5 +1,6 @@
 """Détection de parole en continu (VAD) : découpe le flux du micro en phrases."""
 
+import time
 from collections import deque
 from collections.abc import Callable
 
@@ -44,8 +45,10 @@ class SpeechSegmenter:
         min_speech_ms: int = 250,
         preroll_ms: int = 500,  # le « J » de Jarvis est détecté avec un temps de retard
         max_ms: int = 20_000,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self.vad = vad
+        self.clock = clock
         self.on_segment = on_segment
         self.threshold = threshold
         self._silence_frames = silence_ms // FRAME_MS
@@ -57,6 +60,7 @@ class SpeechSegmenter:
         self._frames: list[np.ndarray] = []
         self._speech = 0
         self._silence = 0
+        self.started_at = 0.0  # moment où la phrase en cours (ou la dernière) a commencé
 
     @property
     def in_speech(self) -> bool:
@@ -76,6 +80,7 @@ class SpeechSegmenter:
     def _process(self, frame: np.ndarray, is_speech: bool) -> None:
         if not self._frames:
             if is_speech:
+                self.started_at = self.clock()
                 self._frames = [*self._preroll, frame]
                 self._speech, self._silence = 1, 0
             else:

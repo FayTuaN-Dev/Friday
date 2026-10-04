@@ -60,6 +60,9 @@ class FakeTarget:
     def submit_heard(self, text):
         self.calls.append(("submit", text))
 
+    def on_ignored(self, text):
+        self.calls.append(("ignored", text))
+
 
 class Clock:
     def __init__(self):
@@ -103,7 +106,7 @@ def test_follow_up_window_expires():
     control.open_follow_up()
     clock.now += 9
     control.on_heard("Et demain ?")
-    assert target.calls == []
+    assert target.calls == [("ignored", "Et demain ?")]  # pas traité, mais signalé
 
 
 def test_stop_only_interrupts():
@@ -167,3 +170,35 @@ def test_segmenter_ignores_short_noises_and_caps_length():
     assert segments == []
     seg.feed(frames(5, True))  # quelqu'un qui parle sans s'arrêter
     assert len(segments) == 2 and all(s.size / 16000 <= 2.1 for s in segments)
+
+
+def test_long_sentence_started_in_window_counts():
+    """Le bug du test réel : « Jarvis. » → « Oui ? » → longue phrase commencée dans la
+    fenêtre, mais transcrite après sa fin."""
+    control, target, clock = make_control()
+    control.open_follow_up()  # fenêtre jusqu'à 108
+    started = clock.now + 6
+    clock.now += 11  # transcription terminée après la fin de la fenêtre
+    control.on_heard("J'ai fait des recherches sur le pétrole.", spoken_at=started)
+    assert target.calls[-1] == ("submit", "J'ai fait des recherches sur le pétrole.")
+
+
+def test_phrase_just_after_window_is_reported_not_silently_dropped():
+    control, target, clock = make_control()
+    control.on_heard("Tu fais quoi ?")  # au démarrage : rien de récent, rien signalé
+    assert target.calls == []
+    control.open_follow_up()
+    clock.now += 12
+    control.on_heard("Tu fais pas de recherche ?")
+    assert target.calls == [("ignored", "Tu fais pas de recherche ?")]
+    clock.now += 60
+    control.on_heard("On mange quoi ?")  # bien plus tard : conversation normale
+    assert target.calls == [("ignored", "Tu fais pas de recherche ?")]
+
+
+def test_segmenter_records_when_speech_started():
+    segments = []
+    times = iter(range(1000))
+    seg = SpeechSegmenter(energy_vad, segments.append, silence_ms=300, clock=lambda: next(times))
+    seg.feed(np.concatenate([frames(0.5, False), frames(1, True), frames(0.5, False)]))
+    assert len(segments) == 1 and seg.started_at == 0  # 1er appel à l'horloge = début

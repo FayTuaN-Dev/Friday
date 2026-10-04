@@ -38,7 +38,6 @@ class Assistant:
         self._state: AssistantState | None = None
         self.inputs = VoiceInputs(settings, self)
         self._reply: Reply | None = None
-        self._said = ""  # dernière phrase dite hors réponse (« Oui ? »), pour l'anti-écho
 
     # --- API publique (appelable depuis n'importe quel thread) ---
 
@@ -58,22 +57,14 @@ class Assistant:
         """Demande entendue en mains libres (déjà transcrite)."""
         self._events.put(("heard", text))
 
-    def acknowledge(self) -> None:
-        """« Jarvis » tout seul : il répond et écoute la phrase suivante."""
-        self._said = f"Oui, {self.settings.user_name} ?"
-        if self.voice_on and self.components.speaker:
-            self.components.speaker.say(self._said)
-        self.listener.on_notice("Je vous écoute…")
-        self.inputs.wake.open_follow_up()
-
     @property
     def busy(self) -> bool:
         return self._state in (AssistantState.THINKING, AssistantState.SPEAKING)
 
     @property
-    def last_reply_text(self) -> str:
-        """Ce que Jarvis dit ou vient de dire (pour reconnaître son propre écho)."""
-        return f"{self._said} {self._reply.spoken if self._reply else ''}".strip()
+    def reply_spoken(self) -> str:
+        """Ce que Jarvis a dit dans sa réponse en cours (ou la dernière)."""
+        return self._reply.spoken if self._reply else ""
 
     def start_listening(self) -> None:
         if not self.can_listen or self._listening:
@@ -119,7 +110,10 @@ class Assistant:
         self._set_state(AssistantState.LOADING)
         try:
             self.components = self._loader(
-                self.settings, self.listener.on_mic_level, self._on_speech_audio
+                self.settings,
+                self.listener.on_mic_level,
+                self._on_speech_audio,
+                on_memory=self.listener.on_memory,
             )
         except Exception:
             log.exception("Chargement de Jarvis impossible")
@@ -150,11 +144,8 @@ class Assistant:
         if kind == "reset":
             self.components.brain.reset()
             self.listener.on_notice("Nouvelle conversation")
-        elif kind == "text":
-            self.listener.on_user_message(str(payload), by_voice=False)
-            self._respond(str(payload))
-        elif kind == "heard":
-            self.listener.on_user_message(str(payload), by_voice=True)
+        elif kind in ("text", "heard"):
+            self.listener.on_user_message(str(payload), by_voice=kind == "heard")
             self._respond(str(payload))
         elif kind == "audio":
             text = self.components.stt.transcribe(payload)
@@ -169,7 +160,6 @@ class Assistant:
         self._set_state(AssistantState.THINKING)
         speaker = self.components.speaker if self.voice_on else None
         interrupted = False
-        self._said = ""
         self._reply = Reply(self.listener, speaker, self._interrupted)
         self.listener.on_reply_start()
         stream = self.components.brain.reply(text, self._interrupted.is_set)
@@ -177,6 +167,8 @@ class Assistant:
             interrupted = self._reply.run(stream)
             if not interrupted:
                 self.inputs.wake.open_follow_up()  # relance possible sans redire « Jarvis »
+            if self.components.keeper and "remember" not in self._reply.tools_used:
+                self.components.keeper.observe(text)  # mémorisation en arrière-plan
         except BrainError:
             host = self.settings.ollama_host
             self.listener.on_notice(f"Impossible de joindre Ollama sur {host}. Est-il lancé ?")

@@ -51,9 +51,14 @@ class TerminalUI(NullListener):
             print(f"  • {r['title']} — {r['url']}")
         if display.kind == "article":
             print(f"  • {display.data['url']}")
+        for m in display.data.get("memories", []):
+            print(f"  [{m['id']}] {m['text']}")
         if display.kind == "images":
             print(f"  ({len(display.data['images'])} images : visibles dans la fenêtre de bureau)")
         print("Jarvis> ", end="", flush=True)
+
+    def on_memory(self, text: str) -> None:
+        print(f"\n  🧠 Mémorisé : {text}\n{PROMPT}", end="", flush=True)
 
     def on_notice(self, text: str) -> None:
         print(f"\n({text})\n{PROMPT}", end="", flush=True)

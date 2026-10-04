@@ -31,7 +31,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Discussion avec Ollama (réponse en streaming)
 - [x] Personnalité Jarvis (prompt système)
 - [x] Mémoire de la conversation en cours
-- [ ] Mémoire long terme (SQLite + embeddings)
+- [x] Mémoire long terme (SQLite + embeddings embeddinggemma, mémorisation automatique)
 - [x] Appel d'outils (tool calling)
 - [ ] Délégation à Claude Code pour le code et les tâches complexes
 
@@ -93,6 +93,6 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 | 4 | Interface : fenêtre chat + indicateur d'état | Jarvis a un visage | ✅ |
 | 5 | Premiers outils : recherche web + pop-ups images/textes | Il cherche et montre | ✅ |
 | 6 | Mains libres : mot d'activation + interruption | Expérience naturelle | ✅ |
-| 7 | Mémoire long terme | Il se souvient de toi | ⬜ |
+| 7 | Mémoire long terme | Il se souvient de toi | ✅ |
 | 8 | Outils perso + délégation Claude Code | Assistant du quotidien | ⬜ |
 | 9 | Finitions : tray, démarrage auto, `.exe` | Produit fini | ⬜ |
