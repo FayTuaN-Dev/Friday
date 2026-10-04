@@ -67,6 +67,8 @@ src/jarvis/
 │   ├── web_search.py      recherche internet (DuckDuckGo)
 │   ├── web_page.py        lecture d'une page (trafilatura)
 │   ├── images.py          recherche et téléchargement d'images
+│   ├── weather.py         météo actuelle + 7 jours (Open-Meteo, sans clé)
+│   ├── weather_codes.py   codes météo WMO → texte français + icône
 │   └── memory.py          remember / forget_memory / list_memories
 └── ui/
     ├── terminal.py        interface terminal
@@ -81,7 +83,8 @@ src/jarvis/
         │   ├── results.py     résultats de recherche (liens cliquables)
         │   ├── article.py     texte d'une page web
         │   ├── images.py      galerie d'images
-        │   └── memories.py    « Ce que je sais sur vous »
+        │   ├── memories.py    « Ce que je sais sur vous »
+        │   └── weather.py     météo du jour + 7 jours
         └── widgets/
             ├── orb.py         cercle HUD animé (état + niveau de voix)
             ├── chat.py        fil de discussion en bulles

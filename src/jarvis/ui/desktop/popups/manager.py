@@ -9,12 +9,14 @@ from jarvis.ui.desktop.popups.base import Popup
 from jarvis.ui.desktop.popups.images import ImagesPopup
 from jarvis.ui.desktop.popups.memories import MemoriesPopup
 from jarvis.ui.desktop.popups.results import ResultsPopup
+from jarvis.ui.desktop.popups.weather import WeatherPopup
 
 POPUPS = {
     "results": ResultsPopup,
     "article": ArticlePopup,
     "images": ImagesPopup,
     "memories": MemoriesPopup,
+    "weather": WeatherPopup,
 }
 MAX_OPEN = 3
 GAP = 12  # espace entre la fenêtre et le pop-up

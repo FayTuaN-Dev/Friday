@@ -53,7 +53,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Recherche web + résumé
 - [x] Lecture/résumé d'une page web
 - [x] Recherche d'images → pop-up
-- [ ] Météo, actualités, date/heure — via la recherche web pour l'instant ; un outil météo dédié serait plus fiable
+- [x] Météo (Open-Meteo, gratuit et sans clé) ; actualités via la recherche web ; date/heure dans le prompt
 
 **Productivité**
 - [ ] Minuteurs, alarmes, rappels
@@ -79,6 +79,15 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Logs (gestion d'erreurs : au fil des phases)
 - [ ] Confirmation avant les actions sensibles
 - [ ] Démarrage avec Windows + `.exe` (PyInstaller)
+
+---
+
+## Notes pour plus tard
+
+- **Recherche web plus fiable** : les moteurs gratuits (via `ddgs`) limitent parfois les requêtes
+  d'une même connexion. Si ça devient gênant, ajouter un fournisseur avec clé gratuite en secours :
+  Brave Search API (2 000 recherches/mois) ou Tavily (1 000/mois, pensé pour les assistants IA).
+  Choix actuel : s'en passer tant que possible.
 
 ---
 

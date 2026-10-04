@@ -8,10 +8,12 @@ def default_toolbox(settings: Settings, memory=None) -> ToolBox:
     tools: list[Tool] = []
     if settings.tools_enabled:
         from jarvis.tools.images import ImageSearchTool
+        from jarvis.tools.weather import WeatherTool
         from jarvis.tools.web_page import ReadWebPageTool
         from jarvis.tools.web_search import WebSearchTool
 
         tools += [
+            WeatherTool(settings.home_city),
             WebSearchTool(settings.search_region, backend=settings.search_backend),
             ReadWebPageTool(),
             ImageSearchTool(settings.search_region),

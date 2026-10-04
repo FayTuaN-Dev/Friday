@@ -83,6 +83,15 @@ def stylesheet() -> str:
     #MemoryItem QLabel {{ background: transparent; }}
     #MemoryMeta {{ color: {MUTED}; font-size: 11px; }}
     #Hint {{ color: {MUTED}; font-size: 11px; font-style: italic; }}
+    #WeatherNow {{ background: {PANEL}; border: 1px solid {BORDER}; border-radius: 10px; }}
+    #WeatherNow QLabel {{ background: transparent; }}
+    #WeatherIcon {{ font-size: 40px; }}
+    #WeatherTemp {{ font-family: "{FONT_HUD}"; font-size: 40px; color: {ACCENT}; }}
+    #WeatherDetails {{ color: {TEXT}; font-size: 12px; }}
+    #WeatherDay {{ font-weight: 600; }}
+    #WeatherDayIcon {{ font-size: 18px; }}
+    #WeatherRange {{ font-family: "{FONT_HUD}"; color: {ACCENT}; }}
+    #WeatherRain {{ color: {MUTED}; font-size: 12px; }}
 
     /* Pop-ups */
     #Popup {{ background: {BG}; border: 1px solid {ACCENT_DIM}; }}

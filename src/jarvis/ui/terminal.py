@@ -53,6 +53,8 @@ class TerminalUI(NullListener):
             print(f"  • {display.data['url']}")
         for m in display.data.get("memories", []):
             print(f"  [{m['id']}] {m['text']}")
+        for d in display.data.get("days", []):
+            print(f"  {d['icon']} {d['day']} : {d['min']}–{d['max']} °C, pluie {d['rain']} %")
         if display.kind == "images":
             print(f"  ({len(display.data['images'])} images : visibles dans la fenêtre de bureau)")
         print("Jarvis> ", end="", flush=True)

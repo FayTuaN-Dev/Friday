@@ -98,3 +98,16 @@ def test_popups_open_beside_window_and_are_limited():
     w.close()
     app.processEvents()
     assert w.popups.popups == []
+
+
+def test_weather_popup_renders():
+    from jarvis.tools.base import Display
+    from jarvis.ui.desktop.popups.weather import WeatherPopup
+
+    now = {"temperature": 18, "feels_like": 20, "label": "couvert", "icon": "☁️", "wind": 7,
+           "humidity": 88}  # fmt: skip
+    day = {"day": "Demain", "label": "pluie", "icon": "🌧️", "min": 12, "max": 24, "rain": 70}
+    popup = WeatherPopup(Display("weather", "Bordeaux (France)", {"current": now, "days": [day]}))
+    popup.show()
+    app.processEvents()
+    popup.close()
