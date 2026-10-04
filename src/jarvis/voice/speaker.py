@@ -59,6 +59,12 @@ class Speaker:
         if text:
             self._texts.put((self._generation, text))
 
+    def chime(self) -> None:
+        """Petit carillon (avant un rappel), joué dans l'ordre avec les phrases."""
+        from jarvis.voice.sounds import chime
+
+        self._audio.put((self._generation, chime(self.tts.sample_rate)))
+
     def wait(self) -> None:
         """Bloque jusqu'à la fin de tout ce qui a été demandé."""
         self._texts.join()

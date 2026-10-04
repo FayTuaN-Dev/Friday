@@ -56,10 +56,10 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Météo (Open-Meteo, gratuit et sans clé) ; actualités via la recherche web ; date/heure dans le prompt
 
 **Productivité**
-- [ ] Minuteurs, alarmes, rappels
-- [ ] Notes et to-do
+- [x] Minuteurs et rappels (carillon + annonce vocale, rattrapage des rappels manqués)
+- [x] Notes et listes (courses, tâches…)
 - [ ] Agenda et mails (Google)
-- [ ] Calculs et conversions
+- [x] Calculs et conversions (le LLM s'en charge directement)
 
 **Contrôle du PC**
 - [x] Ouvrir/fermer applications (menu Démarrer, fermeture avec confirmation) et sites
@@ -88,6 +88,8 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
   d'une même connexion. Si ça devient gênant, ajouter un fournisseur avec clé gratuite en secours :
   Brave Search API (2 000 recherches/mois) ou Tavily (1 000/mois, pensé pour les assistants IA).
   Choix actuel : s'en passer tant que possible.
+- **Agenda et mails Google** : demande une connexion OAuth au compte Google (création d'un
+  projet Google Cloud). À faire si besoin, en réutilisant la confirmation pour l'envoi de mails.
 
 ---
 
@@ -103,5 +105,5 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 | 5 | Premiers outils : recherche web + pop-ups images/textes | Il cherche et montre | ✅ |
 | 6 | Mains libres : mot d'activation + interruption | Expérience naturelle | ✅ |
 | 7 | Mémoire long terme | Il se souvient de toi | ✅ |
-| 8 | Outils perso + délégation Claude Code | Assistant du quotidien | ⬜ |
+| 8 | Outils perso + délégation Claude Code | Assistant du quotidien | ✅ |
 | 9 | Finitions : tray, démarrage auto, `.exe` | Produit fini | ⬜ |

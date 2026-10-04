@@ -25,6 +25,7 @@ class Components:
     recorder: object | None = None  # Recorder
     memory: MemoryService | None = None
     keeper: MemoryKeeper | None = None  # mémorisation automatique
+    agenda: object | None = None  # AgendaStore (rappels, notes)
 
 
 def load_components(
@@ -36,14 +37,20 @@ def load_components(
 ) -> Components:
     client = ollama.Client(host=settings.ollama_host)
     memory = load_memory(settings, client)
+    agenda = None
+    if settings.agenda_enabled:
+        from jarvis.agenda.store import AgendaStore
+
+        DATA_DIR.mkdir(exist_ok=True)
+        agenda = AgendaStore(DATA_DIR / "agenda.db")
     brain = Brain(
         settings,
         client=client,
-        toolbox=default_toolbox(settings, memory, on_background),
+        toolbox=default_toolbox(settings, memory, on_background, agenda),
         recall=(lambda question: format_memories(memory.relevant(question))) if memory else None,
     )
     brain.warmup()
-    components = Components(brain=brain, memory=memory)
+    components = Components(brain=brain, memory=memory, agenda=agenda)
 
     if memory and settings.memory_auto:
         from jarvis.memory.extractor import FactExtractor
@@ -74,6 +81,11 @@ def load_components(
         except Exception:
             log.exception("Écoute indisponible, Jarvis continue au clavier")
             components.recorder = components.stt = None
+
+    if agenda is not None and on_background is not None:
+        from jarvis.app.reminders import start_reminders
+
+        start_reminders(agenda, lambda: components.speaker, on_background)
 
     return components
 

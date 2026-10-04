@@ -59,6 +59,8 @@ class TerminalUI(NullListener):
             print(f"  🤖 {display.data['result'][:800]}")
             for f in display.data.get("files", []):
                 print(f"  📄 {f}")
+        for item in display.data.get("items", []):
+            print(f"  • {item['text']}  ({item.get('meta', '')})")
         if display.kind == "images":
             print(f"  ({len(display.data['images'])} images : visibles dans la fenêtre de bureau)")
         print("Jarvis> ", end="", flush=True)

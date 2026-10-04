@@ -38,6 +38,7 @@ SETTINGS = Settings(
     search_backend="auto",
     home_city="",
     pc_control=False,
+    agenda_enabled=False,
     memory_enabled=False,
     memory_auto=False,
     embed_model="embeddinggemma",

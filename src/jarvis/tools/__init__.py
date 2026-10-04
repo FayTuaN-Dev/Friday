@@ -4,7 +4,7 @@ from jarvis.core.config import Settings
 from jarvis.tools.base import Display, Tool, ToolBox, ToolResult
 
 
-def default_toolbox(settings: Settings, memory=None, on_background=None) -> ToolBox:
+def default_toolbox(settings: Settings, memory=None, on_background=None, agenda=None) -> ToolBox:
     """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine."""
     tools: list[Tool] = []
     if settings.tools_enabled:
@@ -30,6 +30,20 @@ def default_toolbox(settings: Settings, memory=None, on_background=None) -> Tool
             settings.claude_workspace, settings.claude_model, settings.claude_timeout
         )
         tools += [ClaudeCodeTool(job, on_background), CancelClaudeTool(job)]
+    if agenda is not None:
+        from jarvis.tools.notes import AddNoteTool, ListNotesTool, RemoveNoteTool
+        from jarvis.tools.reminders import (
+            CancelReminderTool,
+            ListRemindersTool,
+            SetReminderTool,
+            SetTimerTool,
+        )
+
+        tools += [
+            SetTimerTool(agenda), SetReminderTool(agenda), ListRemindersTool(agenda),
+            CancelReminderTool(agenda), AddNoteTool(agenda), ListNotesTool(agenda),
+            RemoveNoteTool(agenda),
+        ]  # fmt: skip
     if memory is not None:
         from jarvis.tools.memory import ForgetTool, ListMemoriesTool, RememberTool
 
