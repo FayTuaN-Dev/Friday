@@ -1,6 +1,6 @@
-"""Fenêtre pop-up de base : sans bordure Windows, en-tête déplaçable, apparition en fondu."""
+"""Pop-up de base : sans bordure Windows, arrondi, en-tête déplaçable, apparition en fondu."""
 
-from PySide6.QtCore import QPoint, QPropertyAnimation, Qt, Signal
+from PySide6.QtCore import QPoint, QPropertyAnimation, QSize, Qt, Signal
 from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
@@ -9,6 +9,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from friday.ui.desktop import theme
+from friday.ui.desktop.icons import icon
 
 
 class ElidedLabel(QLabel):
@@ -28,30 +31,37 @@ class ElidedLabel(QLabel):
 class Popup(QWidget):
     closed = Signal(object)
 
-    def __init__(self, icon: str, title: str, size: tuple[int, int]) -> None:
+    def __init__(self, symbol: str, title: str, size: tuple[int, int]) -> None:
         super().__init__(None, Qt.Tool | Qt.FramelessWindowHint)
         self.setObjectName("Popup")
         self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setAttribute(Qt.WA_StyledBackground)
+        self.setAttribute(Qt.WA_TranslucentBackground)  # coins arrondis
         self.resize(*size)
         self._drag_from: QPoint | None = None
 
         header = QWidget(objectName="PopupHeader")
         row = QHBoxLayout(header)
-        row.setContentsMargins(12, 6, 6, 6)
-        title_label = ElidedLabel(f"{icon}  {title}", objectName="PopupTitle")
+        row.setContentsMargins(16, 10, 10, 4)
+        title_label = ElidedLabel(f"{symbol}  {title}", objectName="PopupTitle")
         title_label.setToolTip(title)
-        close = QPushButton("✕", objectName="PopupClose", toolTip="Fermer")
+        close = QPushButton(objectName="PopupClose", toolTip="Fermer")
+        close.setIcon(icon("close", theme.current().muted, 13))
+        close.setIconSize(QSize(13, 13))
+        close.setFocusPolicy(Qt.NoFocus)
         close.clicked.connect(self.close)
         row.addWidget(title_label, 1)
         row.addWidget(close)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(1, 1, 1, 1)
+        shell = QWidget(objectName="PopupShell")
+        shell.setAttribute(Qt.WA_StyledBackground)
+        QVBoxLayout(self).setContentsMargins(0, 0, 0, 0)
+        self.layout().addWidget(shell)
+        layout = QVBoxLayout(shell)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(header)
         self.body = QVBoxLayout()
-        self.body.setContentsMargins(12, 10, 12, 12)
+        self.body.setContentsMargins(14, 8, 14, 14)
         layout.addLayout(self.body, 1)
 
     def show_animated(self) -> None:

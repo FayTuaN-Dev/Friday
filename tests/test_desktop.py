@@ -1,10 +1,12 @@
+import tempfile
+from pathlib import Path
+
 import numpy as np
 from fakes import SETTINGS
 from PySide6.QtWidgets import QApplication
 
 from friday.app.events import AssistantState
-from friday.ui.desktop.theme import stylesheet
-from friday.ui.desktop.widgets.orb import speech_envelope
+from friday.ui.desktop.widgets.holo import speech_envelope
 
 app = QApplication.instance() or QApplication([])
 
@@ -28,11 +30,11 @@ class StubAssistant:
     def shutdown(self): ...
 
 
-def make_window():
+def make_window(tmp_path=None):
     from friday.ui.desktop.main_window import MainWindow
 
-    app.setStyleSheet(stylesheet())
-    return MainWindow(SETTINGS, assistant=StubAssistant())
+    prefs = (tmp_path or Path(tempfile.mkdtemp())) / "interface.json"
+    return MainWindow(SETTINGS, assistant=StubAssistant(), preferences_path=prefs)
 
 
 def test_window_reacts_to_assistant_events():
@@ -64,7 +66,7 @@ def test_input_bar_sends_text_and_toggles_voice():
     assert w.assistant.sent == ["Salut Friday"]
     assert w.input.edit.text() == ""
     w.input.voice.click()
-    assert w.input.voice.text() == "🔇"
+    assert w.input._voice_on is False  # icône « muet »
     w.close()
 
 
@@ -133,3 +135,37 @@ def test_confirmation_card_and_claude_popup():
     popup.show()
     app.processEvents()
     popup.close()
+
+
+def test_color_choice_recolors_interface_and_is_remembered(tmp_path):
+    from PySide6.QtGui import QColor
+
+    from friday.ui.desktop import preferences, theme
+
+    w = make_window(tmp_path)
+    w.show_state(AssistantState.LISTENING)
+    w.apply_color(QColor("#3cc8ff"))
+    assert theme.current().base.name() == "#3cc8ff"
+    assert w.orb.base.name() == "#3cc8ff"
+    assert theme.current().states[AssistantState.LISTENING] in w.status.styleSheet()
+    assert preferences.load(tmp_path / "interface.json") == {"color": "#3cc8ff"}
+    w.close()
+
+    again = make_window(tmp_path)  # la couleur choisie revient au lancement suivant
+    assert again.base.name() == "#3cc8ff"
+    again.close()
+
+
+def test_holo_orb_draws_every_state():
+    from friday.ui.desktop.widgets.holo import HoloOrb
+
+    orb = HoloOrb()
+    orb.resize(400, 280)
+    for state in AssistantState:
+        orb.set_state(state)
+        for _ in range(5):
+            orb._tick()
+        orb.grab()  # dessine sans planter, même sans fenêtre visible
+    orb.play_speech(np.ones(8000, dtype=np.float32) * 0.2, 16000)
+    orb._tick()
+    assert 0 <= orb.level <= 1.2

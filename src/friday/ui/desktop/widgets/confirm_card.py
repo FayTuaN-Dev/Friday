@@ -10,13 +10,13 @@ class ConfirmCard(QFrame):
     def __init__(self, question: str) -> None:
         super().__init__(objectName="ConfirmCard")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(14, 10, 14, 10)
-        layout.addWidget(QLabel(f"❓ {question}", objectName="ConfirmQuestion", wordWrap=True))
+        layout.setContentsMargins(18, 14, 18, 14)
+        layout.addWidget(QLabel(question, objectName="ConfirmQuestion", wordWrap=True))
         layout.addWidget(QLabel("Répondez « oui » / « non », ou :", objectName="Hint"))
 
         buttons = QHBoxLayout()
-        self.yes = QPushButton("✅ Lancer", objectName="ConfirmYes")
-        self.no = QPushButton("✖ Annuler", objectName="ConfirmNo")
+        self.yes = QPushButton("Lancer", objectName="ConfirmYes")
+        self.no = QPushButton("Annuler", objectName="ConfirmNo")
         self.yes.clicked.connect(lambda: self._answer(True))
         self.no.clicked.connect(lambda: self._answer(False))
         buttons.addStretch()
