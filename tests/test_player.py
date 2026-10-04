@@ -5,7 +5,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from jarvis.voice import player as player_module
+from friday.voice import player as player_module
 
 
 class FakeStream:

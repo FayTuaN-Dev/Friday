@@ -1,10 +1,10 @@
 from fakes import SETTINGS, EchoTool, FakeClient, tool_call
 
-from jarvis.brain.conversation import TOOL_RESULT_KEEP_CHARS, Conversation
-from jarvis.brain.events import ToolFinished, ToolStarted
-from jarvis.brain.llm import MAX_TOOL_ROUNDS, Brain
-from jarvis.tools import images, web_page, web_search
-from jarvis.tools.base import Tool, ToolBox
+from friday.brain.conversation import TOOL_RESULT_KEEP_CHARS, Conversation
+from friday.brain.events import ToolFinished, ToolStarted
+from friday.brain.llm import MAX_TOOL_ROUNDS, Brain
+from friday.tools import images, web_page, web_search
+from friday.tools.base import Tool, ToolBox
 
 
 def brain_with_tool(rounds):
@@ -112,7 +112,7 @@ def test_read_webpage_tool(monkeypatch):
 
 
 def test_retry_recovers_from_a_passing_failure():
-    from jarvis.tools.base import retry
+    from friday.tools.base import retry
 
     attempts = []
 

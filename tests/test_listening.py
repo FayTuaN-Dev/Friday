@@ -2,10 +2,10 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from jarvis.core.config import _device
-from jarvis.voice import ptt
-from jarvis.voice.recorder import resample
-from jarvis.voice.stt import clean_transcript
+from friday.core.config import _device
+from friday.voice import ptt
+from friday.voice.recorder import resample
+from friday.voice.stt import clean_transcript
 
 
 def test_resample_to_16k():

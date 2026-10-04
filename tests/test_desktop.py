@@ -2,9 +2,9 @@ import numpy as np
 from fakes import SETTINGS
 from PySide6.QtWidgets import QApplication
 
-from jarvis.app.events import AssistantState
-from jarvis.ui.desktop.theme import stylesheet
-from jarvis.ui.desktop.widgets.orb import speech_envelope
+from friday.app.events import AssistantState
+from friday.ui.desktop.theme import stylesheet
+from friday.ui.desktop.widgets.orb import speech_envelope
 
 app = QApplication.instance() or QApplication([])
 
@@ -29,7 +29,7 @@ class StubAssistant:
 
 
 def make_window():
-    from jarvis.ui.desktop.main_window import MainWindow
+    from friday.ui.desktop.main_window import MainWindow
 
     app.setStyleSheet(stylesheet())
     return MainWindow(SETTINGS, assistant=StubAssistant())
@@ -59,9 +59,9 @@ def test_input_bar_sends_text_and_toggles_voice():
     w = make_window()
     w.bridge.on_ready("")
     app.processEvents()
-    w.input.edit.setText("  Salut Jarvis  ")
+    w.input.edit.setText("  Salut Friday  ")
     w.input.edit.returnPressed.emit()
-    assert w.assistant.sent == ["Salut Jarvis"]
+    assert w.assistant.sent == ["Salut Friday"]
     assert w.input.edit.text() == ""
     w.input.voice.click()
     assert w.input.voice.text() == "🔇"
@@ -75,8 +75,8 @@ def test_speech_envelope():
 
 
 def test_popups_open_beside_window_and_are_limited():
-    from jarvis.tools.base import Display
-    from jarvis.ui.desktop.popups.manager import MAX_OPEN
+    from friday.tools.base import Display
+    from friday.ui.desktop.popups.manager import MAX_OPEN
 
     w = make_window()
     w.show()
@@ -101,8 +101,8 @@ def test_popups_open_beside_window_and_are_limited():
 
 
 def test_weather_popup_renders():
-    from jarvis.tools.base import Display
-    from jarvis.ui.desktop.popups.weather import WeatherPopup
+    from friday.tools.base import Display
+    from friday.ui.desktop.popups.weather import WeatherPopup
 
     now = {"temperature": 18, "feels_like": 20, "label": "couvert", "icon": "☁️", "wind": 7,
            "humidity": 88}  # fmt: skip
@@ -114,8 +114,8 @@ def test_weather_popup_renders():
 
 
 def test_confirmation_card_and_claude_popup():
-    from jarvis.tools.base import Display
-    from jarvis.ui.desktop.popups.claude import ClaudePopup
+    from friday.tools.base import Display
+    from friday.ui.desktop.popups.claude import ClaudePopup
 
     w = make_window()
     answers = []

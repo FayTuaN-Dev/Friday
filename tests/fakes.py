@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 import numpy as np
 
-from jarvis.core.config import Settings
-from jarvis.tools.base import Display, Tool, ToolResult
+from friday.core.config import Settings
+from friday.tools.base import Display, Tool, ToolResult
 
 SETTINGS = Settings(
     user_name="Tony",
@@ -17,7 +17,7 @@ SETTINGS = Settings(
     ollama_num_ctx=8192,
     claude_model="sonnet",
     claude_enabled=False,
-    claude_workspace=Path("Jarvis-Workspace"),
+    claude_workspace=Path("Friday-Workspace"),
     claude_timeout=900.0,
     tts_enabled=False,
     tts_voice="fr_FR-siwis-medium",
@@ -30,10 +30,12 @@ SETTINGS = Settings(
     output_device=None,
     ptt_key="home",
     hands_free=False,
-    wake_words=["jarvis", "jarvie"],
+    wake_words=["friday"],
     follow_up_seconds=8.0,
     vad_silence_ms=700,
     hands_free_record=False,
+    wake_language="fr",
+    tts_name_pronunciation="",
     tools_enabled=False,
     search_region="fr-fr",
     search_backend="auto",

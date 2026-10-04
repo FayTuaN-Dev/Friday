@@ -1,9 +1,10 @@
-# Jarvis
+# Friday
 
-Assistant personnel vocal de bureau, 100 % local par défaut : on lui parle, il répond à voix haute
-et affiche le chat, des images et des résultats dans des pop-ups.
+Assistante personnelle vocale de bureau, 100 % locale par défaut : on lui parle, elle répond à voix
+haute et affiche le chat, des images et des résultats dans des pop-ups. Inspirée de F.R.I.D.A.Y.,
+l'IA de Tony Stark (le projet s'appelait d'abord Jarvis).
 
-<p align="center"><img src="docs/images/interface.png" width="360" alt="Interface de Jarvis"></p>
+<p align="center"><img src="docs/images/interface.png" width="360" alt="Interface de Friday"></p>
 
 - **Cerveau** : Ollama (`qwen3:8b`), avec délégation à Claude Code pour le code
 - **Voix** : faster-whisper (écoute) + Piper (parole)
@@ -28,15 +29,15 @@ copy .env.example .env
 ## Utilisation
 
 ```
-uv run jarvis          # application de bureau
-uv run jarvis --cli    # version terminal
+uv run friday          # application de bureau
+uv run friday --cli    # version terminal
 ```
 
-- **Mains libres** : dire « **Jarvis**, quelle heure est-il ? » d'une traite. « Jarvis » seul → il répond « Oui ? » et écoute la suite. Juste après une réponse, on peut relancer sans redire son nom. Pendant qu'il parle : « Jarvis, … » lui coupe la parole, « stop » le fait taire.
+- **Mains libres** : dire « **Friday** » (à l'anglaise), « quelle heure est-il ? » d'une traite. « Friday » seul → il répond « Oui ? » et écoute la suite. Juste après une réponse, on peut relancer sans redire son nom. Pendant qu'il parle : « Friday, … » lui coupe la parole, « stop » le fait taire.
 - **Mémoire** : il retient seul ce qui compte (« 🧠 Mémorisé : … »). « Retiens que… », « Oublie que… », « Qu'est-ce que tu sais sur moi ? »
 - **Rappels et listes** : « minuteur de 10 minutes », « rappelle-moi d'appeler maman demain à 18 h », « ajoute du lait à ma liste de courses », « qu'y a-t-il sur ma liste ? ». À l'heure dite : carillon puis annonce vocale.
 - **PC** : « ouvre Spotify », « ferme Discord » (avec confirmation), « ouvre YouTube », « mets le volume à 30 », « coupe le son », « musique suivante », « mets du jazz ».
-- **Claude Code** : « Jarvis, demande à Claude d'écrire… » → il demande confirmation (« oui », ou bouton), Claude travaille en arrière-plan dans `CLAUDE_WORKSPACE`, et Jarvis prévient quand c'est fini. Utilise le CLI `claude` connecté au compte Pro, sans clé API.
+- **Claude Code** : « Friday, demande à Claude d'écrire… » → il demande confirmation (« oui », ou bouton), Claude travaille en arrière-plan dans `CLAUDE_WORKSPACE`, et Friday prévient quand c'est fini. Utilise le CLI `claude` connecté au compte Pro, sans clé API.
 - **Push-to-talk** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher.
 - **Écrire** : taper son message puis Entrée.
 
@@ -44,9 +45,9 @@ Dans la fenêtre, les boutons de la barre du bas permettent d'envoyer, de parler
 
 Choisir le micro : `uv run python -m sounddevice` liste les périphériques, puis régler `MIC_DEVICE` (numéro ou morceau du nom).
 
-Choisir la sortie audio : `OUTPUT_DEVICE` (même principe). En cas de grésillements : `uv run python -m jarvis.voice.diagnostic`.
+Choisir la sortie audio : `OUTPUT_DEVICE` (même principe). En cas de grésillements : `uv run python -m friday.voice.diagnostic`.
 
-Pour comparer les voix disponibles : `uv run python -m jarvis.voice.audition`, puis régler `TTS_VOICE` dans `.env`.
+Pour comparer les voix disponibles : `uv run python -m friday.voice.audition`, puis régler `TTS_VOICE` dans `.env`.
 
 ## Développement
 

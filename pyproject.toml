@@ -1,5 +1,5 @@
 [project]
-name = "jarvis"
+name = "friday"
 version = "0.1.0"
 description = "Assistant personnel vocal local (Ollama + Claude Code)"
 authors = [
@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.scripts]
-jarvis = "jarvis:main"
+friday = "friday:main"
 
 [build-system]
 requires = ["uv_build>=0.12.22,<0.13.0"]

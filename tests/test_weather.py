@@ -2,8 +2,8 @@ from datetime import date
 
 import httpx
 
-from jarvis.tools.weather import WeatherTool, day_name
-from jarvis.tools.weather_codes import describe_weather
+from friday.tools.weather import WeatherTool, day_name
+from friday.tools.weather_codes import describe_weather
 
 FORECAST = {
     "current": {
