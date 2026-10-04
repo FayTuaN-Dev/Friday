@@ -39,7 +39,21 @@ def default_toolbox(settings: Settings, memory=None, on_background=None, agenda=
         job = ClaudeCodeJob(
             settings.claude_workspace, settings.claude_model, settings.claude_timeout
         )
-        tools += [ClaudeCodeTool(job, on_background), CancelClaudeTool(job)]
+        claude = ClaudeCodeTool(job, on_background)
+        tools += [claude, CancelClaudeTool(job)]
+    else:
+        claude = None
+    if settings.vision_enabled:
+        import ollama
+
+        from friday.tools.screen import AskClaudeAboutScreenTool, LookAtScreenTool
+        from friday.vision.capture import capture_screen
+        from friday.vision.reader import ScreenReader
+
+        reader = ScreenReader(ollama.Client(host=settings.ollama_host), settings.vision_model)
+        tools.append(LookAtScreenTool(reader, capture_screen))
+        if claude is not None:  # secours, avec confirmation
+            tools.append(AskClaudeAboutScreenTool(claude, capture_screen))
     if agenda is not None:
         from friday.tools.notes import AddNoteTool, ListNotesTool, RemoveNoteTool
         from friday.tools.reminders import (

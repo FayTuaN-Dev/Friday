@@ -46,6 +46,8 @@ class Settings:
     home_city: str
     pc_control: bool
     files_access: bool
+    vision_enabled: bool
+    vision_model: str
     agenda_enabled: bool
     memory_enabled: bool
     memory_auto: bool
@@ -107,6 +109,8 @@ def load_settings() -> Settings:
         home_city=os.getenv("HOME_CITY", ""),
         pc_control=_bool("PC_CONTROL", True),
         files_access=_bool("FILES_ACCESS", True),
+        vision_enabled=_bool("VISION_ENABLED", True),
+        vision_model=os.getenv("VISION_MODEL", "qwen3-vl:4b-instruct"),
         agenda_enabled=_bool("AGENDA_ENABLED", True),
         memory_enabled=_bool("MEMORY_ENABLED", True),
         memory_auto=_bool("MEMORY_AUTO", True),
