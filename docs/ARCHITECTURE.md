@@ -57,8 +57,12 @@ src/friday/
 │   ├── store.py           AgendaStore : rappels et listes dans SQLite
 │   ├── times.py           calcul des dates (« 18:00 » + « demain » → date exacte)
 │   └── scheduler.py       ReminderScheduler : déclenche à l'heure, rattrape les manqués
+├── files/                 fichiers et presse-papier (sans dépendre des outils)
+│   ├── readers.py         read_document : texte d'un PDF (pypdf), Word (python-docx), texte
+│   └── clipboard.py       presse-papier Windows (ctypes) : texte ou fichiers copiés
 ├── app/
 │   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
+│   ├── attachments.py     fichiers glissés + presse-papier joints à la demande (par Friday, pas le LLM)
 │   ├── reply.py           Reply : déroulé d'une réponse (texte, voix, outils, pop-ups)
 │   ├── voice_inputs.py    VoiceInputs : push-to-talk (appui/relâchement) + mains libres
 │   ├── confirmations.py   ConfirmationGate : « Je lance ? » → oui / non (voix, clavier, bouton)
@@ -74,6 +78,7 @@ src/friday/
 │   ├── web_search.py      recherche internet (DuckDuckGo)
 │   ├── web_page.py        lecture d'une page (trafilatura)
 │   ├── images.py          recherche et téléchargement d'images
+│   ├── files.py           read_file (par parties) / read_clipboard / copy_to_clipboard
 │   ├── weather.py         météo actuelle + 7 jours (Open-Meteo, sans clé)
 │   ├── claude_code.py     délégation à Claude Code (CLI `claude`, compte Pro), en arrière-plan
 │   ├── pc/                contrôle du PC (Windows uniquement)

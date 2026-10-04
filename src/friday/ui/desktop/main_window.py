@@ -22,6 +22,12 @@ from friday.ui.desktop.widgets.title_bar import TitleBar
 MAX_CONTENT_WIDTH = 820
 
 
+def dropped_files(mime) -> list[Path]:
+    """Fichiers (pas dossiers) glissés depuis l'explorateur."""
+    paths = (Path(url.toLocalFile()) for url in mime.urls() if url.isLocalFile())
+    return [path for path in paths if path.is_file()]
+
+
 class MainWindow(QMainWindow):
     def __init__(self, settings: Settings, assistant: Assistant | None = None,
                  preferences_path: Path = preferences.PATH) -> None:  # fmt: skip
@@ -34,6 +40,7 @@ class MainWindow(QMainWindow):
         if not self.native_corners:
             self.setAttribute(Qt.WA_TranslucentBackground)
         self.resize(540, 860)
+        self.setAcceptDrops(True)  # glisser un fichier dans la fenêtre pour le joindre
         self.setMinimumSize(420, 620)
         self._preferences_path = preferences_path
         saved = preferences.load(preferences_path).get("color")
@@ -129,6 +136,17 @@ class MainWindow(QMainWindow):
         self.show_state(self.state)
         if save:
             preferences.save({"color": self.base.name()}, self._preferences_path)
+
+    def dragEnterEvent(self, event) -> None:
+        if dropped_files(event.mimeData()):
+            event.acceptProposedAction()
+
+    def dropEvent(self, event) -> None:
+        for path in dropped_files(event.mimeData()):
+            self.assistant.attach_file(path)
+            self.chat.add_notice(f"📎 {path.name} joint : dites-moi quoi en faire", "ToolNotice")
+        event.acceptProposedAction()
+        self.input.edit.setFocus()
 
     def on_ready(self, info: str) -> None:
         self.info.setText(info)

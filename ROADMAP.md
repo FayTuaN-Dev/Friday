@@ -67,8 +67,9 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 **Contrôle du PC**
 - [x] Ouvrir/fermer applications (menu Démarrer, fermeture avec confirmation) et sites
 - [x] Volume, musique (touches multimédia, recherche Spotify)
-- [ ] Recherche/lecture/résumé de fichiers
-- [ ] Presse-papier
+- [x] Lecture/résumé de fichiers (PDF, Word, texte ; glisser-déposer dans la fenêtre)
+- [ ] Recherche de fichiers (Documents, Bureau, Téléchargements, Images)
+- [x] Presse-papier (lire ce qui est copié, y remettre un texte corrigé ou traduit)
 - [ ] Capture d'écran + analyse
 
 **Bonus (plus tard)**
@@ -123,7 +124,7 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 
 | # | Brique | Livrable | Statut |
 |---|---|---|---|
-| A | Refonte de l'interface + noyau holographique + couleur au choix | Friday a un nouveau visage | 🔄 |
-| B | Comprendre ce qui m'entoure : voir l'écran, lire des fichiers (PDF, Word, glisser-déposer), presse-papier, chercher dans ses fichiers | Friday voit ce que je vois | ⬜ |
+| A | Refonte de l'interface + noyau holographique + couleur au choix | Friday a un nouveau visage | ✅ |
+| B | Comprendre ce qui m'entoure : presse-papier et lecture de fichiers ✅, recherche dans les fichiers, puis voir l'écran | Friday voit ce que je vois | 🔄 |
 | C | Briefing du matin, avec des rubriques choisies (en ajouter, en retirer) | « Bonjour Friday » | ⬜ |
 | D | Agenda et mails Google | Friday gère mon planning | ⬜ |

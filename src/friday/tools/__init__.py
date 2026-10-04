@@ -19,6 +19,10 @@ def default_toolbox(settings: Settings, memory=None, on_background=None, agenda=
             ReadWebPageTool(),
             ImageSearchTool(settings.search_region),
         ]
+    if settings.files_access:
+        from friday.tools.files import CopyToClipboardTool, ReadClipboardTool, ReadFileTool
+
+        tools += [ReadFileTool(), ReadClipboardTool(), CopyToClipboardTool()]
     if settings.pc_control:
         from friday.tools.pc import pc_tools
 

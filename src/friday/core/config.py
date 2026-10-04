@@ -45,6 +45,7 @@ class Settings:
     search_backend: str
     home_city: str
     pc_control: bool
+    files_access: bool
     agenda_enabled: bool
     memory_enabled: bool
     memory_auto: bool
@@ -105,6 +106,7 @@ def load_settings() -> Settings:
         search_backend=os.getenv("SEARCH_BACKEND", "auto"),
         home_city=os.getenv("HOME_CITY", ""),
         pc_control=_bool("PC_CONTROL", True),
+        files_access=_bool("FILES_ACCESS", True),
         agenda_enabled=_bool("AGENDA_ENABLED", True),
         memory_enabled=_bool("MEMORY_ENABLED", True),
         memory_auto=_bool("MEMORY_AUTO", True),

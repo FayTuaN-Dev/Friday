@@ -38,6 +38,7 @@ uv run friday --cli    # version terminal
 - **Rappels et listes** : « minuteur de 10 minutes », « rappelle-moi d'appeler maman demain à 18 h », « ajoute du lait à ma liste de courses », « qu'y a-t-il sur ma liste ? ». À l'heure dite : carillon puis annonce vocale.
 - **PC** : « ouvre Spotify », « ferme Discord » (avec confirmation), « ouvre YouTube », « mets le volume à 30 », « coupe le son », « musique suivante », « mets du jazz ».
 - **Claude Code** : « Friday, demande à Claude d'écrire… » → il demande confirmation (« oui », ou bouton), Claude travaille en arrière-plan dans `CLAUDE_WORKSPACE`, et Friday prévient quand c'est fini. Utilise le CLI `claude` connecté au compte Pro, sans clé API.
+- **Fichiers et presse-papier** : glisser un PDF, un document Word ou un fichier texte dans la fenêtre, puis « résume-le », « quelle est la date limite ? ». « Corrige ce que j'ai copié et remets-le dans le presse-papier », « traduis en anglais ce que j'ai copié », « explique le code que j'ai copié ».
 - **Push-to-talk** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher.
 - **Écrire** : taper son message puis Entrée.
 
