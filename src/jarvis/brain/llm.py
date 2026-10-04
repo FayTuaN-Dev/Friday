@@ -8,10 +8,10 @@ import httpx
 import ollama
 
 from jarvis.brain.conversation import Conversation
-from jarvis.brain.events import BrainEvent, ToolFinished, ToolStarted
+from jarvis.brain.events import BrainEvent, ConfirmationRequest, ToolFinished, ToolStarted
 from jarvis.brain.prompts import build_system_prompt
 from jarvis.core.config import Settings
-from jarvis.tools.base import ToolBox
+from jarvis.tools.base import ToolBox, ToolResult
 
 log = logging.getLogger(__name__)
 
@@ -20,6 +20,8 @@ OLLAMA_ERRORS = (ollama.ResponseError, ConnectionError, httpx.TransportError)
 
 # Nombre maximum d'allers-retours avec les outils pour une même question
 MAX_TOOL_ROUNDS = 3
+# Délai pour répondre à « Je lance ? » ; sans réponse, l'action n'est pas faite.
+CONFIRM_TIMEOUT = 60.0
 
 
 class BrainError(RuntimeError):
@@ -132,6 +134,17 @@ class Brain:
         for call in calls:
             name, args = call.function.name, dict(call.function.arguments)
             log.info("Outil %s(%s)", name, args)
+            if question := self.toolbox.confirmation(name, args):
+                request = ConfirmationRequest(name, args, question)
+                yield request  # l'assistant pose la question et note qu'une réponse est attendue
+                if not request.wait(CONFIRM_TIMEOUT, cancelled):
+                    log.info("Outil %s refusé ou sans réponse", name)
+                    refused = ToolResult(
+                        "L'utilisateur n'a pas confirmé : rien n'a été lancé. Dis-le en une phrase."
+                    )
+                    self.conversation.add("tool", refused.text, tool_name=name)
+                    yield ToolFinished(name, refused)
+                    continue
             yield ToolStarted(name, args, self.toolbox.label(name, args))
             result = self.toolbox.run(name, args, cancelled)
             self.conversation.add("tool", result.text, tool_name=name)

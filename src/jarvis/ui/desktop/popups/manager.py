@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QWidget
 from jarvis.tools.base import Display
 from jarvis.ui.desktop.popups.article import ArticlePopup
 from jarvis.ui.desktop.popups.base import Popup
+from jarvis.ui.desktop.popups.claude import ClaudePopup
 from jarvis.ui.desktop.popups.images import ImagesPopup
 from jarvis.ui.desktop.popups.memories import MemoriesPopup
 from jarvis.ui.desktop.popups.results import ResultsPopup
@@ -17,6 +18,7 @@ POPUPS = {
     "images": ImagesPopup,
     "memories": MemoriesPopup,
     "weather": WeatherPopup,
+    "claude": ClaudePopup,
 }
 MAX_OPEN = 3
 GAP = 12  # espace entre la fenêtre et le pop-up

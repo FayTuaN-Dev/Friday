@@ -79,6 +79,24 @@ def stylesheet() -> str:
     QToolTip {{ background: {PANEL}; color: {TEXT}; border: 1px solid {BORDER}; }}
     #ToolNotice {{ color: {THINKING}; font-family: "{FONT_HUD}"; font-size: 12px; }}
     #MemoryNotice {{ color: {ACCENT}; font-family: "{FONT_HUD}"; font-size: 12px; }}
+    #ConfirmCard {{ background: {PANEL}; border: 1px solid {THINKING}; border-radius: 10px; }}
+    #ConfirmCard QLabel {{ background: transparent; }}
+    #ConfirmQuestion {{ color: {TEXT}; }}
+    #ConfirmCard QPushButton {{
+        min-width: 96px; max-width: 120px; border-radius: 15px; font-size: 13px;
+        min-height: 30px; max-height: 30px;
+    }}
+    #ConfirmYes {{ border-color: {LISTENING}; color: {LISTENING}; }}
+    #ConfirmYes:hover {{ background: {LISTENING}; color: {BG}; }}
+    #ConfirmNo:hover {{ border-color: {ERROR}; color: {ERROR}; }}
+    #ClaudeResult {{
+        background: {PANEL}; border: 1px solid {BORDER}; border-radius: 8px; padding: 8px;
+    }}
+    #ClaudeFiles {{ color: {LISTENING}; font-family: "{FONT_HUD}"; font-size: 12px; }}
+    #OpenFolder {{
+        min-width: 170px; max-width: 200px; border-radius: 15px; font-size: 13px;
+        min-height: 30px; max-height: 30px;
+    }}
     #MemoryItem {{ background: {PANEL}; border: 1px solid {BORDER}; border-radius: 8px; }}
     #MemoryItem QLabel {{ background: transparent; }}
     #MemoryMeta {{ color: {MUTED}; font-size: 11px; }}

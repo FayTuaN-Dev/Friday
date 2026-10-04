@@ -18,6 +18,7 @@ RECENT_SECONDS = 20.0
 class WakeTarget(Protocol):
     last_reply_text: str
     busy: bool  # en train de réfléchir ou de parler
+    awaiting_confirmation: bool  # « Je lance ? » posé, réponse attendue
 
     def interrupt(self) -> None: ...
     def acknowledge(self) -> None: ...
@@ -32,6 +33,7 @@ class WakeControl:
     - « Jarvis, stop » : coupe la parole, sans nouvelle demande ; pendant qu'il parle,
       « stop » seul suffit ;
     - juste après une réponse, une relance sans le nom est acceptée quelques secondes ;
+    - « Je lance ? » en attente : « oui » / « non » suffit, sans le nom ;
     - ce qui ressemble à ce que Jarvis vient de dire (son propre écho) est ignoré.
     """
 
@@ -58,6 +60,12 @@ class WakeControl:
         spoken_at = self._clock() if spoken_at is None else spoken_at
         if self._is_echo(text):
             log.debug("Écho de Jarvis ignoré : %s", text)
+            return
+
+        # « Je lance ? » en attente : la réponse n'a pas besoin du nom.
+        if self.target.awaiting_confirmation:
+            command = split_wake_word(text, self.pattern)
+            self.target.submit_heard(command or text)
             return
 
         # Pendant qu'il parle, « stop » suffit (même si Whisper a mal compris le nom).

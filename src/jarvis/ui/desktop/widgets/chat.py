@@ -3,6 +3,8 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
+from jarvis.ui.desktop.widgets.confirm_card import ConfirmCard
+
 BUBBLE_RATIO = 0.8  # largeur max d'une bulle, en part de la largeur du chat
 H_MARGIN = 14
 
@@ -56,6 +58,7 @@ class ChatView(QScrollArea):
         self._layout.addStretch()
         self.setWidget(container)
         self._bubbles: list[Bubble] = []
+        self._cards: list[ConfirmCard] = []
         self._current: Bubble | None = None
         # Reste collé en bas quand le contenu grandit
         self.verticalScrollBar().rangeChanged.connect(
@@ -78,6 +81,16 @@ class ChatView(QScrollArea):
         if self._current and interrupted:
             self._current.append(" […]")
         self._current = None
+        for card in self._cards:  # réponse finie : les questions en suspens sont closes
+            card.close_card()
+        self._cards.clear()
+
+    def add_confirmation(self, question: str) -> ConfirmCard:
+        card = ConfirmCard(question)
+        self._layout.addWidget(card)
+        self._cards.append(card)
+        self._current = None  # la suite de la réponse s'affiche sous la carte
+        return card
 
     def add_tool(self, label: str) -> None:
         self.add_notice(label, "ToolNotice")

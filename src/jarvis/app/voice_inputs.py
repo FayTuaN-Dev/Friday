@@ -3,6 +3,7 @@
 import logging
 from typing import TYPE_CHECKING
 
+from jarvis.app.events import AssistantState
 from jarvis.app.hands_free_target import HandsFreeTarget
 from jarvis.app.wake_control import WakeControl
 from jarvis.core.config import Settings
@@ -22,6 +23,7 @@ class VoiceInputs:
         target.wake = self.wake
         self.ptt = None
         self.hands_free = None
+        self.listening = False  # push-to-talk en cours
 
     def start(self, stt) -> None:
         try:
@@ -47,6 +49,28 @@ class VoiceInputs:
             except Exception:
                 log.exception("Écoute mains libres indisponible")
                 self.hands_free = None
+
+    def press(self) -> None:
+        """Touche ou bouton micro enfoncé : on enregistre."""
+        a = self.assistant
+        if not a.can_listen or self.listening:
+            return
+        if not a.confirm.waiting:  # on appuie peut-être pour répondre « oui »
+            a.interrupt()
+        self.listening = True
+        self.pause()
+        a.components.recorder.start()
+        a.set_state(AssistantState.LISTENING)
+
+    def release(self) -> None:
+        """Relâché : l'enregistrement part à la transcription."""
+        a = self.assistant
+        if not self.listening:
+            return
+        self.listening = False
+        a.set_state(AssistantState.THINKING)
+        a.submit_audio(a.components.recorder.stop())
+        self.resume()
 
     def pause(self) -> None:
         if self.hands_free:

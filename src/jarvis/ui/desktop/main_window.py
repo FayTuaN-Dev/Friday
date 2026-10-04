@@ -70,6 +70,11 @@ class MainWindow(QMainWindow):
         b.notice.connect(self.chat.add_notice)
         b.tool.connect(self.chat.add_tool)
         b.display.connect(self.popups.show)
+        b.confirmation.connect(
+            lambda question: self.chat.add_confirmation(question).answered.connect(
+                self.assistant.answer_confirmation
+            )
+        )
         b.memory.connect(lambda text: self.chat.add_notice(f"🧠 Mémorisé : {text}", "MemoryNotice"))
         b.mic_level.connect(self.orb.set_mic_level)
         b.speech_audio.connect(self.orb.play_speech)

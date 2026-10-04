@@ -55,9 +55,16 @@ class TerminalUI(NullListener):
             print(f"  [{m['id']}] {m['text']}")
         for d in display.data.get("days", []):
             print(f"  {d['icon']} {d['day']} : {d['min']}–{d['max']} °C, pluie {d['rain']} %")
+        if display.kind == "claude":
+            print(f"  🤖 {display.data['result'][:800]}")
+            for f in display.data.get("files", []):
+                print(f"  📄 {f}")
         if display.kind == "images":
             print(f"  ({len(display.data['images'])} images : visibles dans la fenêtre de bureau)")
         print("Jarvis> ", end="", flush=True)
+
+    def on_confirmation(self, question: str) -> None:
+        print(f"\n  ❓ {question}  (oui / non)\n{PROMPT}", end="", flush=True)
 
     def on_memory(self, text: str) -> None:
         print(f"\n  🧠 Mémorisé : {text}\n{PROMPT}", end="", flush=True)

@@ -33,7 +33,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Mémoire de la conversation en cours
 - [x] Mémoire long terme (SQLite + embeddings embeddinggemma, mémorisation automatique)
 - [x] Appel d'outils (tool calling)
-- [ ] Délégation à Claude Code pour le code et les tâches complexes
+- [x] Délégation à Claude Code (CLI `claude`, compte Pro, en arrière-plan, avec confirmation)
 
 ### 3. 🔊 Parler
 - [x] Synthèse vocale Piper
@@ -77,7 +77,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Architecture modulaire (outils = plugins), voir docs/ARCHITECTURE.md
 - [x] Config `.env` + fichier de réglages
 - [x] Logs (gestion d'erreurs : au fil des phases)
-- [ ] Confirmation avant les actions sensibles
+- [x] Confirmation avant les actions sensibles (voix, clavier ou bouton)
 - [ ] Démarrage avec Windows + `.exe` (PyInstaller)
 
 ---

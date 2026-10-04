@@ -4,7 +4,8 @@ from jarvis.core.config import Settings
 from jarvis.tools.base import Display, Tool, ToolBox, ToolResult
 
 
-def default_toolbox(settings: Settings, memory=None) -> ToolBox:
+def default_toolbox(settings: Settings, memory=None, on_background=None) -> ToolBox:
+    """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine."""
     tools: list[Tool] = []
     if settings.tools_enabled:
         from jarvis.tools.images import ImageSearchTool
@@ -18,6 +19,13 @@ def default_toolbox(settings: Settings, memory=None) -> ToolBox:
             ReadWebPageTool(),
             ImageSearchTool(settings.search_region),
         ]
+    if settings.claude_enabled and on_background is not None:
+        from jarvis.tools.claude_code import CancelClaudeTool, ClaudeCodeJob, ClaudeCodeTool
+
+        job = ClaudeCodeJob(
+            settings.claude_workspace, settings.claude_model, settings.claude_timeout
+        )
+        tools += [ClaudeCodeTool(job, on_background), CancelClaudeTool(job)]
     if memory is not None:
         from jarvis.tools.memory import ForgetTool, ListMemoriesTool, RememberTool
 

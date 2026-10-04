@@ -20,6 +20,9 @@ class Settings:
     ollama_model: str
     ollama_num_ctx: int
     claude_model: str
+    claude_enabled: bool
+    claude_workspace: Path
+    claude_timeout: float
     tts_enabled: bool
     tts_voice: str
     tts_speaker: int | None
@@ -66,6 +69,11 @@ def load_settings() -> Settings:
         ollama_model=os.getenv("OLLAMA_MODEL", "qwen3:8b"),
         ollama_num_ctx=int(os.getenv("OLLAMA_NUM_CTX", "8192")),
         claude_model=os.getenv("CLAUDE_MODEL", "sonnet"),
+        claude_enabled=_bool("CLAUDE_ENABLED", True),
+        claude_workspace=Path(
+            os.getenv("CLAUDE_WORKSPACE") or Path.home() / "Documents" / "Dev" / "Jarvis-Workspace"
+        ),
+        claude_timeout=float(os.getenv("CLAUDE_TIMEOUT", "900")),
         tts_enabled=_bool("TTS_ENABLED", True),
         tts_voice=os.getenv("TTS_VOICE", "fr_FR-siwis-medium"),
         tts_speaker=int(v) if (v := os.getenv("TTS_SPEAKER")) else None,
