@@ -22,6 +22,7 @@ Prérequis : [uv](https://docs.astral.sh/uv/) et [Ollama](https://ollama.com) av
 ```
 ollama pull qwen3:8b
 ollama pull embeddinggemma
+ollama pull qwen3-vl:4b-instruct   # vision (voir l'écran)
 uv sync
 copy .env.example .env
 ```
@@ -39,6 +40,7 @@ uv run friday --cli    # version terminal
 - **PC** : « ouvre Spotify », « ferme Discord » (avec confirmation), « ouvre YouTube », « mets le volume à 30 », « coupe le son », « musique suivante », « mets du jazz ».
 - **Claude Code** : « Friday, demande à Claude d'écrire… » → il demande confirmation (« oui », ou bouton), Claude travaille en arrière-plan dans `CLAUDE_WORKSPACE`, et Friday prévient quand c'est fini. Utilise le CLI `claude` connecté au compte Pro, sans clé API.
 - **Fichiers et presse-papier** : glisser un PDF, un document Word ou un fichier texte dans la fenêtre, puis « résume-le », « quelle est la date limite ? ». « Corrige ce que j'ai copié et remets-le dans le presse-papier », « traduis en anglais ce que j'ai copié », « explique le code que j'ai copié ». **Retrouver un fichier** dans Documents, Bureau, Téléchargements et Images : « trouve mon devis de mars », « où est ma photo de vacances ? », « cherche le document où je parle du carrelage », puis « ouvre-le » ou « résume-le ».
+- **Voir l'écran** : « regarde mon écran », « c'est quoi cette erreur ? », « pourquoi mon code plante ? », « résume l'article que j'ai à l'écran ». Lu par un petit modèle de vision local (`ollama pull qwen3-vl:4b-instruct`) : la capture ne quitte pas le PC. Compter ~15 s (les deux modèles se relaient sur la carte graphique). En secours : « demande à Claude de regarder mon écran » (avec confirmation, la capture part alors en ligne).
 - **Push-to-talk** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher.
 - **Écrire** : taper son message puis Entrée.
 

@@ -64,6 +64,9 @@ src/friday/
 │   ├── search.py          FileFinder : recherche par nom (fautes tolérées, mois/année = date)
 │   ├── content_search.py  recherche de mots dans les documents (limitée dans le temps)
 │   └── opener.py          ouvrir un fichier / le montrer dans l'explorateur
+├── vision/                voir l'écran
+│   ├── capture.py         capture de l'écran sous la souris (mss), réduite à 1600 px
+│   └── reader.py          ScreenReader : le modèle de vision local décrit et recopie l'écran
 ├── app/
 │   ├── assistant.py       Assistant : chef d'orchestre (thread de travail, états)
 │   ├── attachments.py     fichiers glissés + presse-papier joints à la demande (par Friday, pas le LLM)
@@ -85,6 +88,7 @@ src/friday/
 │   ├── files.py           read_file (par parties) / read_clipboard / copy_to_clipboard
 │   ├── file_search.py     search_files / open_file
 │   ├── popups.py          close_popups : Friday ferme ses propres pop-ups
+│   ├── screen.py          look_at_screen (local) / ask_claude_about_screen (secours, confirmé)
 │   ├── weather.py         météo actuelle + 7 jours (Open-Meteo, sans clé)
 │   ├── claude_code.py     délégation à Claude Code (CLI `claude`, compte Pro), en arrière-plan
 │   ├── pc/                contrôle du PC (Windows uniquement)
@@ -120,6 +124,7 @@ src/friday/
         │   ├── weather.py     météo du jour + 7 jours
         │   ├── claude.py      compte rendu de Claude Code + fichiers + dossier
         │   ├── files.py       fichiers trouvés (ouvrir, montrer dans le dossier)
+        │   ├── screen.py      « Ce que je vois » : la capture analysée
         │   └── items.py       liste générique (rappels, notes)
         └── widgets/
             ├── holo/          noyau holographique animé (état + niveau de voix)
