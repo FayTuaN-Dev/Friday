@@ -57,6 +57,10 @@ class PlayMusicTool(Tool):
     def run(self, query: str) -> ToolResult:
         if self.has_spotify:
             self.open_uri(f"spotify:search:{quote(query)}")
-            return ToolResult(f"Recherche « {query} » ouverte dans Spotify.")
+            return ToolResult(
+                f"Recherche « {query} » ouverte dans Spotify. Tu ne peux PAS lancer toi-même une "
+                "playlist précise (il faudrait l'API Spotify) : dis à l'utilisateur de cliquer "
+                "sur le résultat voulu ; ensuite tu peux mettre en pause ou passer au suivant."
+            )
         self.open_url(f"https://www.youtube.com/results?search_query={quote(query)}")
         return ToolResult(f"Recherche « {query} » ouverte sur YouTube.")

@@ -39,11 +39,18 @@ class VoiceInputs:
             try:
                 from jarvis.voice.hands_free import HandsFreeListener
 
+                heard_log = None
+                if self.settings.hands_free_record:
+                    from jarvis.core.config import LOGS_DIR
+                    from jarvis.voice.heard_log import HeardLog
+
+                    heard_log = HeardLog(LOGS_DIR / "heard")
                 self.hands_free = HandsFreeListener(
                     stt.transcribe,
                     self.wake.on_heard,
                     self.settings.mic_device,
                     self.settings.vad_silence_ms,
+                    heard_log,
                 )
                 self.hands_free.start()
             except Exception:

@@ -21,8 +21,10 @@ class HandsFreeListener:
         on_heard: Callable[[str, float], None],  # (texte, moment où la phrase a commencé)
         device: int | str | None = None,
         silence_ms: int = 700,
+        heard_log=None,  # HeardLog : diagnostic, garde l'audio des phrases entendues
     ) -> None:
         self._transcribe = transcribe
+        self._heard_log = heard_log
         self._on_heard = on_heard
         self.device = device
         self.sample_rate = int(sd.query_devices(device, kind="input")["default_samplerate"])
@@ -77,6 +79,8 @@ class HandsFreeListener:
             segment, started_at = item
             try:
                 text = self._transcribe(segment)
+                if self._heard_log:
+                    self._heard_log.save(segment, text)
                 if text:
                     log.info("Entendu : %s", text)
                     self._on_heard(text, started_at)

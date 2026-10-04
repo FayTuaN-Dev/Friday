@@ -25,8 +25,10 @@ NOW = datetime(2026, 10, 4, 14, 30)  # un dimanche, 14 h 30
 @pytest.mark.parametrize(
     ("kwargs", "expected"),
     [
-        ({"delay_minutes": 120}, datetime(2026, 10, 4, 16, 30)),
-        ({"delay_minutes": 0.5}, datetime(2026, 10, 4, 14, 30, 30)),
+        ({"delay": "2 heures"}, datetime(2026, 10, 4, 16, 30)),
+        ({"delay": "deux minutes"}, datetime(2026, 10, 4, 14, 32)),
+        ({"delay": "30 secondes"}, datetime(2026, 10, 4, 14, 30, 30)),
+        ({"delay": "une heure et demie"}, datetime(2026, 10, 4, 16, 0)),
         ({"time": "18:00"}, datetime(2026, 10, 4, 18, 0)),
         ({"time": "9h"}, datetime(2026, 10, 5, 9, 0)),  # déjà passé → demain
         ({"time": "18h30", "day": "demain"}, datetime(2026, 10, 5, 18, 30)),
@@ -102,7 +104,8 @@ def test_notes_lists(store):
 
 
 def test_timer_and_reminder_tools(store):
-    assert "14:40:00" in SetTimerTool(store, clock=lambda: NOW).run(10).text
+    assert "14:40:00" in SetTimerTool(store, clock=lambda: NOW).run("10 minutes").text
+    assert "non lancé" in SetTimerTool(store, clock=lambda: NOW).run("bientôt").text
     result = SetReminderTool(store, clock=lambda: NOW).run("appeler maman", time="18:00")
     assert "aujourd'hui à 18:00" in result.text
     bad = SetReminderTool(store, clock=lambda: NOW).run("x", time="midi moins le quart")
@@ -132,3 +135,18 @@ def test_announcement_and_chime():
     assert "retard" in announcement(reminder, late=True)
     sound = chime(22050)
     assert sound.dtype == np.float32 and 0 < np.abs(sound).max() <= 1
+
+
+@pytest.mark.parametrize(
+    ("spoken", "seconds"),
+    [
+        ("2 minutes", 120), ("deux minutes", 120), ("dans deux minutes", 120),
+        ("1h30", 5400), ("une heure et demie", 5400), ("une heure et quart", 4500),
+        ("un quart d'heure", 900), ("trois quarts d'heure", 2700), ("une demi-heure", 1800),
+        ("90 secondes", 90), ("vingt-cinq minutes", 1500), ("10", 600),
+    ],
+)  # fmt: skip
+def test_spoken_durations(spoken, seconds):
+    from jarvis.agenda.durations import parse_duration
+
+    assert parse_duration(spoken).total_seconds() == seconds

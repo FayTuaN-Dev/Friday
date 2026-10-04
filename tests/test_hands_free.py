@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
@@ -211,3 +213,45 @@ def test_confirmation_answer_needs_no_name():
     control.on_heard("Oui, vas-y.")
     control.on_heard("Jarvis, non.")
     assert target.calls == [("submit", "Oui, vas-y."), ("submit", "Non.")]
+
+
+def test_request_started_while_jarvis_says_yes_is_accepted():
+    """Le bug du test réel : « Jarvis » → il répond « Oui ? » → la demande, commencée
+    pendant sa réponse, était ignorée (la fenêtre ne s'ouvrait qu'après)."""
+    from jarvis.app.hands_free_target import HandsFreeTarget
+
+    clock = Clock()
+    said = []
+    speaker = SimpleNamespace(say=said.append, wait=lambda: setattr(clock, "now", clock.now + 2))
+    assistant = SimpleNamespace(
+        settings=SimpleNamespace(user_name="Monsieur", wake_words=["jarvis"]),
+        listener=SimpleNamespace(on_notice=lambda text: None),
+        voice_on=True, components=SimpleNamespace(speaker=speaker), busy=False,
+        reply_spoken="", confirm=SimpleNamespace(waiting=False),
+        interrupt=lambda: None, submit_heard=lambda text: submitted.append(text),
+    )  # fmt: skip
+    submitted = []
+    target = HandsFreeTarget(assistant)
+    target.wake = WakeControl(target, ["jarvis"], follow_up_seconds=8, clock=clock)
+
+    started = clock.now + 0.5  # on parle pendant « Oui, Monsieur ? »
+    target.wake.on_heard("Jarvis")
+    clock.now += 4
+    target.wake.on_heard("Ajoute du pain à ma liste de courses", spoken_at=started)
+    assert said == ["Oui, Monsieur ?"]
+    assert submitted == ["Ajoute du pain à ma liste de courses"]
+
+
+def test_heard_log_keeps_recent_recordings(tmp_path, monkeypatch):
+    import wave
+
+    from jarvis.voice import heard_log
+
+    monkeypatch.setattr(heard_log, "KEEP", 2)
+    log = heard_log.HeardLog(tmp_path)
+    for text in ["Lance Spotify", "Ajoute du pain", "Jarvis, stop"]:
+        path = log.save(np.zeros(1600, dtype=np.float32), text)
+    assert len(list(tmp_path.glob("*.wav"))) == 2  # le plus ancien est effacé
+    assert path.with_suffix(".txt").read_text(encoding="utf-8") == "Jarvis, stop"
+    with wave.open(str(path)) as wav:
+        assert wav.getframerate() == 16000 and wav.getnframes() == 1600

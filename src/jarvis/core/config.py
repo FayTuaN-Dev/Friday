@@ -37,6 +37,7 @@ class Settings:
     wake_words: list[str]
     follow_up_seconds: float
     vad_silence_ms: int
+    hands_free_record: bool
     tools_enabled: bool
     search_region: str
     search_backend: str
@@ -94,6 +95,7 @@ def load_settings() -> Settings:
         ],
         follow_up_seconds=float(os.getenv("FOLLOW_UP_SECONDS", "8")),
         vad_silence_ms=int(os.getenv("VAD_SILENCE_MS", "700")),
+        hands_free_record=_bool("HANDS_FREE_RECORD", False),
         tools_enabled=_bool("TOOLS_ENABLED", True),
         search_region=os.getenv("SEARCH_REGION", "fr-fr"),
         search_backend=os.getenv("SEARCH_BACKEND", "auto"),

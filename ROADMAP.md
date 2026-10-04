@@ -88,6 +88,9 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
   d'une même connexion. Si ça devient gênant, ajouter un fournisseur avec clé gratuite en secours :
   Brave Search API (2 000 recherches/mois) ou Tavily (1 000/mois, pensé pour les assistants IA).
   Choix actuel : s'en passer tant que possible.
+- **Lancer directement une playlist Spotify** (« mets le mix Nova ») : impossible sans l'API
+  Spotify (application développeur gratuite + connexion au compte). Aujourd'hui Jarvis ouvre la
+  recherche et il faut cliquer sur le résultat.
 - **Agenda et mails Google** : demande une connexion OAuth au compte Google (création d'un
   projet Google Cloud). À faire si besoin, en réutilisant la confirmation pour l'envoi de mails.
 

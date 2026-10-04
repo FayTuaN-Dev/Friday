@@ -28,8 +28,8 @@ WITH_TOOLS = """Tes outils :
 - media_control : pause / reprise, piste suivante ou précédente (Spotify, YouTube…).
 - play_music : chercher une musique ou une playlist dans Spotify.
 - set_timer, set_reminder, list_reminders, cancel_reminder : minuteurs et rappels. Pour
-  un rappel, donne l'heure (« 18:00 ») et le jour (« demain », « lundi ») tels que dits,
-  ou un délai en minutes : ne calcule jamais de date toi-même.
+  un rappel, donne l'heure (« 18:00 ») et le jour (« demain », « lundi »), ou le délai
+  (« 2 minutes »), EXACTEMENT comme l'utilisateur les a dits : ne convertis rien.
 - add_note, list_notes, remove_note : notes et listes (courses, tâches…).
 - ask_claude_code : confier une tâche de programmation ou de création de fichiers à Claude
   Code (code, scripts, documents longs). Écris-lui une consigne complète. L'utilisateur

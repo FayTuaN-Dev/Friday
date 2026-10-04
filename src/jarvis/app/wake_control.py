@@ -79,6 +79,7 @@ class WakeControl:
                 # Juste après un échange, c'était sans doute pour lui : on le signale.
                 if spoken_at - self._follow_up_until < RECENT_SECONDS:
                     self.target.on_ignored(text)
+                log.info("Ignoré (pas de « Jarvis » au début) : %s", text)
                 return  # sinon : conversation autour de l'ordinateur, pas pour Jarvis
             command = text
         self._follow_up_until = float("-inf")  # la fenêtre ne sert qu'une fois

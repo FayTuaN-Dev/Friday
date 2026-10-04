@@ -12,38 +12,43 @@ DAY_HELP = "aujourd'hui, demain, après-demain, ou un jour de la semaine (lundi�
 
 class SetTimerTool(Tool):
     name = "set_timer"
-    description = "Lance un minuteur (compte à rebours). Exemple : « minuteur de 10 minutes »."
+    description = (
+        "Lance un minuteur (compte à rebours). Donne la durée EXACTEMENT comme l'utilisateur "
+        "l'a dite (« 10 minutes », « une heure et demie »), sans la convertir."
+    )
     parameters = {
-        "minutes": {"type": "number", "description": "Durée en minutes (0.5 = 30 secondes)"},
+        "duration": {"type": "string", "description": "La durée telle que dite : « 10 minutes »"},
         "label": {"type": "string", "description": "Nom facultatif (« pâtes », « lessive »…)"},
     }
-    required = ("minutes",)
+    required = ("duration",)
 
     def __init__(self, store: AgendaStore, clock: Callable[[], datetime] = datetime.now):
         self.store, self.clock = store, clock
 
     def label(self, args: dict) -> str:
-        return f"⏲️ Minuteur : {args.get('minutes')} min"
+        return f"⏲️ Minuteur : {args.get('duration', '')}"
 
-    def run(self, minutes: float, label: str = "") -> ToolResult:
-        if float(minutes) <= 0:
-            return ToolResult("Durée invalide.")
+    def run(self, duration: str, label: str = "") -> ToolResult:
         now = self.clock()
-        text = f"Minuteur {label or f'de {minutes:g} minutes'} terminé"
-        reminder = self.store.add_reminder(text, resolve(now, delay_minutes=minutes))
-        return ToolResult(f"Minuteur lancé, il sonnera à {reminder.due_at:%H:%M:%S}.")
+        try:
+            due = resolve(now, delay=duration)
+        except ValueError as e:
+            return ToolResult(f"Minuteur non lancé : {e}. Demande la durée.")
+        text = f"Minuteur {label or f'de {duration}'} terminé"
+        self.store.add_reminder(text, due)
+        return ToolResult(f"Minuteur de {duration} lancé, il sonnera à {due:%H:%M:%S}.")
 
 
 class SetReminderTool(Tool):
     name = "set_reminder"
     description = (
-        "Programme un rappel. Donne SOIT « delay_minutes » (« dans 2 heures » = 120), SOIT "
-        f"« time » (« 18:00 ») avec éventuellement « day » ({DAY_HELP}). Ne calcule jamais "
-        "de date toi-même."
+        "Programme un rappel. Donne SOIT « delay », le délai EXACTEMENT comme l'utilisateur "
+        "l'a dit (« 2 minutes », « une heure »), SOIT « time » (« 18:00 ») avec éventuellement "
+        f"« day » ({DAY_HELP}). Ne convertis et ne calcule rien toi-même."
     )
     parameters = {
         "text": {"type": "string", "description": "Ce qu'il faut rappeler (« appeler maman »)"},
-        "delay_minutes": {"type": "number", "description": "Dans combien de minutes"},
+        "delay": {"type": "string", "description": "Délai tel que dit : « 2 minutes »"},
         "time": {"type": "string", "description": "Heure, format HH:MM"},
         "day": {"type": "string", "description": DAY_HELP},
     }
@@ -55,11 +60,11 @@ class SetReminderTool(Tool):
     def label(self, args: dict) -> str:
         return f"⏰ Rappel : {args.get('text', '')}"
 
-    def run(self, text: str, delay_minutes: float | None = None, time: str | None = None,
+    def run(self, text: str, delay: str | None = None, time: str | None = None,
             day: str | None = None) -> ToolResult:  # fmt: skip
         now = self.clock()
         try:
-            due = resolve(now, delay_minutes, time, day)
+            due = resolve(now, delay, time, day)
         except ValueError as e:
             return ToolResult(f"Rappel non programmé : {e}. Demande une précision.")
         reminder = self.store.add_reminder(text, due)

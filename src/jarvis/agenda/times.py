@@ -4,6 +4,7 @@
 import re
 from datetime import datetime, timedelta
 
+from jarvis.agenda.durations import parse_duration
 from jarvis.brain.prompts import JOURS, french_date
 from jarvis.voice.wake import normalize
 
@@ -24,13 +25,14 @@ def parse_time(text: str) -> tuple[int, int]:
 
 def resolve(
     now: datetime,
-    delay_minutes: float | None = None,
+    delay: str | float | None = None,
     time: str | None = None,
     day: str | None = None,
 ) -> datetime:
-    """Quand déclencher : dans N minutes, ou à une heure (aujourd'hui, demain, un jour nommé)."""
-    if delay_minutes:
-        return now + timedelta(minutes=float(delay_minutes))
+    """Quand déclencher : après un délai (« 2 minutes », tel que dit), ou à une heure
+    (aujourd'hui, demain, un jour nommé)."""
+    if delay not in (None, "", 0):
+        return now + parse_duration(str(delay))
     if not time:
         raise ValueError("il faut un délai ou une heure")
     hour, minute = parse_time(time)
