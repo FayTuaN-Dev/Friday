@@ -1,63 +1,93 @@
-"""Fenêtre principale : en-tête, cercle HUD, fil de discussion, barre de saisie."""
+"""Fenêtre principale, sans bordure et arrondie : barre de titre, noyau holographique,
+fil de discussion, barre de saisie. Toute l'interface suit la couleur choisie."""
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QMainWindow, QVBoxLayout, QWidget
+from pathlib import Path
+
+from PySide6.QtCore import QEvent, Qt
+from PySide6.QtGui import QColor
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QMainWindow, QVBoxLayout, QWidget
 
 from friday.app.assistant import Assistant
 from friday.app.events import AssistantState
 from friday.core.config import Settings
-from friday.ui.desktop import theme
+from friday.ui.desktop import native_window, preferences, theme
 from friday.ui.desktop.bridge import QtBridge
 from friday.ui.desktop.popups.manager import PopupManager
 from friday.ui.desktop.widgets.chat import ChatView
+from friday.ui.desktop.widgets.frame import ResizableFrame
+from friday.ui.desktop.widgets.holo import HoloOrb
 from friday.ui.desktop.widgets.input_bar import InputBar
-from friday.ui.desktop.widgets.orb import HudOrb
+from friday.ui.desktop.widgets.title_bar import TitleBar
 
 MAX_CONTENT_WIDTH = 820
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, settings: Settings, assistant: Assistant | None = None) -> None:
+    def __init__(self, settings: Settings, assistant: Assistant | None = None,
+                 preferences_path: Path = preferences.PATH) -> None:  # fmt: skip
         super().__init__()
         self.setWindowTitle("F.R.I.D.A.Y.")
-        self.resize(520, 840)
-        self.setMinimumSize(420, 600)
+        self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
+        # Coins arrondis : par Windows 11 si possible (fenêtre opaque, ne clignote pas au
+        # redimensionnement), sinon par transparence.
+        self.native_corners = native_window.native_corners_available()
+        if not self.native_corners:
+            self.setAttribute(Qt.WA_TranslucentBackground)
+        self.resize(540, 860)
+        self.setMinimumSize(420, 620)
+        self._preferences_path = preferences_path
+        saved = preferences.load(preferences_path).get("color")
+        self.base = theme.parse_color(saved or settings.interface_color)
 
         self.bridge = QtBridge()
         self.assistant = assistant or Assistant(settings, self.bridge)
+        self.state = AssistantState.LOADING
 
-        self.title = QLabel("F.R.I.D.A.Y.", objectName="Title", alignment=Qt.AlignCenter)
+        self.title_bar = TitleBar(self, self.base)
+        self.orb = HoloOrb()
+        self.orb.setFixedHeight(270)
         self.status = QLabel(objectName="Status", alignment=Qt.AlignCenter)
         self.info = QLabel(objectName="Info", alignment=Qt.AlignCenter, wordWrap=True)
-        self.orb = HudOrb()
-        self.orb.setFixedHeight(250)
         self.chat = ChatView()
         self.input = InputBar(settings.ptt_key)
         self.input.setEnabled(False)
         self.popups = PopupManager(self)
+        self._build_layout()
 
+        self._connect()
+        self.apply_color(self.base, save=False)
+        self.show_state(AssistantState.LOADING)
+
+    def _build_layout(self) -> None:
+        shell = QWidget(objectName="Shell")
+        shell.setAttribute(Qt.WA_StyledBackground)
+        shell.setProperty("native", self.native_corners)
         # Contenu limité en largeur et centré : reste lisible même en plein écran.
         content = QWidget()
         content.setMaximumWidth(MAX_CONTENT_WIDTH)
-        central = QWidget()
-        outer = QHBoxLayout(central)
-        outer.setContentsMargins(0, 0, 0, 0)
-        outer.addStretch(1)
-        outer.addWidget(content, 100)
-        outer.addStretch(1)
         layout = QVBoxLayout(content)
-        layout.setContentsMargins(16, 14, 16, 16)
-        layout.setSpacing(6)
-        layout.addWidget(self.title)
+        layout.setContentsMargins(18, 0, 18, 18)
+        layout.setSpacing(4)
         layout.addWidget(self.orb)
         layout.addWidget(self.status)
         layout.addWidget(self.info)
+        layout.addSpacing(6)
         layout.addWidget(self.chat, 1)
+        layout.addSpacing(8)
         layout.addWidget(self.input)
-        self.setCentralWidget(central)
-
-        self._connect()
-        self.show_state(AssistantState.LOADING)
+        centered = QHBoxLayout()
+        centered.addStretch(1)
+        centered.addWidget(content, 100)
+        centered.addStretch(1)
+        outer = QVBoxLayout(shell)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        outer.addWidget(self.title_bar)
+        outer.addLayout(centered, 1)
+        self.frame = ResizableFrame(shell, opaque=self.native_corners)
+        if self.native_corners:
+            native_window.round_corners(self)
+        self.setCentralWidget(self.frame)
 
     def _connect(self) -> None:
         b, a = self.bridge, self.assistant
@@ -84,6 +114,21 @@ class MainWindow(QMainWindow):
         self.input.mic_released.connect(a.stop_listening)
         self.input.voice_toggled.connect(lambda: self.input.set_voice(a.toggle_voice()))
         self.input.reset_clicked.connect(self._reset)
+        self.title_bar.color_menu.color_chosen.connect(self.apply_color)
+
+    def apply_color(self, base: QColor, save: bool = True) -> None:
+        """Change la couleur de toute l'interface, à chaud (pop-ups ouverts compris)."""
+        self.base = QColor(base)
+        palette = theme.apply_theme(QApplication.instance(), self.base)
+        self.title_bar.refresh(palette)
+        self.input.refresh(palette)
+        self.orb.set_base_color(self.base)
+        if self.native_corners:  # fine bordure Windows, à la couleur de Friday
+            native_window.set_border_color(self, QColor(palette.accent).darker(250))
+        self.frame.update()
+        self.show_state(self.state)
+        if save:
+            preferences.save({"color": self.base.name()}, self._preferences_path)
 
     def on_ready(self, info: str) -> None:
         self.info.setText(info)
@@ -93,14 +138,19 @@ class MainWindow(QMainWindow):
         self.input.edit.setFocus()
 
     def show_state(self, state: AssistantState) -> None:
+        self.state = state
         self.orb.set_state(state)
-        color = theme.STATE_COLORS[state]
         self.status.setText(state.value.upper())
-        self.status.setStyleSheet(f"color: {color};")
+        self.status.setStyleSheet(f"color: {theme.current().states[state]};")
 
     def _reset(self) -> None:
         self.chat.clear()
         self.assistant.reset()
+
+    def changeEvent(self, event) -> None:
+        if event.type() == QEvent.WindowStateChange:  # plein écran : plus de marge ni de poignée
+            self.frame.set_maximized(self.isMaximized())
+        super().changeEvent(event)
 
     def closeEvent(self, event) -> None:
         self.popups.close_all()

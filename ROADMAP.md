@@ -44,6 +44,9 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Fenêtre de chat (historique, streaming, saisie clavier)
 - [x] Indicateur d'état (veille / écoute / réfléchit / parle) avec animation audio
 - [x] Pop-ups de contenu : images, articles, résultats (code : plus tard)
+- [x] Refonte : fenêtre sans bordure arrondie, bulles douces, saisie en pilule, icônes fines
+- [x] Noyau holographique animé (anneaux 3D, circuits, étincelles) à la place du cercle
+- [x] Couleur au choix (palettes ou couleur libre), toute l'interface s'accorde, mémorisée
 - [ ] Icône dans la zone de notification
 - [ ] Raccourci clavier global
 - [ ] Écran de réglages (voix, micro, modèles)
@@ -93,6 +96,9 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
   recherche et il faut cliquer sur le résultat.
 - **Agenda et mails Google** : demande une connexion OAuth au compte Google (création d'un
   projet Google Cloud). À faire si besoin, en réutilisant la confirmation pour l'envoi de mails.
+- **Friday hors du PC** (bot Telegram…) : demanderait que le PC reste allumé en permanence, ce
+  qui n'est pas le cas. Projet futur.
+- **Meilleure voix** : Kokoro (local) ou Edge TTS (gratuit, en ligne) à essayer ; pas d'API payante.
 
 ---
 
@@ -109,4 +115,15 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 | 6 | Mains libres : mot d'activation + interruption | Expérience naturelle | ✅ |
 | 7 | Mémoire long terme | Il se souvient de toi | ✅ |
 | 8 | Outils perso + délégation Claude Code | Assistant du quotidien | ✅ |
-| 9 | Finitions : tray, démarrage auto, `.exe` | Produit fini | ⬜ |
+| 9 | Finitions : tray, démarrage auto, `.exe` | Produit fini | ⬜ (reporté) |
+
+### Friday v2
+
+Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lourd, pas d'API payante.
+
+| # | Brique | Livrable | Statut |
+|---|---|---|---|
+| A | Refonte de l'interface + noyau holographique + couleur au choix | Friday a un nouveau visage | 🔄 |
+| B | Comprendre ce qui m'entoure : voir l'écran, lire des fichiers (PDF, Word, glisser-déposer), presse-papier, chercher dans ses fichiers | Friday voit ce que je vois | ⬜ |
+| C | Briefing du matin, avec des rubriques choisies (en ajouter, en retirer) | « Bonjour Friday » | ⬜ |
+| D | Agenda et mails Google | Friday gère mon planning | ⬜ |

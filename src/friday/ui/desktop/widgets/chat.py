@@ -6,7 +6,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLay
 from friday.ui.desktop.widgets.confirm_card import ConfirmCard
 
 BUBBLE_RATIO = 0.8  # largeur max d'une bulle, en part de la largeur du chat
-H_MARGIN = 14
+H_MARGIN = 16
 
 
 class Bubble(QFrame):
@@ -14,7 +14,7 @@ class Bubble(QFrame):
         super().__init__()
         self.setObjectName("BubbleUser" if from_user else "BubbleFriday")
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(H_MARGIN, 8, H_MARGIN, 10)
+        layout.setContentsMargins(H_MARGIN, 9, H_MARGIN, 11)
         layout.setSpacing(2)
 
         header = QLabel(author, objectName="BubbleAuthor")
@@ -54,7 +54,7 @@ class ChatView(QScrollArea):
         container = QWidget()
         self._layout = QVBoxLayout(container)
         self._layout.setContentsMargins(12, 8, 12, 8)
-        self._layout.setSpacing(10)
+        self._layout.setSpacing(12)
         self._layout.addStretch()
         self.setWidget(container)
         self._bubbles: list[Bubble] = []
@@ -66,14 +66,15 @@ class ChatView(QScrollArea):
         )
 
     def add_user(self, text: str, by_voice: bool) -> None:
-        self._add_bubble(Bubble("VOUS 🎙" if by_voice else "VOUS", text, from_user=True), True)
+        author = "Vous · à la voix" if by_voice else "Vous"
+        self._add_bubble(Bubble(author, text, from_user=True), True)
 
     def start_reply(self) -> None:
         self._current = None  # la bulle naît avec le premier mot
 
     def append_reply(self, text: str) -> None:
         if self._current is None:
-            self._current = Bubble("FRIDAY", "", from_user=False)
+            self._current = Bubble("Friday", "", from_user=False)
             self._add_bubble(self._current, False)
         self._current.append(text)
 

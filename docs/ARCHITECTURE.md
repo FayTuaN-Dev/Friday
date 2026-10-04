@@ -90,12 +90,18 @@ src/friday/
     ├── terminal.py        interface terminal
     └── desktop/           interface de bureau (PySide6)
         ├── app.py         lancement de l'application Qt
-        ├── main_window.py fenêtre principale (assemble les widgets)
+        ├── main_window.py fenêtre principale sans bordure (assemble les widgets, applique la couleur)
         ├── bridge.py      QtBridge : événements de l'assistant → signaux Qt (thread-safe)
-        ├── theme.py       couleurs et feuille de style (thème HUD)
+        ├── icons.py       icônes fines au trait (SVG), colorées par le thème
+        ├── native_window.py coins arrondis natifs de Windows 11 (pas de clignotement)
+        ├── preferences.py préférences choisies dans l'appli (couleur), data/interface.json
+        ├── theme/
+        │   ├── palette.py     une couleur de base → toute la palette (fond, bulles, états…)
+        │   ├── stylesheet.py  feuille de style Qt générée à partir de la palette
+        │   └── __init__.py    current() / apply_theme() : changement de couleur à chaud
         ├── popups/
         │   ├── manager.py     PopupManager : ouvre les pop-ups à côté de la fenêtre (3 max)
-        │   ├── base.py        Popup : fenêtre sans bordure, déplaçable, en fondu
+        │   ├── base.py        Popup : fenêtre sans bordure arrondie, déplaçable, en fondu
         │   ├── results.py     résultats de recherche (liens cliquables)
         │   ├── article.py     texte d'une page web
         │   ├── images.py      galerie d'images
@@ -104,10 +110,16 @@ src/friday/
         │   ├── claude.py      compte rendu de Claude Code + fichiers + dossier
         │   └── items.py       liste générique (rappels, notes)
         └── widgets/
-            ├── orb.py         cercle HUD animé (état + niveau de voix)
+            ├── holo/          noyau holographique animé (état + niveau de voix)
+            │   ├── scene.py       géométrie 3D (anneaux, rayons, circuits, particules), numpy
+            │   ├── layers.py      couches de dessin en lumière additive
+            │   └── orb.py         HoloOrb : animation, états, voix, couleur
+            ├── frame.py       marge de redimensionnement de la fenêtre sans bordure
+            ├── title_bar.py   barre de titre maison (couleur, réduire, agrandir, fermer)
+            ├── color_menu.py  menu des couleurs (palettes + couleur libre)
             ├── chat.py        fil de discussion en bulles
             ├── confirm_card.py  carte « Je lance ? » [Lancer] / [Annuler]
-            └── input_bar.py   saisie, micro, voix, nouvelle conversation
+            └── input_bar.py   saisie en pilule, micro, voix, nouvelle conversation
 ```
 
 ## Le parcours d'un message vocal
@@ -194,4 +206,5 @@ L'interface Qt ne doit jamais être modifiée depuis un autre thread : `QtBridge
 - **une interface** : une classe qui implémente `AssistantListener` et appelle les méthodes
   publiques d'`Assistant` (`submit_text`, `start_listening`, `interrupt`…)
 - **un widget** : un fichier dans `ui/desktop/widgets/`, assemblé dans `main_window.py`
-- **des couleurs** : uniquement dans `ui/desktop/theme.py`
+- **des couleurs** : uniquement dans `ui/desktop/theme/`, déduites de la couleur de base
+  (jamais de couleur en dur dans un widget : elle ne suivrait pas le choix de l'utilisateur)

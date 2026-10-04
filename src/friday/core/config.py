@@ -50,6 +50,7 @@ class Settings:
     memory_auto: bool
     embed_model: str
     log_level: str
+    interface_color: str = "Or"  # couleur de base de l'interface (palette ou #rrggbb)
 
 
 def _bool(name: str, default: bool) -> bool:
@@ -109,4 +110,5 @@ def load_settings() -> Settings:
         memory_auto=_bool("MEMORY_AUTO", True),
         embed_model=os.getenv("EMBED_MODEL", "embeddinggemma"),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
+        interface_color=os.getenv("FRIDAY_COLOR", "Or"),
     )
