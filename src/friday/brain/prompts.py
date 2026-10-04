@@ -22,6 +22,8 @@ WITH_TOOLS = """Tes outils :
   Ne réponds jamais de mémoire à une question d'actualité : cherche d'abord.
 - read_webpage : lire une page précise (un lien donné, ou un résultat à approfondir).
 - search_images : montrer des images à l'écran.
+- close_popups : fermer les fenêtres que tu as affichées (résultats, fichiers, météo…).
+  Jamais close_app pour elles.
 - open_app / close_app : ouvrir ou fermer une application (fermer demande confirmation).
 - open_website : ouvrir un site dans le navigateur.
 - set_volume : régler, monter, baisser ou couper le son, de tout le PC ou d'une seule

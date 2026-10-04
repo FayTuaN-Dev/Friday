@@ -58,6 +58,10 @@ def default_toolbox(settings: Settings, memory=None, on_background=None, agenda=
         from friday.tools.memory import ForgetTool, ListMemoriesTool, RememberTool
 
         tools += [RememberTool(memory), ForgetTool(memory), ListMemoriesTool(memory)]
+    if tools:  # fermer les pop-ups ouverts par les autres outils
+        from friday.tools.popups import ClosePopupsTool
+
+        tools.append(ClosePopupsTool())
     return ToolBox(tools)
 
 

@@ -84,6 +84,7 @@ src/friday/
 │   ├── images.py          recherche et téléchargement d'images
 │   ├── files.py           read_file (par parties) / read_clipboard / copy_to_clipboard
 │   ├── file_search.py     search_files / open_file
+│   ├── popups.py          close_popups : Friday ferme ses propres pop-ups
 │   ├── weather.py         météo actuelle + 7 jours (Open-Meteo, sans clé)
 │   ├── claude_code.py     délégation à Claude Code (CLI `claude`, compte Pro), en arrière-plan
 │   ├── pc/                contrôle du PC (Windows uniquement)

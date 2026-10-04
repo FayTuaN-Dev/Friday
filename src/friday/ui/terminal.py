@@ -50,7 +50,7 @@ class TerminalUI(NullListener):
         for r in display.data.get("results", []):
             print(f"  • {r['title']} — {r['url']}")
         if display.kind == "article":
-            print(f"  • {display.data['url']}")
+            print(f"  • {display.data.get('url') or display.data.get('path')}")
         for m in display.data.get("memories", []):
             print(f"  [{m['id']}] {m['text']}")
         for d in display.data.get("days", []):

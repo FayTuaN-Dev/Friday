@@ -4,6 +4,7 @@ from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QWidget
 
 from friday.tools.base import Display
+from friday.tools.popups import CLOSE
 from friday.ui.desktop.popups.article import ArticlePopup
 from friday.ui.desktop.popups.base import Popup
 from friday.ui.desktop.popups.claude import ClaudePopup
@@ -35,6 +36,9 @@ class PopupManager:
         self.popups: list[Popup] = []
 
     def show(self, display: Display) -> Popup | None:
+        if display.kind == CLOSE:  # Friday ferme ses propres fenêtres
+            self.close_last() if display.data.get("which") == "last" else self.close_all()
+            return None
         popup_class = POPUPS.get(display.kind)
         if popup_class is None:
             return None
@@ -47,6 +51,10 @@ class PopupManager:
         self.popups.append(popup)
         popup.show_animated()
         return popup
+
+    def close_last(self) -> None:
+        if self.popups:
+            self.popups[-1].close()
 
     def close_all(self) -> None:
         for popup in list(self.popups):
