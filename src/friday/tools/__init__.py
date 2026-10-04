@@ -4,7 +4,9 @@ from friday.core.config import Settings
 from friday.tools.base import Display, Tool, ToolBox, ToolResult
 
 
-def default_toolbox(settings: Settings, memory=None, on_background=None, agenda=None) -> ToolBox:
+def default_toolbox(
+    settings: Settings, memory=None, on_background=None, agenda=None, briefing=None
+) -> ToolBox:
     """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine."""
     tools: list[Tool] = []
     if settings.tools_enabled:
@@ -72,6 +74,10 @@ def default_toolbox(settings: Settings, memory=None, on_background=None, agenda=
         from friday.tools.memory import ForgetTool, ListMemoriesTool, RememberTool
 
         tools += [RememberTool(memory), ForgetTool(memory), ListMemoriesTool(memory)]
+    if briefing is not None:
+        from friday.tools.briefing import ConfigureBriefingTool, MorningBriefingTool
+
+        tools += [MorningBriefingTool(briefing), ConfigureBriefingTool(briefing)]
     if tools:  # fermer les pop-ups ouverts par les autres outils
         from friday.tools.popups import ClosePopupsTool
 

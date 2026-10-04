@@ -40,8 +40,9 @@ class LookAtScreenTool(Tool):
         return ToolResult(
             f"Ce que montre l'écran (lu par le modèle de vision) :\n{description}\n\n"
             "Réponds à l'utilisateur à partir de cette description, en faisant toi-même les "
-            "calculs éventuels. Si elle ne suffit pas, dis-le et propose de demander à Claude "
-            "de regarder l'écran.",
+            "calculs éventuels. Sois brève : deux ou trois phrases (l'essentiel), sauf s'il "
+            "demande des détails ; la capture est déjà affichée. Si la description ne suffit "
+            "pas, dis-le et propose de demander à Claude de regarder l'écran.",
             screen_display(image),
         )
 

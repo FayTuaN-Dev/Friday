@@ -49,7 +49,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Couleur au choix (palettes ou couleur libre), toute l'interface s'accorde, mémorisée
 - [ ] Icône dans la zone de notification
 - [ ] Raccourci clavier global
-- [ ] Écran de réglages (voix, micro, modèles)
+- [ ] Écran de réglages (voix, micro, modèles, activer/désactiver le briefing et ses rubriques)
 
 ### 5. 🛠️ Outils
 **Information**
@@ -75,7 +75,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 **Bonus (plus tard)**
 - [ ] Domotique (Home Assistant)
 - [ ] Webcam / vision
-- [ ] Routines (« Bonjour Friday » → météo + agenda + news)
+- [x] Briefing du matin à rubriques choisies (météo, rappels, listes, actualités, rubrique libre)
 
 ### 6. ⚙️ Fondations
 - [x] Architecture modulaire (outils = plugins), voir docs/ARCHITECTURE.md
@@ -126,5 +126,5 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 |---|---|---|---|
 | A | Refonte de l'interface + noyau holographique + couleur au choix | Friday a un nouveau visage | ✅ |
 | B | Comprendre ce qui m'entoure : presse-papier et lecture de fichiers, recherche dans les fichiers, voir l'écran | Friday voit ce que je vois | ✅ |
-| C | Briefing du matin, avec des rubriques choisies (en ajouter, en retirer) | « Bonjour Friday » | ⬜ |
+| C | Briefing du matin, avec des rubriques choisies (en ajouter, en retirer) | « Bonjour Friday » | ✅ |
 | D | Agenda et mails Google | Friday gère mon planning | ⬜ |
