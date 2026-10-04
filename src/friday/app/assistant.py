@@ -8,9 +8,11 @@ import logging
 import queue
 import threading
 from collections.abc import Callable
+from pathlib import Path
 
 import numpy as np
 
+from friday.app.attachments import Attachments
 from friday.app.components import Components, describe, load_components
 from friday.app.confirmations import ConfirmationGate
 from friday.app.events import AssistantListener, AssistantState
@@ -18,6 +20,7 @@ from friday.app.reply import Reply
 from friday.app.voice_inputs import VoiceInputs
 from friday.brain.llm import BrainError
 from friday.core.config import Settings
+from friday.files.clipboard import read_clipboard
 from friday.tools.base import ToolResult
 
 log = logging.getLogger(__name__)
@@ -40,6 +43,8 @@ class Assistant:
         self.inputs = VoiceInputs(settings, self)
         self._reply: Reply | None = None
         self.confirm = ConfirmationGate(listener)  # « Je lance ? » en attente de réponse
+        # Fichiers glissés dans la fenêtre, et presse-papier quand la demande en parle
+        self.attachments = Attachments(read_clipboard if settings.files_access else None)
 
     # --- API publique (appelable depuis n'importe quel thread) ---
 
@@ -59,6 +64,10 @@ class Assistant:
         """Demande entendue en mains libres (déjà transcrite)."""
         if not self.confirm.route(text):
             self._events.put(("heard", text))
+
+    def attach_file(self, path: Path) -> None:
+        """Fichier glissé dans la fenêtre : joint à la prochaine demande."""
+        self.attachments.add(path)
 
     def answer_confirmation(self, approved: bool) -> None:
         self.confirm.answer(approved)
@@ -147,7 +156,7 @@ class Assistant:
             self.listener.on_notice("Nouvelle conversation")
         elif kind in ("text", "heard"):
             self.listener.on_user_message(str(payload), by_voice=kind == "heard")
-            self._respond(str(payload))
+            self._respond(self.attachments.wrap(str(payload)))
         elif kind == "done":  # une tâche de fond (Claude) est terminée
             self._announce(*payload)
         elif kind == "audio":
@@ -157,7 +166,7 @@ class Assistant:
                 return
             if not self.confirm.route(text):
                 self.listener.on_user_message(text, by_voice=True)
-                self._respond(text)
+                self._respond(self.attachments.wrap(text))
 
     def _announce(self, task: str, result: ToolResult) -> None:
         """Une tâche de fond est finie : Friday l'annonce de lui-même (`result.text` le guide)."""

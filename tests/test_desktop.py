@@ -27,6 +27,11 @@ class StubAssistant:
         return False
 
     def reset(self): ...
+    def answer_confirmation(self, approved): ...
+
+    def attach_file(self, path):
+        self.attached = path
+
     def shutdown(self): ...
 
 
@@ -169,3 +174,16 @@ def test_holo_orb_draws_every_state():
     orb.play_speech(np.ones(8000, dtype=np.float32) * 0.2, 16000)
     orb._tick()
     assert 0 <= orb.level <= 1.2
+
+
+def test_dropped_file_is_attached(tmp_path):
+    from PySide6.QtCore import QMimeData, QUrl
+
+    from friday.ui.desktop.main_window import dropped_files
+
+    path = tmp_path / "devis.pdf"
+    path.write_bytes(b"%PDF")
+    mime = QMimeData()
+    mime.setUrls([QUrl.fromLocalFile(str(path)), QUrl.fromLocalFile(str(tmp_path)),
+                  QUrl("https://exemple.fr")])  # fmt: skip
+    assert dropped_files(mime) == [path]  # ni dossier, ni lien web
