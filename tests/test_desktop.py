@@ -187,3 +187,12 @@ def test_dropped_file_is_attached(tmp_path):
     mime.setUrls([QUrl.fromLocalFile(str(path)), QUrl.fromLocalFile(str(tmp_path)),
                   QUrl("https://exemple.fr")])  # fmt: skip
     assert dropped_files(mime) == [path]  # ni dossier, ni lien web
+
+
+def test_friday_bubbles_render_markdown():
+    from PySide6.QtCore import Qt
+
+    from friday.ui.desktop.widgets.chat import Bubble
+
+    assert Bubble("Friday", "**ticket.pdf**", from_user=False).label.textFormat() == Qt.MarkdownText
+    assert Bubble("Vous", "**pas touché**", from_user=True).label.textFormat() != Qt.MarkdownText

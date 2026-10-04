@@ -5,7 +5,7 @@ from pathlib import Path
 from friday.files.content_search import search_contents
 from friday.files.opener import CannotOpen, human_size, open_file, reveal_file, short_date
 from friday.files.readers import clean_path
-from friday.files.search import KINDS, FileEntry, FileFinder
+from friday.files.search import KINDS, FileEntry, FileFinder, split_kind
 from friday.tools.base import Display, Tool, ToolResult
 
 SHOWN = 8  # résultats donnés au LLM (le pop-up en montre davantage)
@@ -56,12 +56,15 @@ class SearchFilesTool(Tool):
         )
 
     def run(self, query: str = "", kind: str | None = None, in_content: bool = False) -> ToolResult:
-        hits, partial = self.finder.find(query, kind, limit=20), False
-        if not hits and kind:  # le type était peut-être une supposition du modèle
-            hits = self.finder.find(query, None, limit=20)
-        if in_content and query.strip():
-            pool = self.finder.entries()
-            more, partial = search_contents(pool, query, limit=10)
+        words, kind = split_kind(query, kind)  # « PDF », « photo » : un type, pas un mot
+        hits, partial = self.finder.find(words, kind, limit=20), False
+        if not hits and kind and words:  # le type était peut-être une supposition du modèle
+            hits = self.finder.find(words, None, limit=20)
+        if in_content and words:
+            extensions = KINDS.get(kind or "")
+            pool = [e for e in self.finder.entries()
+                    if not extensions or e.path.suffix.lower() in extensions]  # fmt: skip
+            more, partial = search_contents(pool, words, limit=10)
             hits += [e for e in more if e not in hits]
         if not hits:
             hint = "" if in_content else " Propose de chercher aussi dans le contenu des documents."
@@ -85,7 +88,10 @@ class SearchFilesTool(Tool):
             f"{len(hits)} fichier(s) trouvé(s), affichés à l'écran (le meilleur en premier) :\n"
             + "\n".join(lines)
             + note
-            + "\nNe lis pas les chemins à voix haute : donne le nom et le dossier.",
+            + "\nÀ l'oral, sois brève : dis combien de fichiers tu as trouvés et cite seulement "
+            "le ou les deux premiers (nom et dossier) ; la liste complète est déjà à l'écran. "
+            "Pas de liste, pas de chemins, pas de Markdown. L'utilisateur peut dire « ouvre le "
+            "numéro 3 » : ce sont les numéros ci-dessus.",
             Display("files", f"Fichiers : {query or kind or 'récents'}", {"files": items}),
         )
 

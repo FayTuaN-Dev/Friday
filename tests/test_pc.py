@@ -82,7 +82,13 @@ def test_close_app_finds_processes_by_several_names(index, monkeypatch):
     assert closed == [{42}] and "notepad" in asked  # nom du .exe tiré de l'AppID
 
     monkeypatch.setattr(windows, "find_processes", lambda name: [])
+    monkeypatch.setattr(
+        windows, "visible_windows", lambda: [(7, 99, "ticket.pdf - LibreOffice Draw")]
+    )
+    monkeypatch.setattr(windows, "close_hwnds", lambda hwnds: closed.append(hwnds) or len(hwnds))
     assert "pas ouvert" in tool.run("Discord").text
+    assert "fermeture demandée" in tool.run("LibreOffice").text  # trouvé par le titre
+    assert closed[-1] == {7}
 
 
 def test_find_processes_matches_exe_names(monkeypatch):

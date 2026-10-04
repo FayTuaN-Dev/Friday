@@ -42,6 +42,14 @@ MONTHS = {
 STOP_WORDS = {
     "mon", "ma", "mes", "le", "la", "les", "de", "du", "des", "un", "une", "d", "l", "en",
     "fichier", "fichiers", "document", "documents", "dernier", "derniere", "derniers",
+    "dernieres", "recent", "recents", "recente", "recentes",
+}  # fmt: skip
+# Mots qui désignent un type de fichier : un filtre, pas un mot à chercher dans le nom
+KIND_WORDS = {
+    "pdf": "pdf", "word": "word", "excel": "excel", "tableur": "excel",
+    "powerpoint": "powerpoint", "photo": "image", "photos": "image", "image": "image",
+    "images": "image", "video": "video", "videos": "video", "musique": "audio",
+    "musiques": "audio", "zip": "archive",
 }  # fmt: skip
 FUZZY = 0.8  # ressemblance minimale d'un mot (« facure » ≈ « facture »)
 
@@ -72,6 +80,19 @@ class Query:
             elif word not in STOP_WORDS:
                 query.words.append(word)
         return query
+
+
+def split_kind(text: str, kind: str | None) -> tuple[str, str | None]:
+    """« mes derniers PDF » → (« mes derniers », « pdf ») : le type sort de la recherche."""
+    found = normalize(kind or "") or None
+    found = found if found in KINDS else None
+    rest = []
+    for word in normalize(text).split():
+        if word in KIND_WORDS and found in (None, KIND_WORDS[word]):
+            found = KIND_WORDS[word]
+        else:
+            rest.append(word)
+    return " ".join(rest), found
 
 
 def word_score(word: str, name_words: list[str], name: str) -> float:

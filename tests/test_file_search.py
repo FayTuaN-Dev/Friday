@@ -111,3 +111,13 @@ def test_files_popup_renders(folders):
 def test_wrong_kind_guess_falls_back_to_any_type(folders):
     result = SearchFilesTool(FileFinder(folders)).run("devis cuisine", kind="pdf")  # c'est un .docx
     assert "Devis cuisine.docx" in result.text
+
+
+def test_type_words_become_a_filter(folders):
+    from friday.files.search import split_kind
+
+    assert split_kind("mes derniers PDF", None) == ("mes derniers", "pdf")
+    assert split_kind("photo vacances", "image") == ("vacances", "image")
+    tool = SearchFilesTool(FileFinder(folders))
+    result = tool.run("PDF", kind="pdf", in_content=True)  # ne cherche pas « pdf » dans le texte
+    assert [f["name"] for f in result.display.data["files"]] == ["Facture_EDF_2026.pdf"]

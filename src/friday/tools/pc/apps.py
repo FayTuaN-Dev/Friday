@@ -60,9 +60,13 @@ class CloseAppTool(Tool):
         return f"Je ferme {args.get('app', 'cette application')} ?"
 
     def run(self, app: str) -> ToolResult:
-        processes = {p.pid: p for name in self._process_names(app)
-                     for p in windows.find_processes(name)}  # fmt: skip
-        if not processes:
+        names = self._process_names(app)
+        processes = {p.pid: p for name in names for p in windows.find_processes(name)}
+        if not processes:  # le programme a un autre nom : on cherche dans les titres
+            titled = set().union(*(windows.windows_titled(name) for name in names))
+            if titled:
+                closed = windows.close_hwnds(titled)
+                return ToolResult(f"{app} : fermeture demandée ({closed} fenêtre(s)).")
             return ToolResult(f"{app} ne semble pas ouvert.")
         closed = windows.close_windows(set(processes))
         if not closed:
