@@ -39,8 +39,8 @@ copy .env.example .env
    l'enregistrer sous `data/google_credentials.json`.
 
 Au lancement suivant, le navigateur s'ouvre pour autoriser Friday ; la clé est gardée dans
-`data/google_token.json`. Autorisations demandées : agenda (lecture et écriture), mails (lecture
-et envoi ; jamais de suppression).
+`data/google_token.json`. Autorisations demandées : agenda (lecture et écriture), mails (lecture,
+envoi, étiquettes et corbeille ; jamais d'effacement définitif).
 
 ## Utilisation
 
@@ -57,7 +57,7 @@ uv run friday --cli    # version terminal
 - **Fichiers et presse-papier** : glisser un PDF, un document Word ou un fichier texte dans la fenêtre, puis « résume-le », « quelle est la date limite ? ». « Corrige ce que j'ai copié et remets-le dans le presse-papier », « traduis en anglais ce que j'ai copié », « explique le code que j'ai copié ». **Retrouver un fichier** dans Documents, Bureau, Téléchargements et Images : « trouve mon devis de mars », « où est ma photo de vacances ? », « cherche le document où je parle du carrelage », puis « ouvre-le » ou « résume-le ».
 - **Voir l'écran** : « regarde mon écran », « c'est quoi cette erreur ? », « pourquoi mon code plante ? », « résume l'article que j'ai à l'écran ». Lu par un petit modèle de vision local (`ollama pull qwen3-vl:4b-instruct`) : la capture ne quitte pas le PC. Compter ~15 s (les deux modèles se relaient sur la carte graphique). En secours : « demande à Claude de regarder mon écran » (avec confirmation, la capture part alors en ligne).
 - **Briefing du matin** : au premier démarrage de Friday le matin (5 h – 12 h), une fois par jour, elle présente les rubriques choisies ; une rubrique vide est passée sous silence, et si tout est vide elle ne dit rien. À la voix : « mon briefing », « ajoute la météo de Bordeaux / l'actualité tech / ma liste de tâches / une citation à mon briefing », « retire… », « qu'y a-t-il dans mon briefing ? », « désactive le briefing ». Réglages dans `data/briefing.json`.
-- **Agenda et mails Google** : « qu'est-ce que j'ai demain / cette semaine ? », « ajoute dentiste jeudi à 14 h », « déplace / supprime mon rendez-vous de jeudi » (avec confirmation), « ai-je de nouveaux mails ? », « lis-moi le mail de Julie », « réponds-lui que c'est d'accord » (brouillon montré, envoi seulement après « oui »). Rubriques « agenda » et « mails » possibles dans le briefing.
+- **Agenda et mails Google** : « qu'est-ce que j'ai demain / cette semaine ? », « ajoute dentiste jeudi à 14 h », « déplace / supprime mon rendez-vous de jeudi » (avec confirmation), « ai-je de nouveaux mails ? », « lis-moi le mail de Julie », « réponds-lui que c'est d'accord » (brouillon montré, envoi seulement après « oui »), « trie mes mails » (étiquettes « Friday/… » dans Gmail), « montre les mails de la catégorie banque », « supprime les promotions / les mails de Rollercoin » (corbeille, après confirmation). Rubriques « agenda » et « mails » possibles dans le briefing.
 - **Push-to-talk** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher.
 - **Écrire** : taper son message puis Entrée.
 

@@ -12,7 +12,8 @@ log = logging.getLogger(__name__)
 
 SCOPES = [
     "https://www.googleapis.com/auth/calendar.events",  # lire et modifier les événements
-    "https://www.googleapis.com/auth/gmail.readonly",  # lire les mails (jamais supprimer)
+    # lire, étiqueter (tri) et mettre à la corbeille ; JAMAIS d'effacement définitif possible
+    "https://www.googleapis.com/auth/gmail.modify",
     "https://www.googleapis.com/auth/gmail.send",  # envoyer (toujours après confirmation)
 ]
 SUCCESS = "Friday est connectée à votre compte Google. Vous pouvez fermer cet onglet."
@@ -41,7 +42,11 @@ class GoogleAccount:
 
         if not self.token_path.is_file():
             return None
-        creds = Credentials.from_authorized_user_file(str(self.token_path), SCOPES)
+        # Sans « SCOPES » ici : on veut les autorisations réellement accordées, pas les voulues
+        creds = Credentials.from_authorized_user_file(str(self.token_path))
+        if not creds.has_scopes(SCOPES):  # autorisations ajoutées depuis : reconnexion
+            log.info("Nouvelles autorisations Google nécessaires : reconnexion")
+            return None
         if creds.valid:
             return creds
         if creds.expired and creds.refresh_token:

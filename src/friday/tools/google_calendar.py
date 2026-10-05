@@ -195,9 +195,8 @@ class DeleteEventTool(_ChangeEventTool):
             except EventNotFound as error:  # souvent : il parlait de mails, pas d'agenda
                 return ToolResult(
                     f"Rien supprimé : aucun événement de l'agenda ne correspond ({error}). Si "
-                    "l'utilisateur parlait de MAILS, dis-lui clairement que tu n'as pas le droit "
-                    "de supprimer des mails (il l'a choisi ainsi) et qu'il peut le faire dans "
-                    "Gmail ; sinon, demande-lui de préciser l'événement."
+                    "l'utilisateur parlait de MAILS, c'est l'outil trash_mails qu'il fallait "
+                    "utiliser : appelle-le ; sinon, demande-lui de préciser l'événement."
                 )
             self.calendar.delete(target.id)
             self.recent.remember([])

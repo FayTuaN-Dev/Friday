@@ -73,7 +73,9 @@ src/friday/
 │   ├── days.py            « jeudi », « le 12 novembre », « cette semaine » → dates (pas le LLM)
 │   ├── calendar.py        GoogleCalendar : lire, ajouter, déplacer, supprimer
 │   ├── event_ref.py       retrouver l'événement visé (« le 2 », « supprime-le », « banque »)
-│   ├── gmail.py           Gmail : non lus, recherche, lecture, envoi (jamais de suppression)
+│   ├── gmail.py           Gmail : derniers mails, recherche, lecture, envoi
+│   ├── mailbox.py         étiquettes « Friday/… », corbeille (jamais d'effacement définitif)
+│   ├── sorter.py          tri par catégorie : qwen3 classe, Friday étiquette
 │   └── sources.py         agenda du jour et mails non lus pour le briefing
 ├── vision/                voir l'écran
 │   ├── capture.py         capture de l'écran sous la souris (mss), réduite à 1600 px
@@ -103,6 +105,7 @@ src/friday/
 │   ├── briefing.py        morning_briefing / configure_briefing
 │   ├── google_calendar.py list_events / add_event / move_event, delete_event (confirmés)
 │   ├── gmail.py           check_mail / search_mail / read_mail / send_mail (confirmé)
+│   ├── mail_sorting.py    sort_mails / category_mails / trash_mails (confirmé)
 │   ├── google_tools.py    liste des outils Google ; google_base.py : erreurs Google lisibles
 │   ├── popups.py          close_popups : Friday ferme ses propres pop-ups
 │   ├── screen.py          look_at_screen (local) / ask_claude_about_screen (secours, confirmé)
