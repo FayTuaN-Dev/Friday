@@ -21,12 +21,13 @@ class MemoryKeeper:
         self.memory = memory
         self.extractor = extractor
         self.on_saved = on_saved
-        self._queue: queue.Queue[str] = queue.Queue()
+        self._queue: queue.Queue[tuple[str, str]] = queue.Queue()
         threading.Thread(target=self._loop, daemon=True, name="memory").start()
 
-    def observe(self, user_text: str) -> None:
-        """Appelé après chaque réponse ; le travail se fait sans bloquer la conversation."""
-        self._queue.put(user_text)
+    def observe(self, user_text: str, context: str = "") -> None:
+        """Appelé après chaque réponse ; le travail se fait sans bloquer la conversation.
+        `context` : ce que Friday venait de dire (pour comprendre une réponse courte)."""
+        self._queue.put((user_text, context))
 
     def wait_idle(self) -> None:
         """Pour les tests : attend la fin du travail en cours."""
@@ -34,9 +35,9 @@ class MemoryKeeper:
 
     def _loop(self) -> None:
         while True:
-            text = self._queue.get()
+            text, context = self._queue.get()
             try:
-                for fact in self.extractor.extract(text, self.memory.relevant(text)):
+                for fact in self.extractor.extract(text, self.memory.relevant(text), context):
                     memory = self.memory.remember(fact.text, "auto", fact.replaces)
                     self.on_saved(memory.text)
             except Exception:

@@ -139,15 +139,19 @@ def test_relative_dates_are_stamped():
 
 
 def test_keeper_saves_in_background(memory):
+    contexts = []
+
     class Extractor:
-        def extract(self, text, known):
+        def extract(self, text, known, context=""):
+            contexts.append(context)
             return [Fact("L'utilisateur prépare un marathon.")]
 
     saved = []
     keeper = MemoryKeeper(memory, Extractor(), saved.append)
-    keeper.observe("Je prépare un marathon pour avril.")
+    keeper.observe("Je prépare un marathon pour avril.", "Quel est votre objectif sportif ?")
     keeper.wait_idle()
     assert saved == ["L'utilisateur prépare un marathon."]
+    assert contexts == ["Quel est votre objectif sportif ?"]
     assert len(memory.all()) == 1
 
 

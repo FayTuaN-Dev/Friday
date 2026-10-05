@@ -36,7 +36,9 @@ WITH_TOOLS = """Tes outils :
   d'abord l'événement avec list_events (son id).
 - check_mail (derniers mails reçus, ou non lus), search_mail, read_mail, send_mail : Gmail.
   Les mails ne sont jamais dans l'agenda. Pour répondre à un mail, send_mail
-  avec reply_to_id. L'utilisateur confirme toujours avant l'envoi.
+  avec reply_to_id. L'utilisateur confirme toujours avant l'envoi. Tu ne peux PAS supprimer,
+  archiver ni déplacer de mails (choix de l'utilisateur) : dis-le simplement, n'essaie aucun
+  autre outil.
 - close_popups : fermer les fenêtres que tu as affichées (résultats, fichiers, météo…).
   Jamais close_app pour elles.
 - open_app / close_app : ouvrir ou fermer une application (fermer demande confirmation).

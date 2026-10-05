@@ -179,7 +179,7 @@ class MoveEventTool(_ChangeEventTool):
 
 class DeleteEventTool(_ChangeEventTool):
     name = "delete_event"
-    description = "Supprime un événement de l'agenda, après confirmation."
+    description = "Supprime un événement de l'agenda Google (jamais un mail), après confirmation."
     parameters = {"event": EVENT_REF}
 
     def label(self, args: dict) -> str:
@@ -190,7 +190,15 @@ class DeleteEventTool(_ChangeEventTool):
 
     def run(self, event: str = "") -> ToolResult:
         def delete() -> ToolResult:
-            target = self._confirmed(event)
+            try:
+                target = self._confirmed(event)
+            except EventNotFound as error:  # souvent : il parlait de mails, pas d'agenda
+                return ToolResult(
+                    f"Rien supprimé : aucun événement de l'agenda ne correspond ({error}). Si "
+                    "l'utilisateur parlait de MAILS, dis-lui clairement que tu n'as pas le droit "
+                    "de supprimer des mails (il l'a choisi ainsi) et qu'il peut le faire dans "
+                    "Gmail ; sinon, demande-lui de préciser l'événement."
+                )
             self.calendar.delete(target.id)
             self.recent.remember([])
             return ToolResult(f"« {target.title} » supprimé de l'agenda.")

@@ -163,7 +163,7 @@ def test_find_by_title_words_ambiguous_or_missing():
     assert deleted(events) == ["e1"]
     for ref in ("banque", "piscine", "1"):  # deux banques ; rien ; pas de liste récente
         assert tool.confirmation({"event": ref}) is None  # pas de question inutile
-        assert "pas compris" in tool.run(ref).text
+        assert "Rien supprimé" in tool.run(ref).text
     assert deleted(events) == ["e1"]  # rien d'autre n'a été supprimé
 
 
