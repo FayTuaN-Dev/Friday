@@ -40,7 +40,7 @@ class FakeMailbox(Mailbox):
 LABELS = {"Friday/Banque & finances": "L-B", "Friday/Promotions & newsletters": "L-P"}
 
 
-def classify_by_name(mails):
+def classify_by_name(mails, extra=()):
     return ["Banque & finances" if "banque" in m.id else "Promotions & newsletters" for m in mails]
 
 
@@ -93,7 +93,7 @@ def test_trash_never_happens_without_matching_confirmation():
 
 
 def test_classifier_keeps_order_and_fills_gaps():
-    replies = iter(['{"categories": ["Factures", "Inventée"]}', "pas du json"])
+    replies = iter(['{"categories": ["Factures & abonnements", "Inventée"]}', "pas du json"])
 
     class Client:
         def chat(self, **kwargs):
@@ -102,5 +102,17 @@ def test_classifier_keeps_order_and_fills_gaps():
 
     mails = [Mail(str(i), "", "a", "s", "", "") for i in range(3)]
     classify = Classifier(Client(), "qwen3:8b", 8192)
-    assert classify(mails) == ["Factures", "Autres", "Autres"]
+    assert classify(mails) == ["Factures & abonnements", "Autres", "Autres"]
     assert classify(mails) == ["Autres"] * 3
+
+
+def test_user_labels_become_categories():
+    seen = []
+
+    def classify(mails, extra=()):
+        seen.append(extra)
+        return ["Mes impôts"] * len(mails)
+
+    box = FakeMailbox({"m1": {"INBOX"}}, {"Friday/Mes impôts": "L-I", "Friday/Jeux": "L-J"})
+    MailSorter(box, classify).sort_inbox(10)
+    assert seen == [("Mes impôts",)] and "L-I" in box.mails["m1"]

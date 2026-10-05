@@ -165,12 +165,12 @@ def test_memory_tools(memory):
     RememberTool(memory).run("L'utilisateur habite à Bordeaux.", replaces=2)
     assert "Lyon" in lyon.text and [m.text for m in memory.all()][-1].endswith("Bordeaux.")
     assert len(memory.all()) == 2
-    ForgetTool(memory).run(2)
+    ForgetTool(memory).run("j'habite à Bordeaux", 2)
     listing = ListMemoriesTool(memory).run()
     assert listing.display.kind == "memories"
     assert listing.display.data["memories"][0]["source"] == "explicit"
-    assert "oublié" in ForgetTool(memory).run(1).text
-    assert "pas de souvenir" in ForgetTool(memory).run(1).text
+    assert "oublié" in ForgetTool(memory).run("je suis allergique aux arachides").text
+    assert "Rien effacé" in ForgetTool(memory).run("je suis allergique aux arachides").text
     assert "vide" in ListMemoriesTool(memory).run().text
 
 
@@ -188,3 +188,16 @@ def test_memories_are_in_the_system_prompt():
     without = Brain(SETTINGS, client=FakeClient(chunks=["ok"]))
     list(without.reply("?"))
     assert "Ta mémoire" not in without.client.calls[0]["messages"][0]["content"]
+
+
+def test_forget_never_erases_an_unrelated_memory(memory):
+    for fact in ("L'utilisateur s'appelle Valentin.", "L'utilisateur vit aux Herbiers.",
+                 "L'utilisateur s'appelle Rollercoin."):  # fmt: skip
+        RememberTool(memory).run(fact)
+    herbiers = next(m.id for m in memory.all() if "Herbiers" in m.text)
+    # numéro périmé (le vrai souvenir a déjà été effacé) : il ne faut pas toucher aux Herbiers
+    result = ForgetTool(memory).run("je m'appelle Rollercoin", herbiers)
+    assert "Rollercoin" in result.text and "oublié" in result.text
+    assert "Rien effacé" in ForgetTool(memory).run("je m'appelle Rollercoin", herbiers).text
+    assert any("Herbiers" in m.text for m in memory.all())
+    assert "plusieurs" not in ForgetTool(memory).run("que je vis aux Herbiers").text

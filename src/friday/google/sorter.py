@@ -12,19 +12,22 @@ from friday.google.mailbox import PREFIX, Mailbox
 log = logging.getLogger(__name__)
 
 CATEGORIES = (
-    "Banque & finances", "Factures", "Achats & commandes", "Promotions & newsletters",
-    "Réseaux sociaux", "Comptes & sécurité", "Travail & études", "Personnel",
-    "Voyages & transports", "Jeux & loisirs", "Administratif", "Autres",
+    "Banque & finances", "Trading & crypto", "Achats & commandes", "Factures & abonnements",
+    "Jeux", "IA & tech", "Travail & études", "Administratif", "Comptes & sécurité",
+    "Voyages & transports", "Sport & santé", "Loisirs & culture", "Réseaux sociaux",
+    "Personnel", "Autres",
 )  # fmt: skip
 CHUNK = 20  # mails classés par appel au modèle
 
-PROMPT = """Classe chaque mail dans UNE catégorie, d'après l'expéditeur, le sujet et l'extrait.
+PROMPT = """Range chaque mail dans UNE catégorie selon son THÈME (son sujet), d'après
+l'expéditeur, le sujet et l'extrait, même quand c'est une publicité ou une newsletter :
+une pub de jeu (RollerCoin, FDJ…) → « Jeux » ; une newsletter de trading, de bourse ou de
+crypto (Bitget, Apex Trader…) → « Trading & crypto » ; une lettre sur l'IA, le code ou un
+logiciel → « IA & tech » ; relevé, virement, carte → « Banque & finances » ; commande,
+livraison, colis → « Achats & commandes » ; code de connexion, mot de passe, alerte de
+sécurité → « Comptes & sécurité » ; impôts, CAF, assurance, mutuelle → « Administratif ».
+« Autres » seulement si aucun thème ne convient.
 Catégories possibles : {categories}.
-Repères : relevé, virement, carte bancaire, trading → « Banque & finances » ; confirmation de
-commande, livraison, colis → « Achats & commandes » ; publicité, offre, newsletter →
-« Promotions & newsletters » ; code de connexion, mot de passe, alerte de sécurité →
-« Comptes & sécurité » ; impôts, CAF, assurance, mutuelle → « Administratif ».
-Gmail range déjà certains mails en « promotions » ou « réseaux sociaux » : c'est un indice.
 
 Mails :
 {mails}"""
@@ -43,14 +46,16 @@ class Classifier:
     def __init__(self, client, model: str, num_ctx: int) -> None:
         self.client, self.model, self.num_ctx = client, model, num_ctx
 
-    def __call__(self, mails: list[Mail]) -> list[str]:
+    def __call__(self, mails: list[Mail], extra: tuple[str, ...] = ()) -> list[str]:
+        """`extra` : catégories ajoutées par l'utilisateur (étiquettes « Friday/… »)."""
+        categories = list(CATEGORIES) + [c for c in extra if c not in CATEGORIES]
         schema = {
             "type": "object",
-            "properties": {"categories": {"type": "array", "items": {"enum": list(CATEGORIES)}}},
+            "properties": {"categories": {"type": "array", "items": {"enum": categories}}},
             "required": ["categories"],
         }
         lines = "\n".join(mail_summary(i, m) for i, m in enumerate(mails, 1))
-        prompt = PROMPT.format(categories=", ".join(CATEGORIES), mails=lines)
+        prompt = PROMPT.format(categories=", ".join(categories), mails=lines)
         prompt += f"\n\nRéponds avec exactement {len(mails)} catégories, dans l'ordre des mails."
         response = self.client.chat(
             model=self.model, messages=[{"role": "user", "content": prompt}], format=schema,
@@ -61,25 +66,27 @@ class Classifier:
         except (json.JSONDecodeError, KeyError, TypeError):
             log.warning("Classement illisible : %r", response.message.content)
             found = []
-        found = [c if c in CATEGORIES else "Autres" for c in found]
+        found = [c if c in categories else "Autres" for c in found]
         return (found + ["Autres"] * len(mails))[: len(mails)]
 
 
 class MailSorter:
-    def __init__(self, mailbox: Mailbox, classify: Callable[[list[Mail]], list[str]]) -> None:
+    def __init__(self, mailbox: Mailbox, classify: Callable[..., list[str]]) -> None:
         self.mailbox = mailbox
         self.classify = classify
 
     def sort_inbox(self, count: int) -> Counter:
         """Classe les `count` derniers mails de la boîte pas encore triés ; renvoie le compte
         par catégorie."""
-        already = set(self.mailbox.category_labels().values())
+        existing = self.mailbox.category_labels()
+        already = set(existing.values())
+        custom = tuple(name for name in existing if name not in CATEGORIES)
         mails = [m for m in self.mailbox.metadata(self.mailbox.ids("in:inbox", limit=count))
                  if not m.labels & already]  # fmt: skip
         by_category: dict[str, list[str]] = {}
         for start in range(0, len(mails), CHUNK):
             chunk = mails[start : start + CHUNK]
-            for mail, category in zip(chunk, self.classify(chunk), strict=True):
+            for mail, category in zip(chunk, self.classify(chunk, custom), strict=True):
                 by_category.setdefault(category, []).append(mail.id)
         for category, ids in by_category.items():
             self.mailbox.add_label(ids, self.mailbox.ensure_label(category))

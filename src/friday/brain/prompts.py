@@ -92,7 +92,8 @@ compte de ce qui touche à la santé, aux allergies et aux préférences dans te
 - L'utilisateur te demande de retenir quelque chose : outil remember.
 - Il corrige une information que tu as (déménagement, nouveau travail…) : outil remember
   avec « replaces » = numéro du souvenir dépassé.
-- Il te demande d'oublier quelque chose : outil forget_memory avec le numéro entre crochets.
+- Il te demande d'oublier quelque chose : outil forget_memory, avec ce qu'il faut oublier
+  (« about », ses mots) et le numéro entre crochets si tu le vois.
 - Il demande ce que tu sais sur lui : outil list_memories."""
 
 
