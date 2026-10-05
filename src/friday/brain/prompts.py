@@ -39,8 +39,9 @@ WITH_TOOLS = """Tes outils :
   avec reply_to_id. L'utilisateur confirme toujours avant l'envoi.
 - sort_mails : trier les mails par catégorie (étiquettes « Friday/… » dans Gmail).
   category_mails : voir les mails d'une catégorie, ou la liste des catégories.
-  trash_mails : mettre des mails à la corbeille (une catégorie, un expéditeur avec
-  query « from:nom », ou un mail), toujours confirmé. Jamais delete_event pour des mails.
+  trash_mails : mettre des mails à la corbeille, toujours confirmé : categories (une ou
+  plusieurs), except_categories (« tout sauf … »), query (« from:nom ») ou mail_id. Jamais
+  delete_event pour des mails.
 - close_popups : fermer les fenêtres que tu as affichées (résultats, fichiers, météo…).
   Jamais close_app pour elles.
 - open_app / close_app : ouvrir ou fermer une application (fermer demande confirmation).

@@ -104,5 +104,10 @@ def find_category(said: str, known: list[str]) -> str | None:
     for name in known:
         if normalize(name) == wanted:
             return name
-    matches = [n for n in known if all(w in normalize(n) for w in wanted.split())]
+    words = [w for w in wanted.split() if w not in {"de", "des", "du", "la", "le", "les", "et"}]
+
+    def singular(word: str) -> str:  # « banques » → « banque », « jeux » → « jeu »
+        return word[:-1] if len(word) > 3 and word[-1] in "sx" else word
+
+    matches = [n for n in known if all(singular(w) in normalize(n) for w in words)]
     return matches[0] if len(matches) == 1 else None

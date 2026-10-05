@@ -3,7 +3,8 @@ from types import SimpleNamespace
 from friday.google.gmail import Mail
 from friday.google.mailbox import Mailbox
 from friday.google.sorter import CATEGORIES, Classifier, MailSorter, find_category
-from friday.tools.mail_sorting import CategoryMailsTool, SortMailsTool, TrashMailsTool
+from friday.tools.mail_sorting import CategoryMailsTool, SortMailsTool
+from friday.tools.mail_trash import TrashMailsTool
 
 
 class FakeMailbox(Mailbox):
@@ -47,7 +48,8 @@ def classify_by_name(mails, extra=()):
 def test_find_category():
     known = ["Banque & finances", "Promotions & newsletters", "Jeux & loisirs"]
     assert find_category("banque", known) == "Banque & finances"
-    assert find_category("les promotions", known) is None  # « les » n'est pas dans le nom
+    assert find_category("les promotions", known) == "Promotions & newsletters"
+    assert find_category("banques", known) == "Banque & finances"  # pluriel
     assert find_category("promotions", known) == "Promotions & newsletters"
     assert find_category("Friday/Jeux & loisirs", known) == "Jeux & loisirs"
     assert find_category("voyages", known) is None
@@ -74,9 +76,9 @@ def test_trash_a_category_only_after_confirmation():
     box = FakeMailbox({"promo1": {"L-P"}, "promo2": {"L-P"}, "banque1": {"L-B"}}, LABELS)
     tool = TrashMailsTool(box)
     assert tool.needs_confirmation
-    question = tool.confirmation({"category": "promotions"})
-    assert "Je mets 2 mail(s) de la catégorie « Promotions & newsletters »" in question
-    assert "corbeille" in tool.run(category="promotions").text
+    question = tool.confirmation({"categories": "promotions"})
+    assert "Je mets 2 mail(s) des catégories « Promotions & newsletters »" in question
+    assert "corbeille" in tool.run(categories="promotions").text
     assert box.trashed == ["promo1", "promo2"]  # la banque n'est pas touchée
 
 
@@ -86,8 +88,8 @@ def test_trash_never_happens_without_matching_confirmation():
     assert "« from:rollercoin »" in tool.confirmation({"query": "from:rollercoin"})
     assert "pas été confirmée" in tool.run(query="from:autre chose").text  # pas la même demande
     assert box.trashed == []
-    assert tool.confirmation({"category": "inconnue"}) is None  # pas de question inutile
-    assert "inconnue" in tool.run(category="inconnue").text
+    assert tool.confirmation({"categories": "inconnue"}) is None  # pas de question inutile
+    assert "inconnue" in tool.run(categories="inconnue").text
     assert "il faut" in tool.run().text
     assert box.trashed == []
 
@@ -116,3 +118,41 @@ def test_user_labels_become_categories():
     box = FakeMailbox({"m1": {"INBOX"}}, {"Friday/Mes impôts": "L-I", "Friday/Jeux": "L-J"})
     MailSorter(box, classify).sort_inbox(10)
     assert seen == [("Mes impôts",)] and "L-I" in box.mails["m1"]
+
+
+def test_trash_all_categories_except_some():
+    labels = {
+        "Friday/Jeux": "L-J",
+        "Friday/Administratif": "L-A",
+        "Friday/Factures & abonnements": "L-F",
+    }
+    box = FakeMailbox({"jeu1": {"L-J"}, "jeu2": {"L-J"}, "impots": {"L-A"}, "edf": {"L-F"}}, labels)
+    tool = TrashMailsTool(box)
+    question = tool.confirmation({"except_categories": "administratif, factures"})
+    assert "Je mets 2 mail(s) des catégories « Jeux »" in question
+    tool.run(except_categories="administratif, factures")
+    assert box.trashed == ["jeu1", "jeu2"]
+
+
+def test_invented_category_syntax_is_refused():
+    box = FakeMailbox({"jeu1": {"L-J"}}, {"Friday/Jeux": "L-J"})
+    tool = TrashMailsTool(box)
+    args = {"query": "category:Jeux OR category:Trading & crypto"}
+    assert tool.confirmation(args) is None
+    assert "utilise categories" in tool.run(**args).text and box.trashed == []
+
+
+def test_sorting_everything_runs_in_background():
+    import threading
+
+    done = threading.Event()
+    announced = []
+
+    def on_background(task, result):
+        announced.append(result.text)
+        done.set()
+
+    box = FakeMailbox({f"promo{i}": {"INBOX"} for i in range(3)})
+    tool = SortMailsTool(MailSorter(box, classify_by_name), on_background)
+    assert "arrière-plan" in tool.run(0).text  # 0 = tous
+    assert done.wait(5) and "3 mails triés" in announced[0]

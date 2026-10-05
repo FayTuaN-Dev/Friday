@@ -6,7 +6,7 @@ from friday.google.gmail import Gmail
 from friday.tools.base import Tool
 
 
-def google_tools(account, settings) -> list[Tool]:
+def google_tools(account, settings, on_background=None) -> list[Tool]:
     import ollama
 
     from friday.google.mailbox import Mailbox
@@ -18,7 +18,8 @@ def google_tools(account, settings) -> list[Tool]:
         ListEventsTool,
         MoveEventTool,
     )
-    from friday.tools.mail_sorting import CategoryMailsTool, SortMailsTool, TrashMailsTool
+    from friday.tools.mail_sorting import CategoryMailsTool, SortMailsTool
+    from friday.tools.mail_trash import TrashMailsTool
 
     calendar = GoogleCalendar(lambda: account.service("calendar", "v3"))
     mailbox = Mailbox(lambda: account.service("gmail", "v1"))
@@ -30,6 +31,6 @@ def google_tools(account, settings) -> list[Tool]:
         ListEventsTool(calendar, recent), AddEventTool(calendar, recent),
         MoveEventTool(calendar, recent), DeleteEventTool(calendar, recent),
         CheckMailTool(gmail), SearchMailTool(gmail), ReadMailTool(gmail), SendMailTool(gmail),
-        SortMailsTool(MailSorter(mailbox, classify)), CategoryMailsTool(mailbox),
+        SortMailsTool(MailSorter(mailbox, classify), on_background), CategoryMailsTool(mailbox),
         TrashMailsTool(mailbox),
     ]  # fmt: skip

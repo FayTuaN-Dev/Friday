@@ -77,7 +77,7 @@ def default_toolbox(
     if google is not None:
         from friday.tools.google_tools import google_tools
 
-        tools += google_tools(google, settings)
+        tools += google_tools(google, settings, on_background)
     if briefing is not None:
         from friday.tools.briefing import ConfigureBriefingTool, MorningBriefingTool
 

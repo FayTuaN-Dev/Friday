@@ -1,5 +1,6 @@
-"""Outils : trier les mails par catégorie, voir une catégorie, mettre à la corbeille
-(toujours après confirmation, avec le nombre de mails et des exemples)."""
+"""Outils : trier les mails par thème, voir une catégorie (corbeille : mail_trash.py)."""
+
+import threading
 
 from friday.google.mailbox import Mailbox
 from friday.google.sorter import MailSorter, find_category
@@ -7,38 +8,57 @@ from friday.tools.base import Display, Tool, ToolResult
 from friday.tools.gmail import mail_list
 from friday.tools.google_base import guarded
 
+IN_FOREGROUND = 100  # au-delà, tri en arrière-plan (environ 3 s pour 10 mails)
+MAX_ALL = 3000  # « tous » : plafond de sécurité
+
 
 class SortMailsTool(Tool):
     name = "sort_mails"
     description = (
-        "Trie les derniers mails de la boîte de réception par catégorie (banque, achats, "
-        "promotions, jeux…) en leur posant une étiquette « Friday/… » visible dans Gmail. "
-        "Ne supprime et ne déplace rien."
+        "Trie les mails de la boîte de réception par thème (jeux, trading, banque, achats…) en "
+        "leur posant une étiquette « Friday/… » visible dans Gmail ; ne supprime et ne déplace "
+        "rien. count : nombre de derniers mails (50 par défaut), ou 0 pour TOUS (« range tous "
+        "mes mails ») : le tri se fait alors en arrière-plan."
     )
-    parameters = {"count": {"type": "integer", "description": "Combien de mails (50 par défaut)"}}
+    parameters = {"count": {"type": "integer", "description": "50 par défaut ; 0 = tous"}}
     timeout = 300  # lecture des mails + classement par le modèle
 
-    def __init__(self, sorter: MailSorter) -> None:
+    def __init__(self, sorter: MailSorter, on_background=None) -> None:
         self.sorter = sorter
+        self.on_background = on_background  # (tâche, résultat) : annonce de fin de tri
 
     def label(self, args: dict) -> str:
         return "🗂️ Tri des mails"
 
     def run(self, count: int | None = None) -> ToolResult:
-        def sort() -> ToolResult:
-            counts = self.sorter.sort_inbox(max(1, min(int(count or 50), 200)))
-            if not counts:
-                return ToolResult("Rien à trier : les derniers mails sont déjà rangés.")
-            ranked = counts.most_common()
-            summary = ", ".join(f"{name} : {n}" for name, n in ranked)
-            items = [{"text": name, "meta": f"{n} mail(s)"} for name, n in ranked]
+        count = MAX_ALL if count == 0 else int(count or 50)
+        if count > IN_FOREGROUND and self.on_background is not None:
+            threading.Thread(target=self._sort_in_background, args=(count,), daemon=True,
+                             name="mail-sort").start()  # fmt: skip
             return ToolResult(
-                f"{sum(counts.values())} mails triés. Par catégorie : {summary}. Dis le total "
-                "et les deux ou trois plus grosses catégories ; le détail est à l'écran.",
-                Display("items", "Mails triés", {"icon": "🗂️", "items": items}),
+                "C'est lancé : je trie tous les mails en arrière-plan (plusieurs minutes, environ "
+                "3 secondes pour 10 mails) et je préviendrai à la fin. Dis-le en une phrase."
             )
+        return guarded(lambda: self._sort(min(count, IN_FOREGROUND)))
 
-        return guarded(sort)
+    def _sort(self, count: int) -> ToolResult:
+        counts = self.sorter.sort_inbox(count)
+        if not counts:
+            return ToolResult("Rien à trier : ces mails sont déjà rangés.")
+        ranked = counts.most_common()
+        summary = ", ".join(f"{name} : {n}" for name, n in ranked)
+        items = [{"text": name, "meta": f"{n} mail(s)"} for name, n in ranked]
+        return ToolResult(
+            f"{sum(counts.values())} mails triés. Par catégorie : {summary}. Dis le total "
+            "et les deux ou trois plus grosses catégories ; le détail est à l'écran.",
+            Display("items", "Mails triés", {"icon": "🗂️", "items": items}),
+        )
+
+    def _sort_in_background(self, count: int) -> None:
+        result = guarded(lambda: self._sort(count))
+        self.on_background("tri des mails", ToolResult(
+            f"Le tri des mails en arrière-plan est terminé. {result.text}", result.display
+        ))  # fmt: skip
 
 
 class CategoryMailsTool(Tool):
@@ -75,76 +95,3 @@ class CategoryMailsTool(Tool):
             return mail_list(self.mailbox.metadata(ids), f"Mails « {name} »")
 
         return guarded(show)
-
-
-class TrashMailsTool(Tool):
-    name = "trash_mails"
-    description = (
-        "Met des mails à la corbeille (récupérables 30 jours), après confirmation : toute une "
-        "catégorie (« supprime les promotions »), ceux d'un expéditeur ou d'une recherche "
-        "(query : « from:rollercoin »), ou un mail précis (mail_id)."
-    )
-    parameters = {
-        "category": {"type": "string", "description": "Catégorie du tri (promotions…)"},
-        "query": {"type": "string", "description": "Recherche Gmail (from:nom, mots…)"},
-        "mail_id": {"type": "string", "description": "Identifiant d'un mail précis"},
-    }
-    needs_confirmation = True
-
-    def __init__(self, mailbox: Mailbox) -> None:
-        self.mailbox = mailbox
-        self._pending: tuple | None = None  # (arguments, identifiants) confirmés
-
-    def label(self, args: dict) -> str:
-        return "🗑️ Corbeille"
-
-    def _select(self, args: dict) -> tuple[str, list[str]]:
-        if args.get("mail_id"):
-            return "ce mail", [args["mail_id"]]
-        if args.get("category"):
-            labels = self.mailbox.category_labels()
-            name = find_category(args["category"], list(labels))
-            if name is None:
-                known = ", ".join(sorted(labels)) or "aucune"
-                raise LookupError(
-                    f"catégorie « {args['category']} » inconnue (existantes : {known})"
-                )
-            return f"de la catégorie « {name} »", self.mailbox.ids("-in:trash", labels[name])
-        query = (args.get("query") or "").strip()
-        if not query:
-            raise LookupError("il faut une catégorie, une recherche ou un mail précis")
-        return f"pour « {query} »", self.mailbox.ids(f"{query} -in:trash")
-
-    def confirmation(self, args: dict) -> str | None:
-        self._pending = None
-        try:
-            what, ids = self._select(args)
-        except Exception:
-            return None  # rien ne sera supprimé : run() explique pourquoi
-        if not ids:
-            return None
-        samples = self.mailbox.metadata(ids[:3])
-        examples = ", ".join(f"{m.sender_name} (« {m.subject[:40]} »)" for m in samples)
-        self._pending = (dict(args), ids)
-        return f"Je mets {len(ids)} mail(s) {what} à la corbeille ? Par exemple : {examples}."
-
-    def run(self, category: str = "", query: str = "", mail_id: str = "") -> ToolResult:
-        args = {k: v for k, v in (("category", category), ("query", query),
-                                  ("mail_id", mail_id)) if v}  # fmt: skip
-        pending, self._pending = self._pending, None
-        if pending is None or {k: v for k, v in pending[0].items() if v} != args:
-            try:
-                what, ids = self._select(args)
-            except Exception as error:
-                return ToolResult(f"Rien supprimé : {error}. Explique-le à l'utilisateur.")
-            return ToolResult(f"Rien supprimé : aucun mail {what}." if not ids else
-                              "Rien supprimé : la suppression n'a pas été confirmée.")  # fmt: skip
-
-        def trash() -> ToolResult:
-            done = self.mailbox.trash(pending[1])
-            return ToolResult(
-                f"{done} mail(s) mis à la corbeille (récupérables 30 jours dans Gmail). "
-                "Confirme-le en une phrase."
-            )
-
-        return guarded(trash)
