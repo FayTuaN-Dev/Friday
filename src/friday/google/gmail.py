@@ -10,6 +10,8 @@ from email.message import EmailMessage
 from email.utils import getaddresses, parseaddr, parsedate_to_datetime
 
 MAX_BODY = 6000
+SKIPPED_TABS = {"CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL"}  # bruit pour un résumé
+SCAN = 30  # mails examinés au plus pour en trouver assez hors promotions
 
 
 @dataclass
@@ -22,7 +24,11 @@ class Mail:
     snippet: str
     message_id: str = ""  # en-tête Message-ID (pour répondre dans la même conversation)
     body: str = ""
-    unread: bool = False
+    labels: frozenset = frozenset()
+
+    @property
+    def unread(self) -> bool:
+        return "UNREAD" in self.labels
 
     @property
     def sender_name(self) -> str:
@@ -80,7 +86,7 @@ def parse_mail(message: dict, with_body: bool = False) -> Mail:
         snippet=html.unescape(message.get("snippet", "")),
         message_id=headers.get("message-id", ""),
         body=extract_body(payload) if with_body else "",
-        unread="UNREAD" in message.get("labelIds", []),
+        labels=frozenset(message.get("labelIds", [])),
     )
 
 
@@ -91,31 +97,35 @@ class Gmail:
     def _messages(self):
         return self._service().users().messages()
 
+    def _metadata(self, mail_id: str) -> Mail:
+        return parse_mail(self._messages().get(
+            userId="me", id=mail_id, format="metadata",
+            metadataHeaders=["From", "Subject", "Date", "Message-ID"],
+        ).execute())  # fmt: skip
+
     def search(self, query: str, limit: int = 8) -> list[Mail]:
-        """Recherche Gmail (« is:unread in:inbox », « from:julie », « facture »…)."""
+        """Recherche Gmail (« from:julie », « facture »…)."""
         found = self._messages().list(userId="me", q=query, maxResults=limit).execute()
-        return [
-            parse_mail(
-                self._messages()
-                .get(
-                    userId="me",
-                    id=m["id"],
-                    format="metadata",
-                    metadataHeaders=["From", "Subject", "Date", "Message-ID"],
-                )
-                .execute()
-            )  # fmt: skip
-            for m in found.get("messages", [])
-        ]
+        return [self._metadata(m["id"]) for m in found.get("messages", [])]
 
     def unread(self, limit: int = 8) -> list[Mail]:
-        return self.search("is:unread in:inbox category:primary", limit)
+        return self.latest(limit, only_unread=True)
 
     def latest(self, limit: int = 5, only_unread: bool = False) -> list[Mail]:
-        """Derniers mails reçus (boîte de réception, onglet Principale), du plus récent."""
-        return (
-            self.unread(limit) if only_unread else self.search("in:inbox category:primary", limit)
-        )
+        """Derniers mails de la boîte de réception, sans promotions ni réseaux sociaux.
+
+        Le tri se fait ici, sur les étiquettes de chaque mail : les filtres de recherche par
+        onglet (« category:primary ») ne marchent pas sur tous les comptes."""
+        query = "in:inbox is:unread" if only_unread else "in:inbox"
+        found = self._messages().list(userId="me", q=query, maxResults=SCAN).execute()
+        mails = []
+        for item in found.get("messages", []):
+            mail = self._metadata(item["id"])
+            if not mail.labels & SKIPPED_TABS:
+                mails.append(mail)
+                if len(mails) >= limit:
+                    break
+        return mails
 
     def read(self, mail_id: str) -> Mail:
         return parse_mail(self._messages().get(userId="me", id=mail_id, format="full").execute(),

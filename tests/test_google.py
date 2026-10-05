@@ -207,7 +207,7 @@ class FakeMessages:
 
     def __getattr__(self, name):
         results = {
-            "list": {"messages": [{"id": "m1"}]},
+            "list": lambda kw: {"messages": [{"id": i} for i in self.store]},
             "get": lambda kw: self.store[kw["id"]],
             "send": {"id": "sent"},
         }
@@ -256,3 +256,11 @@ def test_unknown_recipient_never_sends():
     assert tool.confirmation(args) is None  # pas de question inutile
     assert "NON envoyé" in tool.run(**args).text
     assert not any(name == "send" for name, _ in messages.log)
+
+
+def test_latest_mails_skip_promotions():
+    gmail, messages = gmail_with()
+    promo = {**messages.store["m1"], "id": "p1", "labelIds": ["INBOX", "CATEGORY_PROMOTIONS"]}
+    messages.store = {"p1": promo, **messages.store}  # la promo est la plus récente
+    assert [m.id for m in gmail.latest(5)] == ["m1"]
+    assert gmail.latest(5)[0].unread
