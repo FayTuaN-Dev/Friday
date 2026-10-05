@@ -44,6 +44,7 @@ SETTINGS = Settings(
     files_access=False,
     vision_enabled=False,
     vision_model="qwen3-vl:4b-instruct",
+    google_enabled=False,
     agenda_enabled=False,
     memory_enabled=False,
     memory_auto=False,

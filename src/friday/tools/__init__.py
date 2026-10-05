@@ -5,7 +5,7 @@ from friday.tools.base import Display, Tool, ToolBox, ToolResult
 
 
 def default_toolbox(
-    settings: Settings, memory=None, on_background=None, agenda=None, briefing=None
+    settings: Settings, memory=None, on_background=None, agenda=None, briefing=None, google=None
 ) -> ToolBox:
     """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine."""
     tools: list[Tool] = []
@@ -74,6 +74,10 @@ def default_toolbox(
         from friday.tools.memory import ForgetTool, ListMemoriesTool, RememberTool
 
         tools += [RememberTool(memory), ForgetTool(memory), ListMemoriesTool(memory)]
+    if google is not None:
+        from friday.tools.google_tools import google_tools
+
+        tools += google_tools(google)
     if briefing is not None:
         from friday.tools.briefing import ConfigureBriefingTool, MorningBriefingTool
 

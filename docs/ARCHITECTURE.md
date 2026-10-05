@@ -68,6 +68,12 @@ src/friday/
 │   ├── config.py          BriefingConfig : activé, plage horaire, rubriques (voix ou réglages)
 │   ├── sections.py        contenu de chaque rubrique (None = rien à dire : silence)
 │   └── briefing.py        Briefing : quand le faire, collecte en parallèle, gestion des rubriques
+├── google/                compte Google de l'utilisateur
+│   ├── auth.py            GoogleAccount : autorisation OAuth (navigateur), clé dans data/
+│   ├── days.py            « jeudi », « le 12 novembre », « cette semaine » → dates (pas le LLM)
+│   ├── calendar.py        GoogleCalendar : lire, ajouter, déplacer, supprimer
+│   ├── gmail.py           Gmail : non lus, recherche, lecture, envoi (jamais de suppression)
+│   └── sources.py         agenda du jour et mails non lus pour le briefing
 ├── vision/                voir l'écran
 │   ├── capture.py         capture de l'écran sous la souris (mss), réduite à 1600 px
 │   └── reader.py          ScreenReader : le modèle de vision local décrit et recopie l'écran
@@ -82,6 +88,7 @@ src/friday/
 │   ├── reminders.py       rappel échu → carillon + annonce par Friday
 │   ├── wake_control.py    WakeControl : règles du mot d'activation (réveil, relance, stop, écho)
 │   ├── hands_free_target.py  ce que l'écoute mains libres demande à l'assistant (« Oui ? »…)
+│   ├── extras.py          chargement du compte Google et du briefing
 │   ├── components.py      chargement des modèles (chacun peut échouer sans tout bloquer)
 │   └── events.py          AssistantState + contrat AssistantListener
 ├── tools/                 outils que le LLM peut appeler (plugins)
@@ -93,6 +100,9 @@ src/friday/
 │   ├── files.py           read_file (par parties) / read_clipboard / copy_to_clipboard
 │   ├── file_search.py     search_files / open_file
 │   ├── briefing.py        morning_briefing / configure_briefing
+│   ├── google_calendar.py list_events / add_event / move_event, delete_event (confirmés)
+│   ├── gmail.py           check_mail / search_mail / read_mail / send_mail (confirmé)
+│   ├── google_tools.py    liste des outils Google ; google_base.py : erreurs Google lisibles
 │   ├── popups.py          close_popups : Friday ferme ses propres pop-ups
 │   ├── screen.py          look_at_screen (local) / ask_claude_about_screen (secours, confirmé)
 │   ├── weather.py         météo actuelle + 7 jours (Open-Meteo, sans clé)

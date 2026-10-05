@@ -42,7 +42,8 @@ class ConfigureBriefingTool(Tool):
     description = (
         "Règle le briefing du matin : ajouter ou retirer une rubrique, voir les rubriques "
         "(action list : « qu'y a-t-il dans mon briefing ? »), activer ou désactiver le briefing "
-        "automatique. Rubriques : meteo (value = ville, si l'utilisateur la donne), rappels "
+        "automatique. Rubriques : meteo (value = ville, si l'utilisateur la donne), agenda "
+        "(agenda Google du jour), mails (non lus), rappels "
         "(du jour), "
         "liste (contenu d'une liste : value = nom de la liste), actualites (value = sujet), "
         "libre (value = consigne, ex. « un conseil sport », « une citation »)."

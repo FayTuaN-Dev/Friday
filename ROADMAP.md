@@ -61,7 +61,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 **Productivité**
 - [x] Minuteurs et rappels (carillon + annonce vocale, rattrapage des rappels manqués)
 - [x] Notes et listes (courses, tâches…)
-- [ ] Agenda et mails (Google)
+- [x] Agenda et mails (Google) : lire, ajouter, déplacer / supprimer (confirmé), mails lus et envoyés (confirmé)
 - [x] Calculs et conversions (le LLM s'en charge directement)
 
 **Contrôle du PC**
@@ -95,8 +95,6 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - **Lancer directement une playlist Spotify** (« mets le mix Nova ») : impossible sans l'API
   Spotify (application développeur gratuite + connexion au compte). Aujourd'hui Friday ouvre la
   recherche et il faut cliquer sur le résultat.
-- **Agenda et mails Google** : demande une connexion OAuth au compte Google (création d'un
-  projet Google Cloud). À faire si besoin, en réutilisant la confirmation pour l'envoi de mails.
 - **Friday hors du PC** (bot Telegram…) : demanderait que le PC reste allumé en permanence, ce
   qui n'est pas le cas. Projet futur.
 - **Meilleure voix** : Kokoro (local) ou Edge TTS (gratuit, en ligne) à essayer ; pas d'API payante.
@@ -127,4 +125,4 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 | A | Refonte de l'interface + noyau holographique + couleur au choix | Friday a un nouveau visage | ✅ |
 | B | Comprendre ce qui m'entoure : presse-papier et lecture de fichiers, recherche dans les fichiers, voir l'écran | Friday voit ce que je vois | ✅ |
 | C | Briefing du matin, avec des rubriques choisies (en ajouter, en retirer) | « Bonjour Friday » | ✅ |
-| D | Agenda et mails Google | Friday gère mon planning | ⬜ |
+| D | Agenda et mails Google | Friday gère mon planning | ✅ |

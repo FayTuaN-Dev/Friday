@@ -11,9 +11,10 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-# Types de rubriques : météo, rappels du jour, contenu d'une liste, actualité d'un sujet,
-# rubrique libre (une consigne pour Friday : « un conseil sport », « une citation »…)
-KINDS = ("meteo", "rappels", "liste", "actualites", "libre")
+# Types de rubriques : météo, agenda Google du jour, rappels du jour, mails non lus, contenu
+# d'une liste, actualité d'un sujet, rubrique libre (une consigne pour Friday : « un conseil
+# sport », « une citation »…)
+KINDS = ("meteo", "agenda", "rappels", "mails", "liste", "actualites", "libre")
 NEEDS_VALUE = {"liste", "actualites", "libre"}
 OPTIONAL_VALUE = {"meteo"}  # la ville (sinon HOME_CITY)
 
@@ -26,7 +27,9 @@ class Section:
     def label(self) -> str:
         return {
             "meteo": f"Météo du jour ({self.value})" if self.value else "Météo du jour",
+            "agenda": "Agenda du jour",
             "rappels": "Rappels du jour",
+            "mails": "Mails non lus",
             "liste": f"Liste « {self.value} »",
             "actualites": f"Actualité : {self.value}",
             "libre": self.value.capitalize(),

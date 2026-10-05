@@ -1,0 +1,58 @@
+"""Chargement des briques facultatives : compte Google, briefing du matin."""
+
+import logging
+
+from friday.core.config import DATA_DIR, Settings
+
+log = logging.getLogger(__name__)
+
+
+def load_google(settings: Settings):
+    """Compte Google, si le client OAuth est installé ; la 1re fois, ouvre l'autorisation."""
+    if not settings.google_enabled:
+        return None
+    from friday.google import GoogleAccount
+
+    account = GoogleAccount(DATA_DIR / "google_credentials.json", DATA_DIR / "google_token.json")
+    if not account.configured:
+        return None
+    if not account.connected:
+        log.info("Compte Google à autoriser : ouverture du navigateur")
+        account.connect_in_background()
+    return account
+
+
+def load_briefing(settings: Settings, agenda, google=None):
+    """Briefing du matin : ses rubriques puisent dans la météo, l'agenda et l'actualité."""
+    from friday.briefing import Briefing, Sources
+
+    sources = Sources(agenda=agenda)
+    if google is not None:
+        from friday.google.sources import calendar_lines, unread_lines
+
+        sources.calendar = lambda day: calendar_lines(google, day)
+        sources.mail = lambda: unread_lines(google)
+    if settings.tools_enabled:
+        from ddgs import DDGS
+
+        from friday.tools.base import retry
+        from friday.tools.weather import WeatherTool
+
+        def weather(city: str) -> str | None:
+            city = city or settings.home_city
+            return WeatherTool(city).run().text if city else None  # sans ville : rien
+
+        def news(topic: str) -> list[str]:
+            region = settings.search_region
+            try:
+                hits = retry(lambda: DDGS().news(topic, region=region, timelimit="d",
+                                                 max_results=3))  # fmt: skip
+                return [f"{h['title']} ({h.get('source', '')})" for h in hits or []]
+            except Exception as error:  # service d'actualités saturé : recherche classique
+                log.info("Actualités indisponibles (%s), repli sur la recherche web", error)
+                hits = DDGS().text(f"actualité {topic}", region=region, timelimit="d",
+                                   max_results=3)  # fmt: skip
+                return [h["title"] for h in hits or []]
+
+        sources.weather, sources.news = weather, news
+    return Briefing(DATA_DIR / "briefing.json", sources, settings.home_city)
