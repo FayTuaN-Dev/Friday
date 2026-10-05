@@ -5,12 +5,23 @@ import threading
 from collections.abc import Callable, Iterable, Iterator
 
 from friday.app.events import AssistantListener
-from friday.brain.events import BrainEvent, ConfirmationRequest, ToolFinished, ToolStarted
+from friday.brain.events import (
+    BrainEvent,
+    ConfirmationRequest,
+    ThinkingStarted,
+    ToolFinished,
+    ToolStarted,
+)
 from friday.voice.speaker import Speaker
 from friday.voice.text import SentenceSplitter
 
 # Dit pendant qu'un outil travaille, pour ne pas laisser de blanc
 FILLERS = ("Je regarde ça.", "Un instant.", "Je vérifie.", "Je m'en occupe.")
+THINKING = (
+    "Laissez-moi réfléchir un instant.",
+    "Je réfléchis, un instant.",
+    "Voyons cela de près.",
+)
 
 
 class Reply:
@@ -37,6 +48,9 @@ class Reply:
             if isinstance(event, str):
                 self.listener.on_reply_chunk(event)
                 self._say(self._splitter.feed(event))
+            elif isinstance(event, ThinkingStarted):  # 10 à 25 s de réflexion : on le dit
+                self._say([random.choice(THINKING)])
+                self.listener.on_tool("🧠 Réflexion approfondie")
             elif isinstance(event, ToolStarted):
                 self.tools_used.append(event.name)
                 self._say(self._splitter.flush())  # ce qui a été dit avant l'outil

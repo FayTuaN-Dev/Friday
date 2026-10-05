@@ -36,6 +36,7 @@ src/friday/
 │   ├── router.py          SkillRouter : quelles compétences pour cette demande (mots-clés, sens)
 │   ├── toolset.py         Toolset : outils et consignes donnés au modèle, load_skill (secours)
 │   ├── safety.py          contenu externe encadré ; confirmation des actions qui suivent sa lecture
+│   ├── thinking.py        réflexion à la demande (« réfléchis ») ou pour les calculs
 │   └── conversation.py    mémoire de la conversation en cours
 ├── voice/
 │   ├── recorder.py        Recorder : capture du micro → audio 16 kHz

@@ -1,0 +1,85 @@
+import threading
+
+import pytest
+from fakes import SETTINGS, FakeClient
+
+from friday.app.reply import THINKING, Reply
+from friday.brain.events import ThinkingStarted
+from friday.brain.llm import Brain
+from friday.brain.thinking import needs_thinking
+from friday.voice.text import clean_for_speech, plain_math
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Réfléchis bien : est-ce une bonne idée de changer de voiture ?",
+        "Analyse ce que je viens de te dire",
+        "Prends ton temps et explique-moi",
+        "Combien de jours entre le 17 mars et le 2 juin ?",
+        "Je roule à 90 km/h pendant 40 minutes puis à 120 km/h : quelle vitesse moyenne ?",
+        "Un article à 80 € augmente de 25 % puis baisse de 20 %",
+        "On partage 195,65 € en 4, ça fait combien chacun ?",
+    ],
+)
+def test_thinking_when_asked_or_for_calculations(text):
+    assert needs_thinking(text)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Bonjour Friday",
+        "Mets le volume à 30",
+        "Rappelle-moi d'appeler maman demain à 18 h",
+        "Ajoute un rendez-vous jeudi à 14 h pendant 2 heures",  # deux nombres, pas un calcul
+        "Combien font les pommes ?",  # un calcul ? pas de nombres
+        "Affiche mes 5 derniers mails",
+    ],
+)
+def test_no_thinking_for_everyday_requests(text):
+    assert not needs_thinking(text)
+
+
+def test_brain_thinks_only_when_needed():
+    client = FakeClient(rounds=[["9 sur 4."], ["Bonjour."]])
+    brain = Brain(SETTINGS, client=client)
+    events = list(brain.reply("Combien font 3 fois 3 plus 4 ?"))
+    assert isinstance(events[0], ThinkingStarted) and client.calls[-1]["think"] is True
+    events = list(brain.reply("Bonjour"))
+    assert not any(isinstance(e, ThinkingStarted) for e in events)
+    assert client.calls[-1]["think"] is False
+
+
+class Listener:
+    def __init__(self):
+        self.tools = []
+
+    def on_reply_chunk(self, text): ...
+
+    def on_tool(self, label):
+        self.tools.append(label)
+
+
+class Speaker:
+    def __init__(self):
+        self.said = []
+
+    def say(self, sentence):
+        self.said.append(sentence)
+
+    def wait(self): ...
+
+
+def test_reply_announces_the_thinking():
+    listener, speaker = Listener(), Speaker()
+    Reply(listener, speaker, threading.Event()).run(iter([ThinkingStarted(), "Le total est 12."]))
+    assert speaker.said[0] in THINKING and speaker.said[-1] == "Le total est 12."
+    assert listener.tools == ["🧠 Réflexion approfondie"]
+
+
+def test_formulas_are_spoken_with_words():
+    assert plain_math(r"$ \frac{210}{2} \approx 105 $") == " 210 sur 2  environ  105 "
+    spoken = clean_for_speech(r"$ I = 12000 \times 0,04 $, soit 25 \% de plus")
+    assert spoken == "I = 12000 fois 0,04 , soit 25 pour cent de plus"
+    assert clean_for_speech("Rien à changer : 3 pommes.") == "Rien à changer : 3 pommes."

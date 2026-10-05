@@ -11,10 +11,33 @@ _URL = re.compile(r"https?://\S+")
 _MARKDOWN = re.compile(r"[*_#`>|~]+")
 _EMOJI = re.compile("[\U0001f000-\U0001faff☀-➿️]")
 _SPACES = re.compile(r"\s+")
+# Formules écrites par le modèle malgré la consigne : dites avec des mots
+_FRACTION = re.compile(r"\\[dt]?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}")
+_SQRT = re.compile(r"\\sqrt\s*\{([^{}]*)\}")
+_MATH_WORDS = {
+    r"\times": " fois ", r"\cdot": " fois ", r"\div": " divisé par ", r"\approx": " environ ",
+    r"\simeq": " environ ", r"\neq": " différent de ", r"\leq": " inférieur ou égal à ",
+    r"\geq": " supérieur ou égal à ", r"\%": " pour cent", r"\text": "", r"\left": "",
+    r"\right": "", r"\quad": " ",
+}  # fmt: skip
+_LATEX_COMMAND = re.compile(r"\\[a-zA-Z]+")
+
+
+def plain_math(text: str) -> str:
+    """« $ \\frac{210}{2} \\approx 105 $ » → « 210 sur 2 environ 105 »."""
+    if "\\" not in text and "$" not in text:
+        return text
+    text = _FRACTION.sub(r"\1 sur \2", text)
+    text = _SQRT.sub(r"racine de \1", text)
+    for command, words in _MATH_WORDS.items():
+        text = text.replace(command, words)
+    text = _LATEX_COMMAND.sub("", text)
+    return text.replace("$", "").replace("{", "").replace("}", "")
 
 
 def clean_for_speech(text: str) -> str:
-    """Retire ce qui ne se prononce pas : Markdown, émojis, liens."""
+    """Retire ce qui ne se prononce pas : Markdown, formules, émojis, liens."""
+    text = plain_math(text)
     text = _URL.sub("ce lien", text)
     text = _MARKDOWN.sub("", text)
     text = _EMOJI.sub("", text)
