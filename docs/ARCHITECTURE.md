@@ -32,6 +32,10 @@ src/friday/
 │   ├── llm.py             Brain : discussion avec Ollama (streaming, boucle d'appel d'outils)
 │   ├── events.py          ToolStarted / ToolFinished : événements émis pendant une réponse
 │   ├── prompts.py         personnalité de Friday (prompt système)
+│   ├── skills.py          compétences : outils + consignes + mots-clés + exemples par domaine
+│   ├── router.py          SkillRouter : quelles compétences pour cette demande (mots-clés, sens)
+│   ├── toolset.py         Toolset : outils et consignes donnés au modèle, load_skill (secours)
+│   ├── safety.py          contenu externe encadré ; confirmation des actions qui suivent sa lecture
 │   └── conversation.py    mémoire de la conversation en cours
 ├── voice/
 │   ├── recorder.py        Recorder : capture du micro → audio 16 kHz
@@ -235,6 +239,8 @@ L'interface Qt ne doit jamais être modifiée depuis un autre thread : `QtBridge
 
 ## Ajouter…
 
+- **une compétence** : ses outils, consignes et mots-clés dans `brain/skills.py` (un outil
+  rangé dans aucune compétence est donné au modèle à chaque demande)
 - **un outil** : une classe `Tool` dans `tools/` (nom, description lue par le LLM, paramètres,
   `run()` qui renvoie un `ToolResult`), inscrite dans `default_toolbox()`. Pour afficher quelque
   chose, renvoyer un `Display` ; si c'est un nouveau type, ajouter un pop-up dans

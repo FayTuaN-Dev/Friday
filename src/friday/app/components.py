@@ -53,6 +53,7 @@ def load_components(
         client=client,
         toolbox=default_toolbox(settings, memory, on_background, agenda, briefing, google),
         recall=(lambda question: format_memories(memory.relevant(question))) if memory else None,
+        router=load_router(memory),
     )
     brain.warmup()
     components = Components(
@@ -107,6 +108,17 @@ def load_components(
         start_reminders(agenda, lambda: components.speaker, on_background)
 
     return components
+
+
+def load_router(memory: MemoryService | None):
+    """Aiguillage des compétences : mots-clés, et le sens des phrases si les embeddings de la
+    mémoire sont disponibles."""
+    from friday.brain.router import SkillRouter
+    from friday.brain.skills import SKILLS
+
+    if memory is None:
+        return SkillRouter(SKILLS)
+    return SkillRouter(SKILLS, memory.embedder.query, memory.embedder.documents)
 
 
 def load_memory(settings: Settings, client: ollama.Client) -> MemoryService | None:

@@ -10,6 +10,8 @@ from typing import Any
 
 log = logging.getLogger(__name__)
 
+REASON = "reason"  # paramètre de façade des outils sans paramètre (voir Tool.schema)
+REASON_HELP = "Ce que l'utilisateur veut, en quelques mots"
 # Au-delà, un outil est abandonné (un site qui ne répond pas ne doit pas bloquer Friday)
 TOOL_TIMEOUT = 15.0
 
@@ -65,6 +67,9 @@ class Tool(ABC):
         """Appelé si l'outil est abandonné (délai dépassé, interruption) : à libérer ici."""
 
     def schema(self) -> dict[str, Any]:
+        # qwen3 appelle rarement un outil sans aucun paramètre (« je vais le faire… » sans le
+        # faire) : on lui en donne un facultatif, ignoré à l'exécution.
+        properties = self.parameters or {REASON: {"type": "string", "description": REASON_HELP}}
         return {
             "type": "function",
             "function": {
@@ -72,7 +77,7 @@ class Tool(ABC):
                 "description": self.description,
                 "parameters": {
                     "type": "object",
-                    "properties": self.parameters,
+                    "properties": properties,
                     "required": list(self.required),
                 },
             },
@@ -86,8 +91,12 @@ class ToolBox:
     def __bool__(self) -> bool:
         return bool(self._tools)
 
-    def schemas(self) -> list[dict[str, Any]]:
-        return [t.schema() for t in self._tools.values()]
+    def names(self) -> list[str]:
+        return list(self._tools)
+
+    def schemas(self, names: set[str] | None = None) -> list[dict[str, Any]]:
+        """Schémas de tous les outils, ou seulement de ceux nommés (aiguillage)."""
+        return [t.schema() for t in self._tools.values() if names is None or t.name in names]
 
     def label(self, name: str, args: dict[str, Any]) -> str:
         tool = self._tools.get(name)
@@ -116,7 +125,8 @@ class ToolBox:
 
         def work() -> None:
             try:
-                outcome.append(tool.run(**args))
+                kwargs = {k: v for k, v in args.items() if tool.parameters or k != REASON}
+                outcome.append(tool.run(**kwargs))
             except Exception as e:
                 log.exception("Échec de l'outil %s(%s)", name, args)
                 outcome.append(

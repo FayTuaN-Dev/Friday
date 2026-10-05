@@ -82,6 +82,8 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Config `.env` + fichier de réglages
 - [x] Logs (gestion d'erreurs : au fil des phases)
 - [x] Confirmation avant les actions sensibles (voix, clavier ou bouton)
+- [x] Aiguillage des outils par compétence (12 outils au lieu de 43, prompt ÷3) + `load_skill`
+- [x] Garde-fous contre l'injection (contenu externe encadré, actions confirmées après lecture)
 - [ ] Démarrage avec Windows + `.exe` (PyInstaller)
 
 ---
