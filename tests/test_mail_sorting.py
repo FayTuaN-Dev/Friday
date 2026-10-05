@@ -156,3 +156,30 @@ def test_sorting_everything_runs_in_background():
     tool = SortMailsTool(MailSorter(box, classify_by_name), on_background)
     assert "arrière-plan" in tool.run(0).text  # 0 = tous
     assert done.wait(5) and "3 mails triés" in announced[0]
+
+
+def test_refused_requests_are_retried_not_lost(monkeypatch):
+    import friday.google.mailbox as mailbox_module
+
+    monkeypatch.setattr(mailbox_module, "PAUSE", 0)
+    monkeypatch.setattr(mailbox_module.time, "sleep", lambda seconds: None)
+    refused_once = {"b", "d"}
+
+    class Batch:
+        def __init__(self, callback):
+            self.callback, self.items = callback, []
+
+        def add(self, request, request_id):
+            self.items.append(request_id)
+
+        def execute(self):
+            for item in self.items:
+                if item in refused_once:
+                    refused_once.discard(item)
+                    self.callback(item, None, Exception("429 rateLimitExceeded"))
+                else:
+                    self.callback(item, {"id": item}, None)
+
+    service = SimpleNamespace(new_batch_http_request=lambda callback: Batch(callback))
+    found = mailbox_module.run_batched(service, list("abcde"), lambda item: item)
+    assert sorted(found) == list("abcde")  # b et d récupérés au 2e passage

@@ -18,6 +18,7 @@ CATEGORIES = (
     "Personnel", "Autres",
 )  # fmt: skip
 CHUNK = 20  # mails classés par appel au modèle
+PACKET = 100  # mails lus, classés puis étiquetés à la fois
 
 PROMPT = """Range chaque mail dans UNE catégorie selon son THÈME (son sujet), d'après
 l'expéditeur, le sujet et l'extrait, même quand c'est une publicité ou une newsletter :
@@ -76,22 +77,28 @@ class MailSorter:
         self.classify = classify
 
     def sort_inbox(self, count: int) -> Counter:
-        """Classe les `count` derniers mails de la boîte pas encore triés ; renvoie le compte
-        par catégorie."""
+        """Classe les `count` derniers mails de la boîte pas encore triés, par paquets
+        (lire, classer, étiqueter) : ce qui est fait reste fait si Friday s'arrête en route.
+        Renvoie le compte par catégorie."""
         existing = self.mailbox.category_labels()
         already = set(existing.values())
         custom = tuple(name for name in existing if name not in CATEGORIES)
-        mails = [m for m in self.mailbox.metadata(self.mailbox.ids("in:inbox", limit=count))
-                 if not m.labels & already]  # fmt: skip
-        by_category: dict[str, list[str]] = {}
-        for start in range(0, len(mails), CHUNK):
-            chunk = mails[start : start + CHUNK]
-            for mail, category in zip(chunk, self.classify(chunk, custom), strict=True):
-                by_category.setdefault(category, []).append(mail.id)
-        for category, ids in by_category.items():
-            self.mailbox.add_label(ids, self.mailbox.ensure_label(category))
-        log.info("Tri de %d mails : %s", len(mails), {c: len(i) for c, i in by_category.items()})
-        return Counter({category: len(ids) for category, ids in by_category.items()})
+        ids = self.mailbox.ids("in:inbox", limit=count)
+        totals: Counter = Counter()
+        for start in range(0, len(ids), PACKET):
+            mails = [m for m in self.mailbox.metadata(ids[start : start + PACKET])
+                     if not m.labels & already]  # fmt: skip
+            by_category: dict[str, list[str]] = {}
+            for first in range(0, len(mails), CHUNK):
+                chunk = mails[first : first + CHUNK]
+                for mail, category in zip(chunk, self.classify(chunk, custom), strict=True):
+                    by_category.setdefault(category, []).append(mail.id)
+            for category, mail_ids in by_category.items():
+                self.mailbox.add_label(mail_ids, self.mailbox.ensure_label(category))
+                totals[category] += len(mail_ids)
+            log.info("Tri : %d/%d mails examinés", min(start + PACKET, len(ids)), len(ids))
+        log.info("Tri terminé : %s", dict(totals))
+        return totals
 
 
 def find_category(said: str, known: list[str]) -> str | None:

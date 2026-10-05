@@ -32,6 +32,7 @@ class TrashMailsTool(Tool):
         "mail_id": {"type": "string", "description": "Identifiant d'un mail précis"},
     }
     needs_confirmation = True
+    timeout = 300  # des centaines de mails
 
     def __init__(self, mailbox: Mailbox) -> None:
         self.mailbox = mailbox

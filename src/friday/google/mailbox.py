@@ -4,13 +4,65 @@ La corbeille garde les mails 30 jours : rien n'est jamais effacé définitivemen
 autorisations demandées ne le permettent même pas).
 """
 
+import logging
+import time
 from collections.abc import Callable
 
 from friday.google.gmail import Mail, parse_mail
 
+log = logging.getLogger(__name__)
+
 PREFIX = "Friday/"  # toutes les étiquettes de tri de Friday sont rangées sous « Friday »
-BATCH = 50  # requêtes groupées (limite conseillée par Google)
+BATCH = 20  # requêtes par lot : Gmail freine au-delà d'environ 50 lectures par seconde
+PAUSE = 1.0  # secondes entre deux lots (au-delà de ~20 lectures par seconde, Gmail freine)
+RETRIES = 5
 MAX_IDS = 500  # au-delà, une seule demande en ferait trop d'un coup
+
+
+def with_retries(call: Callable[[], object]):
+    """Réessaie un appel freiné par Gmail (429, 5xx) ou coupé par le réseau."""
+    from googleapiclient.errors import HttpError
+
+    for attempt in range(RETRIES):
+        try:
+            return call()
+        except (HttpError, OSError) as error:
+            status = getattr(getattr(error, "resp", None), "status", None)
+            if isinstance(error, HttpError) and status not in (403, 429, 500, 503):
+                raise
+            if attempt == RETRIES - 1:
+                raise
+            log.info("Gmail freine ou réseau coupé (%s) : nouvel essai", status or error)
+            time.sleep(2**attempt)
+    return None
+
+
+def run_batched(service, ids: list[str], make_request) -> dict[str, dict]:
+    """Exécute une requête par identifiant, par lots, en réessayant les refus de Gmail (au
+    lieu de les perdre en silence) ; renvoie les réponses obtenues."""
+    results: dict[str, dict] = {}
+    pending = list(ids)
+    for attempt in range(RETRIES):
+        failed: list[str] = []
+
+        def store(request_id, response, exception, failed=failed):
+            if exception is None:
+                results[request_id] = response
+            else:
+                failed.append(request_id)
+
+        for start in range(0, len(pending), BATCH):
+            batch = service.new_batch_http_request(callback=store)
+            for item in pending[start : start + BATCH]:
+                batch.add(make_request(item), request_id=item)
+            with_retries(batch.execute)
+            time.sleep(PAUSE)
+        if not failed:
+            break
+        log.info("%d requête(s) refusée(s) par Gmail : nouvel essai", len(failed))
+        pending = failed
+        time.sleep(2 ** (attempt + 1))
+    return results
 
 
 class Mailbox:
@@ -41,22 +93,12 @@ class Mailbox:
 
     def metadata(self, ids: list[str]) -> list[Mail]:
         """En-têtes de nombreux mails, par requêtes groupées (rapide)."""
-        results: dict[str, Mail] = {}
-
-        def store(request_id, response, exception):
-            if exception is None:
-                results[request_id] = parse_mail(response)
-
         service = self._service()
-        for start in range(0, len(ids), BATCH):
-            batch = service.new_batch_http_request(callback=store)
-            for mail_id in ids[start : start + BATCH]:
-                batch.add(service.users().messages().get(
-                    userId="me", id=mail_id, format="metadata",
-                    metadataHeaders=["From", "Subject", "Date", "Message-ID"],
-                ), request_id=mail_id)  # fmt: skip
-            batch.execute()
-        return [results[i] for i in ids if i in results]
+        found = run_batched(service, ids, lambda mail_id: service.users().messages().get(
+            userId="me", id=mail_id, format="metadata",
+            metadataHeaders=["From", "Subject", "Date", "Message-ID"],
+        ))  # fmt: skip
+        return [parse_mail(found[i]) for i in ids if i in found]
 
     # --- Étiquettes de tri ---
 
@@ -87,18 +129,12 @@ class Mailbox:
     # --- Corbeille ---
 
     def trash(self, ids: list[str]) -> int:
-        """Met ces mails à la corbeille (récupérables 30 jours) ; renvoie le nombre traité."""
-        done: list[str] = []
-
-        def record(request_id, response, exception):
-            if exception is None:
-                done.append(request_id)
-
-        service = self._service()
-        for start in range(0, len(ids), BATCH):
-            batch = service.new_batch_http_request(callback=record)
-            for mail_id in ids[start : start + BATCH]:
-                batch.add(service.users().messages().trash(userId="me", id=mail_id),
-                          request_id=mail_id)  # fmt: skip
-            batch.execute()
-        return len(done)
+        """Met ces mails à la corbeille (récupérables 30 jours) ; renvoie le nombre traité.
+        Une seule requête pour 1 000 mails (au lieu d'une par mail, vite freinée par Gmail)."""
+        users = self._users()
+        for start in range(0, len(ids), 1000):
+            body = {"ids": ids[start : start + 1000], "addLabelIds": ["TRASH"]}
+            with_retries(
+                lambda body=body: users.messages().batchModify(userId="me", body=body).execute()
+            )
+        return len(ids)
