@@ -22,6 +22,7 @@ class Mail:
     snippet: str
     message_id: str = ""  # en-tête Message-ID (pour répondre dans la même conversation)
     body: str = ""
+    unread: bool = False
 
     @property
     def sender_name(self) -> str:
@@ -79,6 +80,7 @@ def parse_mail(message: dict, with_body: bool = False) -> Mail:
         snippet=html.unescape(message.get("snippet", "")),
         message_id=headers.get("message-id", ""),
         body=extract_body(payload) if with_body else "",
+        unread="UNREAD" in message.get("labelIds", []),
     )
 
 
@@ -108,6 +110,12 @@ class Gmail:
 
     def unread(self, limit: int = 8) -> list[Mail]:
         return self.search("is:unread in:inbox category:primary", limit)
+
+    def latest(self, limit: int = 5, only_unread: bool = False) -> list[Mail]:
+        """Derniers mails reçus (boîte de réception, onglet Principale), du plus récent."""
+        return (
+            self.unread(limit) if only_unread else self.search("in:inbox category:primary", limit)
+        )
 
     def read(self, mail_id: str) -> Mail:
         return parse_mail(self._messages().get(userId="me", id=mail_id, format="full").execute(),

@@ -72,6 +72,7 @@ src/friday/
 │   ├── auth.py            GoogleAccount : autorisation OAuth (navigateur), clé dans data/
 │   ├── days.py            « jeudi », « le 12 novembre », « cette semaine » → dates (pas le LLM)
 │   ├── calendar.py        GoogleCalendar : lire, ajouter, déplacer, supprimer
+│   ├── event_ref.py       retrouver l'événement visé (« le 2 », « supprime-le », « banque »)
 │   ├── gmail.py           Gmail : non lus, recherche, lecture, envoi (jamais de suppression)
 │   └── sources.py         agenda du jour et mails non lus pour le briefing
 ├── vision/                voir l'écran

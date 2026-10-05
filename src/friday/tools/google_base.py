@@ -14,7 +14,7 @@ def guarded(action: Callable[[], ToolResult]) -> ToolResult:
         return action()
     except NotConnected as error:
         return ToolResult(f"{error} Préviens l'utilisateur.")
-    except ValueError as error:  # date ou heure non comprise
+    except ValueError as error:  # date, heure ou événement non compris / introuvable
         return ToolResult(f"Je n'ai pas compris : {error}. Demande à l'utilisateur de préciser.")
     except Exception as error:
         from googleapiclient.errors import HttpError

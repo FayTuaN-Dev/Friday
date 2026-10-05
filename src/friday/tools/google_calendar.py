@@ -6,6 +6,7 @@ from friday.agenda.times import parse_time
 from friday.brain.prompts import french_date
 from friday.google.calendar import Event, GoogleCalendar
 from friday.google.days import parse_day, parse_period
+from friday.google.event_ref import EventNotFound, RecentEvents, find_event
 from friday.tools.base import Display, Tool, ToolResult
 from friday.tools.google_base import guarded
 
@@ -27,8 +28,8 @@ class ListEventsTool(Tool):
     name = "list_events"
     description = (
         "Montre l'agenda Google : « qu'est-ce que j'ai aujourd'hui / demain / jeudi / cette "
-        "semaine ? ». Donne aussi l'identifiant des événements, nécessaire pour les déplacer "
-        "ou les supprimer."
+        "semaine ? ». Les événements sont numérotés : « déplace le 2 » ou « supprime le 1 » "
+        "font référence à cette liste."
     )
     parameters = {
         "period": {
@@ -38,8 +39,9 @@ class ListEventsTool(Tool):
         }
     }
 
-    def __init__(self, calendar: GoogleCalendar) -> None:
+    def __init__(self, calendar: GoogleCalendar, recent: RecentEvents) -> None:
         self.calendar = calendar
+        self.recent = recent
 
     def label(self, args: dict) -> str:
         return f"📅 Agenda : {args.get('period') or 'aujourd’hui'}"
@@ -58,7 +60,8 @@ class ListEventsTool(Tool):
         if not events:
             return ToolResult(f"Rien de prévu dans l'agenda ({span}).")
         several_days = first != last
-        lines = [f"- {event_line(e, several_days)} [id : {e.id}]" for e in events]
+        self.recent.remember(events)
+        lines = [f"[{i}] {event_line(e, several_days)}" for i, e in enumerate(events, 1)]
         items = [{"text": e.title, "meta": event_line(e, True).rsplit(" : ", 1)[0]} for e in events]
         return ToolResult(
             f"Agenda ({span}), affiché à l'écran :\n"
@@ -86,8 +89,9 @@ class AddEventTool(Tool):
     }
     required = ("title", "day")
 
-    def __init__(self, calendar: GoogleCalendar) -> None:
+    def __init__(self, calendar: GoogleCalendar, recent: RecentEvents) -> None:
         self.calendar = calendar
+        self.recent = recent
 
     def label(self, args: dict) -> str:
         return f"📅 Ajout : {args.get('title', '')}"
@@ -97,67 +101,98 @@ class AddEventTool(Tool):
         def add() -> ToolResult:
             start = at(day, time, datetime.now())
             event = self.calendar.add(title, start, duration_minutes, location, all_day=not time)
+            self.recent.remember([event])  # « supprime-le » juste après
             return ToolResult(f"Ajouté à l'agenda : {event_line(event, True)}.")
 
         return guarded(add)
 
 
-class MoveEventTool(Tool):
+EVENT_REF = {
+    "type": "string",
+    "description": "L'événement : son numéro dans la dernière liste, ou quelques mots de son "
+    "titre (« banque »), ou vide pour celui dont on vient de parler",
+}
+
+
+class _ChangeEventTool(Tool):
+    """Déplacer / supprimer : l'utilisateur confirme, et seul l'événement exact nommé dans la
+    question est touché. Introuvable : pas de question, run() explique pourquoi."""
+
+    needs_confirmation = True
+
+    def __init__(self, calendar: GoogleCalendar, recent: RecentEvents) -> None:
+        self.calendar = calendar
+        self.recent = recent
+        self._pending: tuple | None = None  # (référence, événement) confirmés
+
+    def _find(self, ref: str) -> Event:
+        return find_event(ref, self.recent, self.calendar, datetime.now().date())
+
+    def _prepare(self, args: dict) -> str | None:
+        try:
+            event = self._find(args.get("event", ""))
+        except Exception:
+            self._pending = None
+            return None
+        self._pending = (args.get("event", ""), event)
+        return self.question(event, args)
+
+    def confirmation(self, args: dict) -> str | None:
+        return self._prepare(args)
+
+    def _confirmed(self, ref: str) -> Event:
+        pending, self._pending = self._pending, None
+        if pending is None or pending[0] != ref:
+            self._find(ref)  # lève EventNotFound avec la raison
+            raise EventNotFound("rien n'a été confirmé pour cet événement")
+        return pending[1]
+
+    def question(self, event: Event, args: dict) -> str:
+        raise NotImplementedError
+
+
+class MoveEventTool(_ChangeEventTool):
     name = "move_event"
-    description = "Déplace un événement de l'agenda (id donné par list_events), durée conservée."
+    description = "Déplace un événement de l'agenda (durée conservée), après confirmation."
     parameters = {
-        "event_id": {"type": "string", "description": "Identifiant (voir list_events)"},
+        "event": EVENT_REF,
         "day": {"type": "string", "description": "Nouveau jour, tel que dit"},
         "time": {"type": "string", "description": "Nouvelle heure (14:00)"},
     }
-    required = ("event_id", "time")
-    needs_confirmation = True
-
-    def __init__(self, calendar: GoogleCalendar) -> None:
-        self.calendar = calendar
+    required = ("time",)
 
     def label(self, args: dict) -> str:
         return "📅 Déplacement d'un événement"
 
-    def confirmation(self, args: dict) -> str:
-        try:
-            event = self.calendar.get(args.get("event_id", ""))
-            new = at(args.get("day") or "", args.get("time"), datetime.now())
-        except Exception:
-            return "Je déplace cet événement ?"
+    def question(self, event: Event, args: dict) -> str:
+        new = at(args.get("day") or "", args.get("time"), datetime.now())
         return f"Je déplace « {event.title} » au {french_date(new)} à {new:%H:%M} ?"
 
-    def run(self, event_id: str, time: str, day: str = "") -> ToolResult:
+    def run(self, time: str, event: str = "", day: str = "") -> ToolResult:
         def move() -> ToolResult:
-            event = self.calendar.move(self.calendar.get(event_id), at(day, time, datetime.now()))
-            return ToolResult(f"Déplacé : {event_line(event, True)}.")
+            moved = self.calendar.move(self._confirmed(event), at(day, time, datetime.now()))
+            self.recent.remember([moved])
+            return ToolResult(f"Déplacé : {event_line(moved, True)}.")
 
         return guarded(move)
 
 
-class DeleteEventTool(Tool):
+class DeleteEventTool(_ChangeEventTool):
     name = "delete_event"
-    description = "Supprime un événement de l'agenda (id donné par list_events)."
-    parameters = {"event_id": {"type": "string", "description": "Identifiant (voir list_events)"}}
-    required = ("event_id",)
-    needs_confirmation = True
-
-    def __init__(self, calendar: GoogleCalendar) -> None:
-        self.calendar = calendar
+    description = "Supprime un événement de l'agenda, après confirmation."
+    parameters = {"event": EVENT_REF}
 
     def label(self, args: dict) -> str:
         return "📅 Suppression d'un événement"
 
-    def confirmation(self, args: dict) -> str:
-        try:
-            event = self.calendar.get(args.get("event_id", ""))
-        except Exception:
-            return "Je supprime cet événement de l'agenda ?"
+    def question(self, event: Event, args: dict) -> str:
         return f"Je supprime « {event.title} » ({event_line(event, True).rsplit(' : ', 1)[0]}) ?"
 
-    def run(self, event_id: str) -> ToolResult:
+    def run(self, event: str = "") -> ToolResult:
         def delete() -> ToolResult:
-            self.calendar.delete(event_id)
-            return ToolResult("Événement supprimé de l'agenda.")
+            target = self._confirmed(event)
+            self.calendar.delete(target.id)
+            self.recent.remember([])
+            return ToolResult(f"« {target.title} » supprimé de l'agenda.")
 
         return guarded(delete)

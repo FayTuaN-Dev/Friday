@@ -23,6 +23,9 @@ allergies, projets, objectifs, ou préférences sur la façon dont l'assistant d
 Ne retiens PAS :
 - les questions, demandes ponctuelles ou sujets de recherche (« quel temps fait-il », « parle-moi
   de Napoléon ») ;
+- les ordres donnés à l'assistant et leur suivi (« supprime le numéro 1 », « ajoute un
+  rendez-vous jeudi », « ouvre Spotify », « tu as réussi à le supprimer ? ») : ce sont des
+  actions, pas des faits sur l'utilisateur ;
 - les informations générales qui ne concernent pas l'utilisateur ;
 - ce que dit l'assistant ;
 - ce qui est déjà dans les souvenirs existants (même formulé autrement).

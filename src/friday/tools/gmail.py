@@ -8,7 +8,8 @@ GMAIL_URL = "https://mail.google.com/mail/u/0/#all/{id}"
 
 
 def mail_list(mails: list[Mail], title: str) -> ToolResult:
-    lines = [f"- [id : {m.id}] {m.date} — {m.sender_name} : « {m.subject} » — {m.snippet[:140]}"
+    lines = [f"- [id : {m.id}] {m.date}{' (non lu)' if m.unread else ''} — {m.sender_name} : "
+             f"« {m.subject} » — {m.snippet[:140]}"
              for m in mails]  # fmt: skip
     items = [{"text": m.subject, "meta": f"{m.sender_name} · {m.date}"} for m in mails]
     return ToolResult(
@@ -23,19 +24,30 @@ def mail_list(mails: list[Mail], title: str) -> ToolResult:
 
 class CheckMailTool(Tool):
     name = "check_mail"
-    description = "Mails non lus de la boîte de réception (« ai-je de nouveaux mails ? »)."
-    parameters: dict = {}
+    description = (
+        "Derniers mails reçus dans la boîte de réception : « mes 5 derniers mails », « ai-je "
+        "de nouveaux mails ? » (only_unread=true pour les non lus seulement)."
+    )
+    parameters = {
+        "count": {"type": "integer", "description": "Combien de mails (5 par défaut, 15 au plus)"},
+        "only_unread": {"type": "boolean", "description": "Seulement les non lus"},
+    }
 
     def __init__(self, gmail: Gmail) -> None:
         self.gmail = gmail
 
     def label(self, args: dict) -> str:
-        return "✉️ Mails non lus"
+        return "✉️ Mails non lus" if args.get("only_unread") else "✉️ Derniers mails"
 
-    def run(self) -> ToolResult:
+    def run(self, count: int | None = None, only_unread: bool = False) -> ToolResult:
         def check() -> ToolResult:
-            mails = self.gmail.unread()
-            return mail_list(mails, "Mails non lus") if mails else ToolResult("Aucun mail non lu.")
+            limit = max(1, min(int(count or 5), 15))
+            mails = self.gmail.latest(limit, only_unread)
+            if not mails:
+                return ToolResult(
+                    "Aucun mail non lu." if only_unread else "Boîte de réception vide."
+                )
+            return mail_list(mails, "Mails non lus" if only_unread else "Derniers mails reçus")
 
         return guarded(check)
 

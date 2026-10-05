@@ -34,7 +34,8 @@ WITH_TOOLS = """Tes outils :
   que j'ai demain ? »), c'est list_events, pas list_reminders (qui ne concerne que les rappels
   de Friday). Recopie jours et heures tels que dits. Pour déplacer ou supprimer, trouve
   d'abord l'événement avec list_events (son id).
-- check_mail, search_mail, read_mail, send_mail : Gmail. Pour répondre à un mail, send_mail
+- check_mail (derniers mails reçus, ou non lus), search_mail, read_mail, send_mail : Gmail.
+  Les mails ne sont jamais dans l'agenda. Pour répondre à un mail, send_mail
   avec reply_to_id. L'utilisateur confirme toujours avant l'envoi.
 - close_popups : fermer les fenêtres que tu as affichées (résultats, fichiers, météo…).
   Jamais close_app pour elles.

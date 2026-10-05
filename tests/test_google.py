@@ -5,9 +5,15 @@ import pytest
 
 from friday.google.calendar import GoogleCalendar, parse_event
 from friday.google.days import parse_day, parse_period
+from friday.google.event_ref import RecentEvents
 from friday.google.gmail import Gmail, extract_body, html_to_text
 from friday.tools.gmail import CheckMailTool, SendMailTool
-from friday.tools.google_calendar import AddEventTool, DeleteEventTool, ListEventsTool
+from friday.tools.google_calendar import (
+    AddEventTool,
+    DeleteEventTool,
+    ListEventsTool,
+    MoveEventTool,
+)
 
 TODAY = date(2026, 10, 6)  # un mardi
 
@@ -94,33 +100,76 @@ def test_parse_events():
 
 def test_list_events_tool():
     calendar, events = calendar_with([DENTIST, HOLIDAY])
-    result = ListEventsTool(calendar).run("cette semaine")
-    assert "14:00–15:00 : Dentiste (Bordeaux) [id : e1]" in result.text
+    result = ListEventsTool(calendar, RecentEvents()).run("cette semaine")
+    assert "[1] jeudi 8 octobre 2026, 14:00–15:00 : Dentiste (Bordeaux)" in result.text
     assert result.display.data["items"][0]["text"] == "Dentiste"
     assert events.log[0][1]["singleEvents"] is True
     empty, _ = calendar_with([])
-    assert "Rien de prévu" in ListEventsTool(empty).run("demain").text
-    assert "pas compris" in ListEventsTool(empty).run("un jour peut-être").text
+    assert "Rien de prévu" in ListEventsTool(empty, RecentEvents()).run("demain").text
+    assert "pas compris" in ListEventsTool(empty, RecentEvents()).run("un jour peut-être").text
 
 
 def test_add_event_timed_and_all_day():
     calendar, events = calendar_with([])
-    AddEventTool(calendar).run("Dentiste", "demain", "14h30", 30)
+    AddEventTool(calendar, RecentEvents()).run("Dentiste", "demain", "14h30", 30)
     body = events.log[-1][1]["body"]
     start = datetime.fromisoformat(body["start"]["dateTime"])
     end = datetime.fromisoformat(body["end"]["dateTime"])
     assert (start.hour, start.minute, end - start) == (14, 30, timedelta(minutes=30))
     assert start.date() == date.today() + timedelta(days=1)
-    AddEventTool(calendar).run("Anniversaire de Léa", "le 12 novembre")
+    AddEventTool(calendar, RecentEvents()).run("Anniversaire de Léa", "le 12 novembre")
     assert "date" in events.log[-1][1]["body"]["start"]  # sans heure : toute la journée
 
 
-def test_delete_event_asks_with_the_event_name():
+BANK = {"id": "e3", "summary": "Rendez-vous à la banque",
+        "start": {"dateTime": "2026-10-09T11:00:00+02:00"},
+        "end": {"dateTime": "2026-10-09T12:00:00+02:00"}}  # fmt: skip
+
+
+def deleted(events):
+    return [kw["eventId"] for name, kw in events.log if name == "delete"]
+
+
+def test_delete_by_number_from_the_last_list():
+    calendar, events = calendar_with([DENTIST, BANK])
+    recent = RecentEvents()
+    ListEventsTool(calendar, recent).run("cette semaine")
+    tool = DeleteEventTool(calendar, recent)
+    assert tool.needs_confirmation
+    assert "« Rendez-vous à la banque »" in tool.confirmation({"event": "2"})
+    assert "supprimé" in tool.run("2").text and deleted(events) == ["e3"]
+
+
+def test_delete_it_right_after_adding():
+    calendar, events = calendar_with([])
+    recent = RecentEvents()
+    AddEventTool(calendar, recent).run("Coiffeur", "samedi", "10:00")
+    tool = DeleteEventTool(calendar, recent)
+    assert "« Coiffeur »" in tool.confirmation({"event": ""})  # « supprime-le »
+    tool.run("")
+    assert deleted(events) == ["new"]
+
+
+def test_find_by_title_words_ambiguous_or_missing():
+    calendar, events = calendar_with([DENTIST, BANK, {**BANK, "id": "e4"}])
+    tool = DeleteEventTool(calendar, RecentEvents())
+    assert tool.confirmation({"event": "dentiste"}).startswith("Je supprime « Dentiste »")
+    tool.run("dentiste")
+    assert deleted(events) == ["e1"]
+    for ref in ("banque", "piscine", "1"):  # deux banques ; rien ; pas de liste récente
+        assert tool.confirmation({"event": ref}) is None  # pas de question inutile
+        assert "pas compris" in tool.run(ref).text
+    assert deleted(events) == ["e1"]  # rien d'autre n'a été supprimé
+
+
+def test_move_only_the_confirmed_event():
     calendar, events = calendar_with([DENTIST])
-    tool = DeleteEventTool(calendar)
-    assert tool.needs_confirmation and "« Dentiste »" in tool.confirmation({"event_id": "e1"})
-    tool.run("e1")
-    assert events.log[-1] == ("delete", {"calendarId": "primary", "eventId": "e1"})
+    tool = MoveEventTool(calendar, RecentEvents())
+    assert "« Dentiste »" in tool.confirmation({"event": "dentiste", "day": "vendredi",
+                                                 "time": "16:00"})  # fmt: skip
+    assert "Déplacé" in tool.run("16:00", "dentiste", "vendredi").text
+    assert "pas compris" in tool.run("17:00", "dentiste", "samedi").text  # sans confirmation
+    assert [name for name, _ in events.log].count("patch") == 1
 
 
 def b64(text: str) -> str:
@@ -142,7 +191,8 @@ class FakeMessages:
     def __init__(self):
         self.log = []
         self.store = {
-            "m1": {"id": "m1", "threadId": "t1", "snippet": "On se voit jeudi ?", "payload": {
+            "m1": {"id": "m1", "threadId": "t1", "snippet": "On se voit jeudi ?",
+                   "labelIds": ["INBOX", "UNREAD"], "payload": {
                 "headers": [{"name": "From", "value": "Julie Martin <julie@exemple.fr>"},
                             {"name": "Subject", "value": "Jeudi"},
                             {"name": "Date", "value": "Mon, 05 Oct 2026 18:00:00 +0200"},
@@ -168,8 +218,9 @@ def gmail_with():
 
 def test_check_mail_and_find_address():
     gmail, _ = gmail_with()
-    result = CheckMailTool(gmail).run()
-    assert "Julie Martin : « Jeudi »" in result.text and "05/10" in result.text
+    result = CheckMailTool(gmail).run(count=5)
+    assert "(non lu) — Julie Martin : « Jeudi »" in result.text and "05/10" in result.text
+    assert "Derniers mails reçus" in result.text
     assert gmail.find_address("julie") == "julie@exemple.fr"
 
 
