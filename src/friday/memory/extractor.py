@@ -23,6 +23,9 @@ allergies, projets, objectifs, ou préférences sur la façon dont l'assistant d
 Ne retiens PAS :
 - les questions, demandes ponctuelles ou sujets de recherche (« quel temps fait-il », « parle-moi
   de Napoléon ») ;
+- les ordres donnés à l'assistant et leur suivi (« supprime le numéro 1 », « ajoute un
+  rendez-vous jeudi », « ouvre Spotify », « tu as réussi à le supprimer ? ») : ce sont des
+  actions, pas des faits sur l'utilisateur ;
 - les informations générales qui ne concernent pas l'utilisateur ;
 - ce que dit l'assistant ;
 - ce qui est déjà dans les souvenirs existants (même formulé autrement).
@@ -36,6 +39,11 @@ S'il n'y a rien à retenir, renvoie une liste vide : c'est le cas le plus fréqu
 
 Souvenirs existants :
 {memories}
+
+Ce que l'assistant venait de dire (seulement pour comprendre la phrase, ne rien en retenir) :
+« {context} »
+Si la phrase répond à une question de l'assistant, comprends-la dans ce contexte : « le nom
+c'est Rollercoin » en réponse à « quels mails ? » parle de mails, pas du nom de l'utilisateur.
 
 Phrase de l'utilisateur :
 « {user_text} »"""
@@ -81,12 +89,16 @@ class FactExtractor:
         self.model = model
         self.num_ctx = num_ctx
 
-    def extract(self, user_text: str, known: list[Memory]) -> list[Fact]:
-        if len(user_text.split()) < MIN_WORDS:
+    def extract(self, user_text: str, known: list[Memory], context: str = "") -> list[Fact]:
+        answers_a_question = context.strip().endswith(
+            "?"
+        )  # « Bordeaux » après « où habitez-vous ? »
+        if len(user_text.split()) < MIN_WORDS and not answers_a_question:
             return []
         prompt = PROMPT.format(
             memories=format_memories(known) or "(aucun)",
             user_text=user_text.strip(),
+            context=(context or "(rien)").strip()[-600:],
         )
         response = self.client.chat(
             model=self.model,

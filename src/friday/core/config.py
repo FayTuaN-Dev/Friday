@@ -48,6 +48,7 @@ class Settings:
     files_access: bool
     vision_enabled: bool
     vision_model: str
+    google_enabled: bool
     agenda_enabled: bool
     memory_enabled: bool
     memory_auto: bool
@@ -111,6 +112,7 @@ def load_settings() -> Settings:
         files_access=_bool("FILES_ACCESS", True),
         vision_enabled=_bool("VISION_ENABLED", True),
         vision_model=os.getenv("VISION_MODEL", "qwen3-vl:4b-instruct"),
+        google_enabled=_bool("GOOGLE_ENABLED", True),
         agenda_enabled=_bool("AGENDA_ENABLED", True),
         memory_enabled=_bool("MEMORY_ENABLED", True),
         memory_auto=_bool("MEMORY_AUTO", True),

@@ -158,7 +158,7 @@ class Assistant:
             self.listener.on_notice("Nouvelle conversation")
         elif kind in ("text", "heard"):
             self.listener.on_user_message(str(payload), by_voice=kind == "heard")
-            self._respond(self.attachments.wrap(str(payload)))
+            self._respond(self.attachments.wrap(str(payload)), said=str(payload))
         elif kind == "done":  # une tâche de fond (Claude) est terminée
             self._announce(*payload)
         elif kind == "briefing" and (request := morning_request(self.components.briefing)):
@@ -170,7 +170,7 @@ class Assistant:
                 return
             if not self.confirm.route(text):
                 self.listener.on_user_message(text, by_voice=True)
-                self._respond(self.attachments.wrap(text))
+                self._respond(self.attachments.wrap(text), said=text)
 
     def _announce(self, task: str, result: ToolResult) -> None:
         """Une tâche de fond est finie : Friday l'annonce de lui-même (`result.text` le guide)."""
@@ -178,7 +178,10 @@ class Assistant:
             self.listener.on_display(result.display)
         self._respond(f"(Message automatique, pas de l'utilisateur.) {result.text}")
 
-    def _respond(self, text: str) -> None:
+    def _respond(self, text: str, said: str | None = None) -> None:
+        """`said` : ce que l'utilisateur a vraiment dit (None pour un message automatique) ;
+        c'est lui seul que la mémoire examine, avec la réplique précédente comme contexte."""
+        previous = self.reply_spoken
         self._interrupted.clear()
         self.set_state(AssistantState.THINKING)
         speaker = self.components.speaker if self.voice_on else None
@@ -190,8 +193,9 @@ class Assistant:
             interrupted = self._reply.run(stream)
             if not interrupted:
                 self.inputs.wake.open_follow_up()  # relance possible sans redire « Friday »
-            if self.components.keeper and "remember" not in self._reply.tools_used:
-                self.components.keeper.observe(text)  # mémorisation en arrière-plan
+            keeper = self.components.keeper
+            if keeper and said and "remember" not in self._reply.tools_used:
+                keeper.observe(said, previous)  # mémorisation en arrière-plan
         except BrainError:
             host = self.settings.ollama_host
             self.listener.on_notice(f"Impossible de joindre Ollama sur {host}. Est-il lancé ?")

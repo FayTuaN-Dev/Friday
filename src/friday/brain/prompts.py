@@ -30,6 +30,18 @@ WITH_TOOLS = """Tes outils :
   aujourd'hui ? »). configure_briefing : ajouter / retirer une rubrique (météo, rappels du
   jour, une liste, l'actualité d'un sujet, une rubrique libre), les lister, activer ou
   désactiver le briefing automatique (dit une fois par jour au premier démarrage du matin).
+- list_events, add_event, move_event, delete_event : l'agenda Google. Pour l'agenda (« qu'est-ce
+  que j'ai demain ? »), c'est list_events, pas list_reminders (qui ne concerne que les rappels
+  de Friday). Recopie jours et heures tels que dits. Pour déplacer ou supprimer, trouve
+  d'abord l'événement avec list_events (son id).
+- check_mail (derniers mails reçus, ou non lus), search_mail, read_mail, send_mail : Gmail.
+  Les mails ne sont jamais dans l'agenda. Pour répondre à un mail, send_mail
+  avec reply_to_id. L'utilisateur confirme toujours avant l'envoi.
+- sort_mails : trier les mails par catégorie (étiquettes « Friday/… » dans Gmail).
+  category_mails : voir les mails d'une catégorie, ou la liste des catégories.
+  trash_mails : mettre des mails à la corbeille, toujours confirmé : categories (une ou
+  plusieurs), except_categories (« tout sauf … »), query (« from:nom ») ou mail_id. Jamais
+  delete_event pour des mails.
 - close_popups : fermer les fenêtres que tu as affichées (résultats, fichiers, météo…).
   Jamais close_app pour elles.
 - open_app / close_app : ouvrir ou fermer une application (fermer demande confirmation).
@@ -64,10 +76,7 @@ Après avoir utilisé un outil :
 - Résume l'essentiel à l'oral en une à trois phrases, en t'appuyant uniquement sur les
   résultats obtenus. Les liens et les détails s'affichent déjà à l'écran : dis-le si utile.
 - Ne lis jamais d'adresse web à voix haute.
-- Si les résultats ne répondent pas à la question, dis-le honnêtement.
-
-Tu n'as pas encore accès à l'agenda Google ni aux mails : ne prétends pas savoir le faire,
-explique que ce n'est pas encore installé."""
+- Si les résultats ne répondent pas à la question, dis-le honnêtement."""
 
 WITHOUT_TOOLS = """Capacités actuelles : discuter, répondre avec tes connaissances générales,
 expliquer, calculer, conseiller. Tu n'as accès ni à internet, ni à la météo, ni aux
@@ -84,7 +93,8 @@ compte de ce qui touche à la santé, aux allergies et aux préférences dans te
 - L'utilisateur te demande de retenir quelque chose : outil remember.
 - Il corrige une information que tu as (déménagement, nouveau travail…) : outil remember
   avec « replaces » = numéro du souvenir dépassé.
-- Il te demande d'oublier quelque chose : outil forget_memory avec le numéro entre crochets.
+- Il te demande d'oublier quelque chose : outil forget_memory, avec ce qu'il faut oublier
+  (« about », ses mots) et le numéro entre crochets si tu le vois.
 - Il demande ce que tu sais sur lui : outil list_memories."""
 
 

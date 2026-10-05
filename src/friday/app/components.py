@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 import ollama
 
+from friday.app.extras import load_briefing, load_google
 from friday.app.memory_keeper import MemoryKeeper
 from friday.brain.llm import Brain
 from friday.core.config import DATA_DIR, MODELS_DIR, VOICES_DIR, Settings
@@ -27,6 +28,7 @@ class Components:
     keeper: MemoryKeeper | None = None  # mémorisation automatique
     agenda: object | None = None  # AgendaStore (rappels, notes)
     briefing: object | None = None  # Briefing (briefing du matin)
+    google: object | None = None  # GoogleAccount (agenda et mails)
 
 
 def load_components(
@@ -44,15 +46,18 @@ def load_components(
 
         DATA_DIR.mkdir(exist_ok=True)
         agenda = AgendaStore(DATA_DIR / "agenda.db")
-    briefing = load_briefing(settings, agenda)
+    google = load_google(settings)
+    briefing = load_briefing(settings, agenda, google)
     brain = Brain(
         settings,
         client=client,
-        toolbox=default_toolbox(settings, memory, on_background, agenda, briefing),
+        toolbox=default_toolbox(settings, memory, on_background, agenda, briefing, google),
         recall=(lambda question: format_memories(memory.relevant(question))) if memory else None,
     )
     brain.warmup()
-    components = Components(brain=brain, memory=memory, agenda=agenda, briefing=briefing)
+    components = Components(
+        brain=brain, memory=memory, agenda=agenda, briefing=briefing, google=google
+    )
 
     if memory and settings.memory_auto:
         from friday.memory.extractor import FactExtractor
@@ -104,37 +109,6 @@ def load_components(
     return components
 
 
-def load_briefing(settings: Settings, agenda):
-    """Briefing du matin : ses rubriques puisent dans la météo, l'agenda et l'actualité."""
-    from friday.briefing import Briefing, Sources
-
-    sources = Sources(agenda=agenda)
-    if settings.tools_enabled:
-        from ddgs import DDGS
-
-        from friday.tools.base import retry
-        from friday.tools.weather import WeatherTool
-
-        def weather(city: str) -> str | None:
-            city = city or settings.home_city
-            return WeatherTool(city).run().text if city else None  # sans ville : rien
-
-        def news(topic: str) -> list[str]:
-            region = settings.search_region
-            try:
-                hits = retry(lambda: DDGS().news(topic, region=region, timelimit="d",
-                                                 max_results=3))  # fmt: skip
-                return [f"{h['title']} ({h.get('source', '')})" for h in hits or []]
-            except Exception as error:  # service d'actualités saturé : recherche classique
-                log.info("Actualités indisponibles (%s), repli sur la recherche web", error)
-                hits = DDGS().text(f"actualité {topic}", region=region, timelimit="d",
-                                   max_results=3)  # fmt: skip
-                return [h["title"] for h in hits or []]
-
-        sources.weather, sources.news = weather, news
-    return Briefing(DATA_DIR / "briefing.json", sources, settings.home_city)
-
-
 def load_memory(settings: Settings, client: ollama.Client) -> MemoryService | None:
     if not settings.memory_enabled:
         return None
@@ -161,5 +135,8 @@ def describe(settings: Settings, components: Components, inputs: list[str]) -> s
     parts.append(f"Voix : {settings.tts_voice}" if components.speaker else "Voix : désactivée")
     if components.memory:
         parts.append(f"Mémoire : {components.memory.store.count()} souvenirs")
+    if components.google:
+        connected = components.google.connected
+        parts.append("Google : connecté" if connected else "Google : à autoriser (navigateur)")
     parts += inputs or ["Écoute : désactivée"]
     return " · ".join(parts)
