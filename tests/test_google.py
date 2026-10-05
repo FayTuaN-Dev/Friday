@@ -18,6 +18,11 @@ from friday.tools.google_calendar import (
 TODAY = date(2026, 10, 6)  # un mardi
 
 
+def local(*moment) -> str:
+    """Heure locale de la machine, au format Google (la CI tourne en UTC, pas à Paris)."""
+    return datetime(*moment).astimezone().isoformat()
+
+
 @pytest.mark.parametrize(
     ("said", "expected"),
     [
@@ -86,8 +91,8 @@ def calendar_with(items):
 
 
 DENTIST = {"id": "e1", "summary": "Dentiste", "location": "Bordeaux",
-           "start": {"dateTime": "2026-10-08T14:00:00+02:00"},
-           "end": {"dateTime": "2026-10-08T15:00:00+02:00"}}  # fmt: skip
+           "start": {"dateTime": local(2026, 10, 8, 14)},
+           "end": {"dateTime": local(2026, 10, 8, 15)}}  # fmt: skip
 HOLIDAY = {"id": "e2", "summary": "Férié", "start": {"date": "2026-11-11"},
            "end": {"date": "2026-11-12"}}  # fmt: skip
 
@@ -122,8 +127,8 @@ def test_add_event_timed_and_all_day():
 
 
 BANK = {"id": "e3", "summary": "Rendez-vous à la banque",
-        "start": {"dateTime": "2026-10-09T11:00:00+02:00"},
-        "end": {"dateTime": "2026-10-09T12:00:00+02:00"}}  # fmt: skip
+        "start": {"dateTime": local(2026, 10, 9, 11)},
+        "end": {"dateTime": local(2026, 10, 9, 12)}}  # fmt: skip
 
 
 def deleted(events):
