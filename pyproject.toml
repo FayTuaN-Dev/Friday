@@ -42,6 +42,10 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+# Consignes en prose pour le modèle : la première ligne de chaque bloc dépasse un peu
+"src/friday/brain/skills.py" = ["E501"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["tests"]
