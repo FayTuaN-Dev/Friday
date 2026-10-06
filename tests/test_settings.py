@@ -97,3 +97,25 @@ def test_briefing_page_edits_live(tmp_path):
     page.end.setValue(10)
     config = briefing.config
     assert [s.kind for s in config.sections] == ["meteo", "actualites"] and config.end_hour == 10
+
+
+def test_settings_can_be_reopened_after_closing(env, tmp_path):
+    from test_desktop import StubAssistant
+
+    from friday.ui.desktop.main_window import MainWindow
+
+    assistant = StubAssistant()
+    assistant.components = SimpleNamespace(briefing=None, google=None)
+    w = MainWindow(SETTINGS, assistant=assistant, preferences_path=tmp_path / "i.json")
+    w.open_settings()
+    first = w.settings_window
+    first.close()  # WA_DeleteOnClose : Qt la détruit
+    for _ in range(3):
+        app.processEvents()
+        from PySide6.QtCore import QCoreApplication, QEvent
+
+        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    assert w.settings_window is None
+    w.open_settings()  # ne plante plus
+    assert w.settings_window is not None and w.settings_window is not first
+    w.close()

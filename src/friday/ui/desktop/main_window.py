@@ -164,10 +164,15 @@ class MainWindow(QMainWindow):
             self.settings_window.activateWindow()
             return
         self.settings_window = SettingsWindow(self)
+        # Fermée, la fenêtre est détruite par Qt : on l'oublie (sinon, plantage à la réouverture).
+        self.settings_window.destroyed.connect(self._forget_settings)
         center = self.frameGeometry().center()
         self.settings_window.move(center.x() - self.settings_window.width() // 2,
                                   center.y() - self.settings_window.height() // 2)  # fmt: skip
         self.settings_window.show_animated()
+
+    def _forget_settings(self) -> None:
+        self.settings_window = None
 
     def restart(self) -> None:
         """Relance Friday (réglages du .env pris en compte) : nouveau processus, puis fermeture."""

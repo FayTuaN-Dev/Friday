@@ -109,3 +109,19 @@ def test_settings_page_retires_after_two_clicks(tmp_path):
     disabled = LibraryPage(None)
     texts = [label.text() for label in disabled.findChildren(type(page.status))]
     assert any("Bibliothèque désactivée" in t for t in texts)
+
+
+def test_indexing_survives_a_closed_settings_page(tmp_path):
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from PySide6.QtWidgets import QApplication
+
+    from friday.ui.desktop.settings.library_page import LibraryPage
+
+    QApplication.instance() or QApplication([])
+    library = make_library(tmp_path)
+    page = LibraryPage(library)
+    notify = page._notify
+    page.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    report = library.sync(notify)  # la page n'existe plus : l'indexation va au bout
+    assert sorted(report["added"]) == ["forex.md", "recettes.txt"]

@@ -55,7 +55,20 @@ class LibraryPage(QWidget):
         layout.addStretch()
         self._confirming: str | None = None
         self.changed.connect(self.refresh)
+        self.destroyed.connect(self._closed)
+        self._open = True
         self.refresh()
+
+    def _closed(self) -> None:
+        self._open = False
+
+    def _notify(self) -> None:
+        """Appelé par l'indexation (autre fil) : la page a pu être fermée entre-temps."""
+        if self._open:
+            try:
+                self.changed.emit()
+            except RuntimeError:  # détruite pendant l'appel : l'indexation continue
+                pass
 
     def refresh(self) -> None:
         while self.rows.count():
@@ -99,4 +112,4 @@ class LibraryPage(QWidget):
 
     def _sync(self) -> None:
         self.status.setText("Mise à jour…")
-        self.library.sync_in_background(self.changed.emit)
+        self.library.sync_in_background(self._notify)
