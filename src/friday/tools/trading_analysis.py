@@ -29,9 +29,12 @@ class TradingAnalysisTool(Tool):
     needs_confirmation = True  # TOUJOURS : rien ne part sans validation
 
     def __init__(
-        self, builder: ContextBuilder, job: ClaudeCodeJob, journal: TradeJournal, on_done: OnDone
-    ) -> None:
+        self, builder: ContextBuilder, job: ClaudeCodeJob, journal: TradeJournal, on_done: OnDone,
+        instrument_for=None,
+    ) -> None:  # fmt: skip
+        """`instrument_for(question)` : l'instrument dont parle la question (ou None)."""
         self.builder, self.job, self.journal, self.on_done = builder, job, journal, on_done
+        self.instrument_for = instrument_for or (lambda question: None)
         self._pending: Packet | None = None
 
     def label(self, args: dict) -> str:
@@ -44,6 +47,7 @@ class TradingAnalysisTool(Tool):
             question,
             with_journal=any(w in words for w in JOURNAL_WORDS),
             chart=mentions_chart(question),  # capture ciblée, seulement si la question en parle
+            instrument=self.instrument_for(question),
         )
         extracts = sum(1 for i in self._pending.items if i.kind == "extrait")
         image = ", la capture du graphique" if self._pending.images else ""
