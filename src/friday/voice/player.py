@@ -14,6 +14,8 @@ from collections import deque
 import numpy as np
 import sounddevice as sd
 
+from friday.voice.devices import resolve_device
+
 log = logging.getLogger(__name__)
 
 CHECK_EVERY = 0.25  # secondes entre deux vérifications pendant la lecture
@@ -32,7 +34,7 @@ class AudioPlayer:
         self._current: tuple[np.ndarray, threading.Event] | None = None
         self._position = 0
         self._lock = threading.Lock()
-        self._device, self._latency = device, latency
+        self._device, self._latency = resolve_device(device, "output"), latency
         self._last_callback = time.monotonic()
         self._stream = self._open()
         log.info(

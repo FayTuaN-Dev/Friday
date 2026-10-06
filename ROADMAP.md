@@ -49,7 +49,7 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 - [x] Couleur au choix (palettes ou couleur libre), toute l'interface s'accorde, mémorisée
 - [ ] Icône dans la zone de notification
 - [ ] Raccourci clavier global
-- [ ] Écran de réglages (voix, micro, modèles, activer/désactiver le briefing et ses rubriques)
+- [x] Écran de réglages (apparence, voix, écoute, briefing, fonctions, compte Google), écrit dans le .env
 
 ### 5. 🛠️ Outils
 **Information**

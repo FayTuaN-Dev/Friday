@@ -8,6 +8,7 @@ from collections.abc import Callable
 import numpy as np
 import sounddevice as sd
 
+from friday.voice.devices import resolve_device
 from friday.voice.recorder import WHISPER_RATE, resample
 from friday.voice.vad import SpeechSegmenter, StreamingVAD
 
@@ -26,8 +27,8 @@ class HandsFreeListener:
         self._transcribe = transcribe
         self._heard_log = heard_log
         self._on_heard = on_heard
-        self.device = device
-        self.sample_rate = int(sd.query_devices(device, kind="input")["default_samplerate"])
+        self.device = resolve_device(device, "input")  # un seul micro, même nom en triple
+        self.sample_rate = int(sd.query_devices(self.device, kind="input")["default_samplerate"])
         self.segmenter = SpeechSegmenter(StreamingVAD(), self._segments_put, silence_ms=silence_ms)
         self._segments: queue.Queue[tuple[np.ndarray, float] | None] = queue.Queue()
         self._paused = threading.Event()

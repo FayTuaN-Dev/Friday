@@ -94,3 +94,25 @@ def test_only_the_users_own_words_count():
     assert not needs_thinking(pasted)
     attached = "[Fichier joint : C:/comptes_2026.xlsx]\nCombien font 12 fois 15 ?"
     assert needs_thinking(attached)  # sa propre question, elle, est un calcul
+
+
+def test_generation_is_bounded_and_loops_are_reported_honestly():
+    import ollama
+    import pytest
+
+    from friday.brain.llm import MAX_TOKENS, MAX_TOKENS_THINKING, BrainError
+
+    client = FakeClient(rounds=[["ok"], ["ok"]])
+    brain = Brain(SETTINGS, client=client)
+    list(brain.reply("Bonjour"))
+    options = client.calls[-1]["options"]
+    assert options["num_predict"] == MAX_TOKENS
+    list(brain.reply("Combien font 12 fois 15 plus 3 ?"))
+    assert client.calls[-1]["options"]["num_predict"] == MAX_TOKENS_THINKING
+
+    error = ollama.ResponseError("prediction aborted, token repeat limit reached", 500)
+    looping = Brain(SETTINGS, client=FakeClient(error=error))
+    with pytest.raises(BrainError) as caught:
+        list(looping.reply("Approfondis le point 3"))
+    assert caught.value.looped
+    assert not BrainError("connection refused").looped

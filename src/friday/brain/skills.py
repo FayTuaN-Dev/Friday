@@ -20,9 +20,12 @@ class Skill:
 
 
 # Toujours présents : petits et utiles partout.
-CORE_TOOLS = ("close_popups", "remember", "forget_memory", "list_memories", "load_skill")
+CORE_TOOLS = (
+    "close_popups", "open_settings", "remember", "forget_memory", "list_memories", "load_skill",
+)  # fmt: skip
 CORE_GUIDE = """- close_popups : fermer les fenêtres que tu as affichées (résultats, fichiers, météo…).
-  Jamais close_app pour elles."""
+  Jamais close_app pour elles.
+- open_settings : ouvrir la fenêtre des réglages (« ouvre les réglages », « les paramètres »)."""
 
 SKILLS = (
     Skill("web", "internet : météo, recherche, actualité, pages web, images",

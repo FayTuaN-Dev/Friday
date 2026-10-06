@@ -7,7 +7,7 @@ FONT_HUD = "Segoe UI Light"
 
 
 def stylesheet(p: Palette) -> str:
-    return _window(p) + _chat(p) + _cards(p) + _popups(p)
+    return _window(p) + _chat(p) + _cards(p) + _popups(p) + _settings(p)
 
 
 def _window(p: Palette) -> str:
@@ -137,4 +137,39 @@ def _popups(p: Palette) -> str:
         border-radius: 13px;
     }}
     #PopupClose:hover {{ background: rgba(255, 93, 108, 60); }}
+    """
+
+
+def _settings(p: Palette) -> str:
+    return f"""
+    #SettingsNav {{
+        background: transparent; border: none; outline: none; font-size: 14px;
+    }}
+    #SettingsNav::item {{ padding: 9px 10px; border-radius: 12px; margin: 2px 0; }}
+    #SettingsNav::item:hover {{ background: {p.surface_hi}; }}
+    #SettingsNav::item:selected {{ background: {p.accent_soft}; color: {p.text}; }}
+    #SettingsPage, #SettingsPage QLabel {{ background: transparent; }}
+    #SettingsTitle {{
+        font-family: "{FONT_HUD}"; font-size: 20px; color: {p.accent}; padding: 2px 0 6px 0;
+    }}
+    #SettingsRow {{ background: {p.surface}; border-radius: 14px; }}
+    #SettingsLabel {{ font-size: 13px; }}
+    #SettingsPage QLineEdit, #SettingsPage QComboBox, #SettingsPage QSpinBox,
+    #SettingsPage QDoubleSpinBox {{
+        background: {p.bg}; border: 1px solid {p.accent_glow}; border-radius: 10px;
+        padding: 5px 10px; font-size: 13px; selection-background-color: {p.accent_soft};
+    }}
+    #SettingsPage QComboBox QAbstractItemView {{
+        background: {p.bg}; border: 1px solid {p.accent_soft};
+        selection-background-color: {p.accent_soft};
+    }}
+    #SettingsSmall, #SettingsPrimary, #SettingsSwatch {{
+        min-width: 0; max-width: 600px; min-height: 32px; max-height: 32px; padding: 0 16px;
+        border-radius: 16px; font-size: 13px; background: {p.surface_hi};
+    }}
+    #SettingsPrimary {{ background: {p.accent_soft}; color: {p.text}; font-weight: 600; }}
+    #SettingsPrimary:hover, #SettingsSmall:hover, #SettingsSwatch:hover {{
+        background: {p.accent_soft};
+    }}
+    #SettingsSwatch {{ text-align: left; padding-left: 12px; }}
     """

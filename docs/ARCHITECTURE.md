@@ -26,6 +26,8 @@ Le code est découpé en **couches**. Chaque couche ne connaît que celles du de
 src/friday/
 ├── __init__.py            point d'entrée : `friday` (fenêtre) ou `friday --cli` (terminal)
 ├── core/
+│   ├── env_file.py        lire / modifier le .env en gardant ses commentaires (écran de réglages)
+│   ├── settings_schema.py réglages de l'écran : clé, libellé, type, aide (une ligne = un réglage)
 │   ├── config.py          réglages lus dans .env (Settings) + chemins (data/, logs/)
 │   └── logging.py         logs console + logs/friday.log
 ├── brain/
@@ -140,6 +142,11 @@ src/friday/
         │   ├── palette.py     une couleur de base → toute la palette (fond, bulles, états…)
         │   ├── stylesheet.py  feuille de style Qt générée à partir de la palette
         │   └── __init__.py    current() / apply_theme() : changement de couleur à chaud
+        ├── settings/      écran de réglages
+        │   ├── window.py      SettingsWindow : menu, pages, Enregistrer / Redémarrer
+        │   ├── form_page.py   page construite depuis settings_schema (interrupteurs, listes…)
+        │   ├── briefing_page.py  briefing : activé, heures, rubriques (appliqué tout de suite)
+        │   └── other_pages.py Apparence (couleur) et Comptes (Google)
         ├── popups/
         │   ├── manager.py     PopupManager : ouvre les pop-ups à côté de la fenêtre (3 max)
         │   ├── base.py        Popup : fenêtre sans bordure arrondie, déplaçable, en fondu
@@ -157,6 +164,7 @@ src/friday/
             │   ├── scene.py       géométrie 3D (anneaux, rayons, circuits, particules), numpy
             │   ├── layers.py      couches de dessin en lumière additive
             │   └── orb.py         HoloOrb : animation, états, voix, couleur
+            ├── toggle.py      interrupteur arrondi aux couleurs du thème
             ├── frame.py       marge de redimensionnement de la fenêtre sans bordure
             ├── title_bar.py   barre de titre maison (couleur, réduire, agrandir, fermer)
             ├── color_menu.py  menu des couleurs (palettes + couleur libre)

@@ -209,9 +209,14 @@ class Assistant:
             keeper = self.components.keeper
             if keeper and said and "remember" not in self._reply.tools_used:
                 keeper.observe(said, previous)  # mémorisation en arrière-plan
-        except BrainError:
-            host = self.settings.ollama_host
-            self.listener.on_notice(f"Impossible de joindre Ollama sur {host}. Est-il lancé ?")
+        except BrainError as error:
+            if error.looped:  # le modèle s'est mis à se répéter : Ollama l'a arrêté
+                self.listener.on_notice(
+                    "Je me suis emmêlée dans ma réponse : pouvez-vous reformuler ?"
+                )
+            else:
+                host = self.settings.ollama_host
+                self.listener.on_notice(f"Impossible de joindre Ollama sur {host}. Est-il lancé ?")
         finally:
             stream.close()
             self.listener.on_reply_end(interrupted)

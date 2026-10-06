@@ -5,6 +5,23 @@ from friday.tools.base import Display, Tool, ToolResult
 CLOSE = "close"  # type de Display spécial : l'interface ferme des pop-ups au lieu d'en ouvrir
 
 
+class OpenSettingsTool(Tool):
+    name = "open_settings"
+    description = (
+        "Ouvre la fenêtre des réglages de Friday (voix, micro, couleur, briefing, fonctions, "
+        "compte Google) : « ouvre les réglages », « les paramètres »."
+    )
+    parameters: dict = {}
+
+    def label(self, args: dict) -> str:
+        return "⚙️ Réglages"
+
+    def run(self) -> ToolResult:
+        return ToolResult(
+            "Réglages ouverts. Dis-le en une phrase.", Display("settings", "Réglages")
+        )
+
+
 class ClosePopupsTool(Tool):
     name = "close_popups"
     description = (

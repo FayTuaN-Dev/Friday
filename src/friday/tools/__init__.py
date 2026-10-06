@@ -88,9 +88,9 @@ def default_toolbox(
         configure = ConfigureBriefingTool(briefing)
         tools += [MorningBriefingTool(briefing), configure, ShowBriefingSettingsTool(configure)]
     if tools:  # fermer les pop-ups ouverts par les autres outils
-        from friday.tools.popups import ClosePopupsTool
+        from friday.tools.popups import ClosePopupsTool, OpenSettingsTool
 
-        tools.append(ClosePopupsTool())
+        tools += [ClosePopupsTool(), OpenSettingsTool()]
     return ToolBox(tools)
 
 

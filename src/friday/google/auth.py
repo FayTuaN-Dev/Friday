@@ -81,6 +81,11 @@ class GoogleAccount:
         finally:
             self._connecting.release()
 
+    def disconnect(self) -> None:
+        """Oublie la clé : Friday n'a plus accès au compte (jusqu'à une nouvelle connexion)."""
+        self.token_path.unlink(missing_ok=True)
+        self._services.clear()
+
     def connect_in_background(self) -> None:
         def work() -> None:
             try:

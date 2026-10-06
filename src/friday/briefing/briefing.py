@@ -70,6 +70,12 @@ class Briefing:
 
     # --- Rubriques et activation (voix aujourd'hui, écran de réglages plus tard) ---
 
+    def set_hours(self, start: int, end: int) -> None:
+        """Plage du briefing automatique (heure de début incluse, de fin exclue)."""
+        start, end = max(0, min(start, 23)), max(1, min(end, 24))
+        end = max(end, start + 1)
+        self._update(lambda c: (setattr(c, "start_hour", start), setattr(c, "end_hour", end)))
+
     def set_enabled(self, enabled: bool) -> None:
         self._update(lambda c: setattr(c, "enabled", enabled))
 
