@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from friday.files.readers import SUPPORTED
+from friday.library.catalog import CATALOG
 
 FILTER = "Documents (" + " ".join(f"*{e}" for e in sorted(SUPPORTED)) + ")"
 
@@ -52,7 +53,8 @@ class LibraryPage(QWidget):
         catalog.clicked.connect(self._add_trading)
         trading.addWidget(catalog)
         trading.addWidget(QLabel(
-            "26 documents gratuits et légaux (Wikipédia, AMF, Banque de France, Fed, BRI). "
+            f"{len(CATALOG)} documents gratuits et légaux (Wikipédia, AMF, Banque de France, "
+            "Fed, BRI). "
             "Les livres s'achètent : voir docs/livres-trading.md.", objectName="Hint",
             wordWrap=True), 1)  # fmt: skip
         layout.addLayout(trading)

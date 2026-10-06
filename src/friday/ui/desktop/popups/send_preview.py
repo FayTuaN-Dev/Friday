@@ -23,12 +23,11 @@ KINDS = {
     "calendrier": "Calendrier", "actualites": "Actualités", "positionnement": "Positionnement",
     "seances": "Séances", "plan": "Plan",
 }  # fmt: skip
-SNIPPET = 360  # caractères d'un extrait affichés (le texte complet en info-bulle)
 
 
 class SendPreviewPopup(Popup):
     def __init__(self, display: Display) -> None:
-        super().__init__("🔒", display.title, (540, 640))
+        super().__init__("🔒", display.title, (620, 640))
         data = display.data
         self.packet, self.request, self._answer = data["packet"], data["request"], data["answer"]
         self.body.addWidget(QLabel(
@@ -52,6 +51,10 @@ class SendPreviewPopup(Popup):
         scroll = QScrollArea(widgetResizable=True)
         scroll.setWidget(content)
         self.body.addWidget(scroll, 1)
+        content.setFixedWidth(self.width() - 46)  # pour mesurer la hauteur du texte replié
+        self.fit_height(content)
+        content.setMinimumWidth(0)
+        content.setMaximumWidth(16777215)
 
         buttons = QHBoxLayout()
         buttons.addStretch()
@@ -87,9 +90,9 @@ class SendPreviewPopup(Popup):
             layout.addWidget(box)
             layout.addWidget(self._image(item.image))
             return card
-        text = item.text if len(item.text) <= SNIPPET else item.text[:SNIPPET] + "…"
-        label = QLabel(text, objectName="Snippet", wordWrap=True)
-        label.setToolTip(item.text)
+        # Le texte COMPLET : l'aperçu montre exactement ce qui partira
+        label = QLabel(item.text, objectName="Snippet", wordWrap=True)
+        label.setTextInteractionFlags(Qt.TextSelectableByMouse)
         layout.addWidget(box)
         layout.addWidget(label)
         return card

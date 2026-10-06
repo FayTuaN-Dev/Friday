@@ -53,7 +53,9 @@ CATALOG = (
         "Analyse technique", "Chandeliers japonais", "Figures chartistes", "Moyenne mobile",
         "Relative strength index", "MACD", "Bandes de Bollinger", "Théorie de Dow",
         "Théorie des vagues d'Elliott", "Effet de levier", "Contrat de différence", "Spread",
-        "Volatilité (finance)", "Finance comportementale",
+        "Volatilité (finance)", "Finance comportementale", "Valeur refuge", "Étalon-or",
+        "Prix du pétrole", "Organisation des pays exportateurs de pétrole", "Matière première",
+        "Inflation", "Taux directeur",
     )),
     Source("AMF - Forex attention danger (2023)", "pdf",
            "https://www.amf-france.org/sites/institutionnel/files/private/2023-12/"

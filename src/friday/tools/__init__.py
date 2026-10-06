@@ -86,7 +86,7 @@ def default_toolbox(
             LogTradeTool(trading.journal), CloseTradeTool(trading.journal),
             TradeStatsTool(trading.journal),
             TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background,
-                                trading.instrument_for),
+                                trading.instrument_for, trading.chart_shows),
         ]  # fmt: skip
     if library is not None:
         from friday.tools.library import ListLibraryTool, SearchLibraryTool, UpdateLibraryTool

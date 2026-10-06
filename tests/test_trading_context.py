@@ -42,6 +42,8 @@ def test_news_keeps_recent_headlines_about_the_instrument():
     assert [h.title for h in gold] == ["Gold rebounds as yields fall"]
     euro = news.relevant(items, by_symbol("EURUSD"), NOW)
     assert "EUR/USD steadies" in [h.title for h in euro]
+    peso = [Headline(NOW, "Mexican Peso gains as US yields fall", "against the US Dollar")]
+    assert news.relevant(peso, by_symbol("EURUSD"), NOW) == []  # « dollar » ne suffit pas
     assert "titres et résumés de tiers" in news.text(gold)
 
 
