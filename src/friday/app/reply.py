@@ -38,6 +38,7 @@ class Reply:
         self.interrupted = interrupted
         self._splitter = SentenceSplitter()
         self.spoken = ""  # tout ce qui a été envoyé à la voix
+        self.text = ""  # tout le texte de la réponse (pour le journal)
         self.tools_used: list[str] = []
 
     def run(self, events: Iterator[BrainEvent]) -> bool:
@@ -46,6 +47,7 @@ class Reply:
             if self.interrupted.is_set():
                 return True
             if isinstance(event, str):
+                self.text += event
                 self.listener.on_reply_chunk(event)
                 self._say(self._splitter.feed(event))
             elif isinstance(event, ThinkingStarted):  # 10 à 25 s de réflexion : on le dit

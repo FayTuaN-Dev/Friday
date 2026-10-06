@@ -7,6 +7,7 @@ Tout le travail lourd tourne dans un thread dédié, l'interface reste fluide.
 import logging
 import queue
 import threading
+import time
 from collections.abc import Callable
 from pathlib import Path
 
@@ -18,9 +19,10 @@ from friday.app.components import Components, describe, load_components
 from friday.app.confirmations import ConfirmationGate
 from friday.app.events import AssistantListener, AssistantState
 from friday.app.reply import Reply
+from friday.app.stall_watch import StallWatch
 from friday.app.voice_inputs import VoiceInputs
 from friday.brain.llm import BrainError
-from friday.core.config import Settings
+from friday.core.config import LOGS_DIR, Settings
 from friday.files.clipboard import read_clipboard
 from friday.tools.base import ToolResult
 
@@ -39,6 +41,7 @@ class Assistant:
         self.components: Components | None = None
         self.voice_on = settings.tts_enabled
         self._events: queue.Queue[tuple[str, object]] = queue.Queue()
+        self._waiting_since: float | None = None  # plus ancienne demande pas encore traitée
         self._interrupted = threading.Event()
         self._state: AssistantState | None = None
         self.inputs = VoiceInputs(settings, self)
@@ -48,6 +51,11 @@ class Assistant:
         self.attachments = Attachments(read_clipboard if settings.files_access else None)
 
     # --- API publique (appelable depuis n'importe quel thread) ---
+
+    def _queue_request(self, event: tuple[str, object]) -> None:
+        if self._waiting_since is None:
+            self._waiting_since = time.monotonic()
+        self._events.put(event)
 
     def start(self) -> None:
         threading.Thread(target=self._run, daemon=True, name="assistant").start()
@@ -59,12 +67,12 @@ class Assistant:
 
     def submit_text(self, text: str) -> None:
         if text.strip() and not self.confirm.route(text):
-            self._events.put(("text", text.strip()))
+            self._queue_request(("text", text.strip()))
 
     def submit_heard(self, text: str) -> None:
         """Demande entendue en mains libres (déjà transcrite)."""
         if not self.confirm.route(text):
-            self._events.put(("heard", text))
+            self._queue_request(("heard", text))
 
     def attach_file(self, path: Path) -> None:
         """Fichier glissé dans la fenêtre : joint à la prochaine demande."""
@@ -91,7 +99,7 @@ class Assistant:
 
     def submit_audio(self, audio) -> None:
         """Enregistrement du push-to-talk, à transcrire."""
-        self._events.put(("audio", audio))
+        self._queue_request(("audio", audio))
 
     def interrupt(self) -> None:
         """Coupe la parole et la génération en cours."""
@@ -139,9 +147,12 @@ class Assistant:
         self.listener.on_ready(describe(self.settings, self.components, inputs))
         self.set_state(AssistantState.IDLE)
         self._events.put(("briefing", None))  # briefing du matin, s'il est dû
+        StallWatch(lambda: self._waiting_since, LOGS_DIR)  # enquête si une demande reste bloquée
 
         while True:
             kind, payload = self._events.get()
+            if kind in ("text", "heard", "audio"):  # prise en charge : plus en attente
+                self._waiting_since = None if self._events.empty() else time.monotonic()
             if kind == "stop":
                 return
             try:
@@ -191,6 +202,7 @@ class Assistant:
         stream = self.components.brain.reply(text, self._interrupted.is_set)
         try:
             interrupted = self._reply.run(stream)
+            log.info("Réponse : %s", " ".join(self._reply.text.split())[:300])
             if not interrupted:
                 self.inputs.wake.open_follow_up()  # relance possible sans redire « Friday »
             keeper = self.components.keeper
