@@ -1,5 +1,6 @@
 """Outils : faire le briefing du matin sur demande, et le configurer à la voix."""
 
+from dataclasses import replace
 from datetime import datetime
 
 from friday.briefing import Briefing
@@ -90,11 +91,18 @@ class ConfigureBriefingTool(Tool):
         if action in ("enable", "disable"):
             self.briefing.set_enabled(action == "enable")
             state = "activé" if action == "enable" else "désactivé"
-            return ToolResult(f"Briefing automatique du matin {state}.")
+            return self._refreshed(f"Briefing automatique du matin {state}.")
         if action == "add":
-            return ToolResult(self.briefing.add(kind, value))
+            return self._refreshed(self.briefing.add(kind, value))
         if action == "remove":
-            return ToolResult(self.briefing.remove(kind, value))
+            return self._refreshed(self.briefing.remove(kind, value))
+        return self._listing()
+
+    def _refreshed(self, text: str) -> ToolResult:
+        """Le changement est fait ; la pop-up des rubriques, si elle est ouverte, suit."""
+        return ToolResult(text, replace(self._listing().display, refresh=True))
+
+    def _listing(self) -> ToolResult:
         config = self.briefing.config
         city_known = self.briefing.sources_city_known()
         items = [
@@ -109,5 +117,10 @@ class ConfigureBriefingTool(Tool):
         summary = ", ".join(i["text"] for i in items) or "aucune rubrique"
         return ToolResult(
             f"Briefing {state} (au premier démarrage {hours}). Rubriques : {summary}.",
-            Display("items", f"Briefing du matin ({state})", {"icon": "☀️", "items": items}),
+            Display(
+                "items",
+                f"Briefing du matin ({state})",
+                {"icon": "☀️", "items": items},
+                key="briefing",
+            ),  # fmt: skip
         )

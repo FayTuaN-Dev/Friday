@@ -14,6 +14,14 @@ def list_key(name: str | None) -> str:
     return " ".join(words) or DEFAULT_LIST
 
 
+def notes_display(store: AgendaStore, key: str | None, refresh: bool = False) -> Display:
+    """Pop-up d'une liste (ou de toutes) ; `refresh` : ne fait que mettre à jour celle ouverte."""
+    items = [{"text": n.text, "meta": f"n°{n.id} · {n.list}"} for n in store.notes(key)]
+    title = f"Liste : {key}" if key else "Toutes les notes"
+    return Display("items", title, {"icon": "📝", "items": items}, key=f"notes:{key or '*'}",
+                   refresh=refresh)  # fmt: skip
+
+
 class AddNoteTool(Tool):
     name = "add_note"
     description = (
@@ -34,7 +42,8 @@ class AddNoteTool(Tool):
 
     def run(self, text: str, list: str | None = None) -> ToolResult:  # noqa: A002
         note = self.store.add_note(list_key(list), text.strip())
-        return ToolResult(f"Ajouté à « {note.list} » (n°{note.id}) : {note.text}.")
+        return ToolResult(f"Ajouté à « {note.list} » (n°{note.id}) : {note.text}.",
+                          notes_display(self.store, note.list, refresh=True))  # fmt: skip
 
 
 class ListNotesTool(Tool):
@@ -57,12 +66,7 @@ class ListNotesTool(Tool):
                 f"La liste « {key or 'notes'} » est vide. Listes existantes : {known}."
             )
         lines = "\n".join(f"[{n.id}] ({n.list}) {n.text}" for n in notes)
-        items = [{"text": n.text, "meta": f"n°{n.id} · {n.list}"} for n in notes]
-        title = f"Liste : {key}" if key else "Toutes les notes"
-        return ToolResult(
-            f"Contenu (affiché à l'écran) :\n{lines}",
-            Display("items", title, {"icon": "📝", "items": items}),
-        )
+        return ToolResult(f"Contenu (affiché à l'écran) :\n{lines}", notes_display(self.store, key))
 
 
 class RemoveNoteTool(Tool):
@@ -84,4 +88,5 @@ class RemoveNoteTool(Tool):
         note = self.store.remove_note(int(note_id))
         if note is None:
             return ToolResult(f"Pas d'élément n°{note_id}.")
-        return ToolResult(f"Retiré de « {note.list} » : {note.text}.")
+        return ToolResult(f"Retiré de « {note.list} » : {note.text}.",
+                          notes_display(self.store, note.list, refresh=True))  # fmt: skip

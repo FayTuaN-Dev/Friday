@@ -134,3 +134,11 @@ def test_show_settings_displays_sections_without_doing_the_briefing(tmp_path):
     result = ShowBriefingSettingsTool(ConfigureBriefingTool(briefing)).run()
     assert "Météo du jour (Lyon)" in result.text and "Actualité : NVIDIA" in result.text
     assert result.display.kind == "items" and calls == []  # rien n'est récupéré ni dit
+
+
+def test_changes_refresh_the_open_sections_popup(tmp_path):
+    tool = ConfigureBriefingTool(make(tmp_path, [Section("meteo", "Lyon")]))
+    assert tool.run("list").display.key == "briefing"
+    added = tool.run("add", "mails")
+    assert added.display.refresh and "Mails non lus" in str(added.display.data)
+    assert tool.run("disable").display.refresh

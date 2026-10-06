@@ -44,14 +44,31 @@ class PopupManager:
         popup_class = POPUPS.get(display.kind)
         if popup_class is None:
             return None
+        if display.key:  # une liste déjà affichée : mise à jour sur place
+            current = next((p for p in self.popups if p.key == display.key), None)
+            if current is not None:
+                return self._replace(current, popup_class(display), display.key)
+        if display.refresh:  # rien d'ouvert à mettre à jour : on n'ouvre rien
+            return None
         while len(self.popups) >= MAX_OPEN:
             self.popups[0].close()  # le plus ancien laisse sa place
 
         popup = popup_class(display)
+        popup.key = display.key
         popup.closed.connect(self._forget)
         popup.move(self._position_for(popup, len(self.popups)))
         self.popups.append(popup)
         popup.show_animated()
+        return popup
+
+    def _replace(self, current: Popup, popup: Popup, key: str) -> Popup:
+        popup.key = key
+        popup.closed.connect(self._forget)
+        popup.setGeometry(current.geometry())  # même place, même taille : pas de saut
+        self.popups[self.popups.index(current)] = popup
+        current.close()
+        popup.setWindowOpacity(0.97)
+        popup.show()
         return popup
 
     def close_last(self) -> None:

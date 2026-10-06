@@ -7,6 +7,15 @@ from friday.agenda.store import AgendaStore
 from friday.agenda.times import describe, resolve
 from friday.tools.base import Display, Tool, ToolResult
 
+
+def reminders_display(store: AgendaStore, now: datetime, refresh: bool = False) -> Display:
+    """Pop-up des rappels ; `refresh` : ne fait que mettre à jour celle déjà ouverte."""
+    items = [{"text": r.text, "meta": f"n°{r.id} · {describe(r.due_at, now)}"}
+             for r in store.pending()]  # fmt: skip
+    return Display("items", "Rappels à venir", {"icon": "⏰", "items": items}, key="reminders",
+                   refresh=refresh)  # fmt: skip
+
+
 DAY_HELP = "aujourd'hui, demain, après-demain, ou un jour de la semaine (lundi…)"
 
 
@@ -70,7 +79,8 @@ class SetReminderTool(Tool):
         except ValueError as e:
             return ToolResult(f"Rappel non programmé : {e}. Demande une précision.")
         reminder = self.store.add_reminder(text, due)
-        return ToolResult(f"Rappel n°{reminder.id} programmé {describe(due, now)} : {text}.")
+        return ToolResult(f"Rappel n°{reminder.id} programmé {describe(due, now)} : {text}.",
+                          reminders_display(self.store, now, refresh=True))  # fmt: skip
 
 
 class ListRemindersTool(Tool):
@@ -89,11 +99,9 @@ class ListRemindersTool(Tool):
         if not pending:
             return ToolResult("Aucun rappel à venir.")
         lines = [f"[{r.id}] {describe(r.due_at, now)} : {r.text}" for r in pending]
-        items = [{"text": r.text, "meta": f"n°{r.id} · {describe(r.due_at, now)}"}
-                 for r in pending]  # fmt: skip
         return ToolResult(
             "Rappels à venir (affichés à l'écran) :\n" + "\n".join(lines),
-            Display("items", "Rappels à venir", {"icon": "⏰", "items": items}),
+            reminders_display(self.store, now),
         )
 
 
@@ -111,5 +119,6 @@ class CancelReminderTool(Tool):
 
     def run(self, reminder_id: int) -> ToolResult:
         if self.store.mark_done(int(reminder_id)):
-            return ToolResult(f"Rappel n°{reminder_id} annulé.")
+            refreshed = reminders_display(self.store, datetime.now(), refresh=True)
+            return ToolResult(f"Rappel n°{reminder_id} annulé.", refreshed)
         return ToolResult(f"Pas de rappel en attente n°{reminder_id}.")

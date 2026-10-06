@@ -36,6 +36,8 @@ class Display:
     kind: str  # "results", "article" ou "images"
     title: str
     data: dict[str, Any] = field(default_factory=dict)
+    key: str = ""  # identité d'une liste (« briefing », « notes:courses »…) : la même pop-up
+    refresh: bool = False  # True : seulement mettre à jour la pop-up ouverte, sans en ouvrir
 
 
 @dataclass
@@ -125,7 +127,9 @@ class ToolBox:
 
         def work() -> None:
             try:
-                kwargs = {k: v for k, v in args.items() if tool.parameters or k != REASON}
+                # Paramètres inconnus ignorés : le modèle en ajoute parfois (« reason » d'un autre
+                # outil…) et l'outil planterait.
+                kwargs = {k: v for k, v in args.items() if k in tool.parameters}
                 outcome.append(tool.run(**kwargs))
             except Exception as e:
                 log.exception("Échec de l'outil %s(%s)", name, args)
