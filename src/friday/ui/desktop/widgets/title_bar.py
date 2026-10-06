@@ -62,7 +62,11 @@ class TitleBar(QWidget):
 
     def set_trading(self, on: bool) -> None:
         """Le mode trading se voit : le titre l'annonce tant qu'il est actif."""
-        self.title.setText(f"{TITLE} · MODE TRADING" if on else TITLE)
+        # Espacement des lettres réduit en mode trading : le titre tient dans sa place.
+        self.title.setText(f"{TITLE} · TRADING" if on else TITLE)
+        self.title.setProperty("trading", on)
+        self.title.style().unpolish(self.title)
+        self.title.style().polish(self.title)
 
     def refresh(self, palette: Palette) -> None:
         self.color_button.setIcon(icon("palette", palette.accent, 16))

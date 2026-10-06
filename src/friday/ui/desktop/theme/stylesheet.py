@@ -22,6 +22,7 @@ def _window(p: Palette) -> str:
     #Title {{
         font-family: "{FONT_HUD}"; font-size: 15px; color: {p.accent}; letter-spacing: 7px;
     }}
+    #Title[trading="true"] {{ letter-spacing: 2px; }}
     #Status {{
         background: transparent; font-family: "{FONT_HUD}"; font-size: 13px;
         letter-spacing: 4px;

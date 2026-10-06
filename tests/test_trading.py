@@ -358,3 +358,20 @@ def test_preview_popup_lets_the_user_remove_items_and_decide(tmp_path):
     request.answer(False)  # « non » à la voix
     other._closed_elsewhere()
     assert not other.isVisible()
+
+
+def test_trading_title_fits(tmp_path):
+    from fakes import SETTINGS as settings
+    from PySide6.QtWidgets import QApplication
+    from test_desktop import StubAssistant
+
+    from friday.ui.desktop.main_window import MainWindow
+
+    QApplication.instance() or QApplication([])
+    w = MainWindow(settings, assistant=StubAssistant(), preferences_path=tmp_path / "i.json")
+    w.title_bar.set_trading(True)
+    assert w.title_bar.title.text().endswith("TRADING")
+    assert w.title_bar.title.property("trading") is True
+    w.title_bar.set_trading(False)
+    assert w.title_bar.title.text() == "F.R.I.D.A.Y."
+    w.close()
