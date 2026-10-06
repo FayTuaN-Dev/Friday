@@ -129,3 +129,5 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 | B | Comprendre ce qui m'entoure : presse-papier et lecture de fichiers, recherche dans les fichiers, voir l'écran | Friday voit ce que je vois | ✅ |
 | C | Briefing du matin, avec des rubriques choisies (en ajouter, en retirer) | « Bonjour Friday » | ✅ |
 | D | Agenda et mails Google | Friday gère mon planning | ✅ |
+| E | Longues conversations : carnet de recherche, résumé glissant, mémoire de travail doublée (16 k) | Friday tient une longue recherche | 🟡 |
+| F | Bibliothèque de documents (RAG local) | « Que dit mon livre sur… » | 🟡 |

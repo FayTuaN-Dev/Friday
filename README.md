@@ -11,6 +11,7 @@ l'IA de Tony Stark (le projet s'appelait d'abord Jarvis).
 - **Interface** : PySide6
 - **Mémoire** : se souvient de vous d'une session à l'autre (SQLite local + embeddings `embeddinggemma`)
 - **Outils** : météo (Open-Meteo), recherche web, lecture de pages et images, sans clé API, affichés en pop-ups
+- **Bibliothèque** : dépose tes PDF, livres, cours et notes dans `data/bibliotheque` (ou *Réglages → Bibliothèque → Ajouter*) : Friday les indexe en local. Quand un document parle clairement du sujet de ta question, elle y cherche **d'office** avant de répondre, sans qu'il faille dire « dans ma bibliothèque » ; pour l'actualité (« aujourd'hui », « en ce moment »…), c'est internet. Elle cite la source. Recherche par le sens et par les mots exacts (sigles, termes techniques) ; « rien de pertinent » plutôt qu'une réponse inventée. Retirer un document le déplace dans `_retires` (jamais effacé). Indexation sur le processeur (~0,2 s par passage, un livre de 300 pages ≈ 2–3 min, en arrière-plan).
 - **Longues recherches** : « approfondis le résultat 3 » plusieurs échanges plus tard (carnet de recherche), « garde ces points de côté » (notes), et les vieux échanges résumés automatiquement au lieu d'être oubliés
 
 Voir [ROADMAP.md](ROADMAP.md) pour les fonctionnalités et l'avancement, et

@@ -149,6 +149,17 @@ SKILLS = (
           ("briefing", "brief ", "brief du", "rubrique", "quoi de neuf", "bonjour friday",
            "surveilles le matin", "regardes le matin"),
           ("fais-moi mon briefing", "ajoute la météo à mon briefing", "désactive le briefing")),
+    Skill("library", "bibliothèque : PDF, livres et cours de l'utilisateur",
+          ("search_library", "list_library", "update_library"),
+          """- search_library : chercher dans la bibliothèque de l'utilisateur (ses PDF, livres,
+  cours). Prioritaire sur internet quand il parle de ses livres ou documents, ou d'un sujet
+  qu'il y a rangé. Réponds à partir des passages trouvés et cite la source (document, page).
+  Si rien n'est pertinent, dis-le, puis propose de chercher sur internet.
+- list_library : ce que contient la bibliothèque. update_library : la mettre à jour.""",
+          ("bibliotheque", "mes livres", "mon livre", "le livre", "mes documents", "mes pdf",
+           "mes cours", "mon cours", "selon mes", "dans mes notes de cours", "mes fiches"),
+          ("que dit mon livre sur la gestion du risque", "cherche dans ma bibliothèque",
+           "qu'y a-t-il dans mes documents sur le Forex", "d'après mes cours, c'est quoi un pip")),
     Skill("claude", "Claude Code : coder, créer ou modifier des fichiers, longues tâches",
           ("ask_claude_code", "cancel_claude_task"),
           """- ask_claude_code : confier une tâche de programmation ou de création de fichiers à Claude

@@ -90,5 +90,6 @@ SECTIONS = (
         Field("CLAUDE_ENABLED", "Délégation à Claude Code", "bool", "true"),
         Field("MEMORY_ENABLED", "Mémoire à long terme", "bool", "true"),
         Field("MEMORY_AUTO", "Mémorisation automatique", "bool", "true"),
+        Field("LIBRARY_ENABLED", "Bibliothèque de documents", "bool", "true"),
     )),
 )  # fmt: skip

@@ -12,6 +12,7 @@ def default_toolbox(
     briefing=None,
     google=None,
     research=None,
+    library=None,
 ) -> ToolBox:
     """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine.
     `research` : carnet de recherche (ResearchLog) partagé par la recherche et la lecture web."""
@@ -65,6 +66,10 @@ def default_toolbox(
         tools.append(LookAtScreenTool(reader, capture_screen))
         if claude is not None:  # secours, avec confirmation
             tools.append(AskClaudeAboutScreenTool(claude, capture_screen))
+    if library is not None:
+        from friday.tools.library import ListLibraryTool, SearchLibraryTool, UpdateLibraryTool
+
+        tools += [SearchLibraryTool(library), ListLibraryTool(library), UpdateLibraryTool(library)]
     if agenda is not None:
         from friday.tools.notes import AddNoteTool, ListNotesTool, RemoveNoteTool
         from friday.tools.reminders import (
