@@ -34,12 +34,12 @@ class SendPreviewPopup(Popup):
         column.setContentsMargins(0, 0, 4, 0)
         column.setSpacing(8)
         column.addWidget(self._card("Question", self.packet.question))
+        for note in self.packet.notes:
+            column.addWidget(QLabel(f"ℹ️ {note}", objectName="Hint", wordWrap=True))
         if self.packet.masked:
             kinds = ", ".join(sorted(set(self.packet.masked)))
             column.addWidget(QLabel(f"🛡️ Masqué automatiquement : {kinds}.", objectName="Hint",
                                     wordWrap=True))  # fmt: skip
-        for image in self.packet.images:
-            column.addWidget(self._image(image))
         self.boxes = []
         for item in self.packet.items:
             column.addWidget(self._item(item))
@@ -78,6 +78,10 @@ class SendPreviewPopup(Popup):
         box.setChecked(item.included)
         box.toggled.connect(lambda checked, i=item: setattr(i, "included", checked))
         self.boxes.append(box)
+        if item.image is not None:  # la capture : on voit exactement l'image qui part
+            layout.addWidget(box)
+            layout.addWidget(self._image(item.image))
+            return card
         text = item.text if len(item.text) <= SNIPPET else item.text[:SNIPPET] + "…"
         label = QLabel(text, objectName="Snippet", wordWrap=True)
         label.setToolTip(item.text)

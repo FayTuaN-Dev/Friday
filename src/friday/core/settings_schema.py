@@ -103,5 +103,8 @@ SECTIONS = (
               "Au-delà, les extraits les moins utiles ne partent pas.", 2000, 30000, 1000),
         Field("TRADING_BLOCKLIST", "Mots toujours masqués", "text", "",
               "Séparés par des virgules : votre nom, n° de client du courtier…"),
+        Field("TRADING_CAPTURE_WINDOW", "Fenêtre du graphique (titre)", "text", "TradingView",
+              "Seule cette fenêtre est capturée, quand la question parle du graphique. "
+              "« TradingView » reconnaît aussi un onglet au titre « EURUSD 1,1258 ▲ +0.36% »."),
     )),
 )  # fmt: skip

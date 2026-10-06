@@ -72,7 +72,10 @@ src/friday/
 │   ├── masking.py         masquage avant aperçu : montants, comptes, IBAN, e-mails, clés, chemins
 │   ├── context_builder.py paquet minimal (question + extraits plafonnés), balises neutralisées ;
 │   │                      `approved` ne passe à True que par la confirmation de l'utilisateur
-│   ├── analyst.py         Claude ISOLÉ : --restricted, --tools "", sans MCP ni session gardée
+│   ├── analyst.py         Claude ISOLÉ : --restricted, --tools "" (« Read » seulement avec une
+│   │                      capture, confiné à son dossier), sans MCP ni session gardée
+│   ├── capture.py         capture CIBLÉE : la seule fenêtre TradingView (PrintWindow : rien de ce
+│   │                      qui la recouvre), recadrée sur la zone de data/trading.json ; sinon rien
 │   ├── risk_calc.py       valeur du pip, taille de position, risque/rendement, R (déterministe)
 │   └── journal.py         data/trading.db : trades + trace de chaque envoi (empreinte des images)
 ├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
@@ -163,7 +166,7 @@ src/friday/
         │   ├── palette.py     une couleur de base → toute la palette (fond, bulles, états…)
         │   ├── stylesheet.py  feuille de style Qt générée à partir de la palette
         │   └── __init__.py    current() / apply_theme() : changement de couleur à chaud
-        ├── settings/      écran de réglages
+        ├── settings/      écran de réglages (zone_picker.py : tracer la zone du graphique)
         │   ├── window.py      SettingsWindow : menu, pages, Enregistrer / Redémarrer
         │   ├── form_page.py   page construite depuis settings_schema (interrupteurs, listes…)
         │   ├── briefing_page.py  briefing : activé, heures, rubriques (appliqué tout de suite)

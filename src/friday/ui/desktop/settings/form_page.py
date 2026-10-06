@@ -83,6 +83,11 @@ class FormPage(QWidget):
             layout.addWidget(self._row(field, control))
         layout.addStretch()
 
+    def add_extra(self, widget: QWidget) -> None:
+        """Une ligne propre à la page (ex. la zone du graphique), sous les réglages."""
+        layout = self.layout()
+        layout.insertWidget(layout.count() - 1, widget)
+
     def _row(self, field: Field, control: QWidget) -> QFrame:
         row = QFrame(objectName="SettingsRow")
         line = QHBoxLayout(row)

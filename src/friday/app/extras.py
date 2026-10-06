@@ -84,6 +84,7 @@ def load_trading(settings: Settings, library):
     try:
         from friday.trading import Trading
         from friday.trading.analyst import isolated_job
+        from friday.trading.capture import ChartCapture
         from friday.trading.context_builder import ContextBuilder
         from friday.trading.journal import TradeJournal
         from friday.trading.mode import TradingMode
@@ -91,11 +92,12 @@ def load_trading(settings: Settings, library):
         config = settings.trading
         DATA_DIR.mkdir(exist_ok=True)
         journal = TradeJournal(DATA_DIR / "trading.db")
+        capture = ChartCapture(config.capture_window, DATA_DIR / "trading.json")
         builder = ContextBuilder(library, journal, config.passages, config.max_chars,
-                                 config.blocklist)  # fmt: skip
+                                 config.blocklist, capture)  # fmt: skip
         job = isolated_job(DATA_DIR / "trading_claude", config.model or settings.claude_model,
                            settings.claude_timeout)  # fmt: skip
-        return Trading(TradingMode(), journal, builder, job, config.account_currency)
+        return Trading(TradingMode(), journal, builder, job, config.account_currency, capture)
     except Exception:
         log.exception("Mode trading indisponible, Friday continue sans")
         return None

@@ -31,6 +31,17 @@ LOCAL = (
 OTHER_SKILLS = {"pc", "mail", "calendar", "reminders", "files", "briefing", "claude"}
 
 
+# La question parle du graphique affiché : capture ciblée (et seulement alors).
+CHART = ("graphique", "graph", "chart", "bougie", "chandelier", "ce que je vois", "a l ecran",
+         "sur l ecran", "mon ecran", "regarde", "cette figure", "ce motif", "ce pattern",
+         "cette configuration", "la courbe", "ce setup", "mon setup")  # fmt: skip
+
+
+def mentions_chart(text: str) -> bool:
+    padded = f" {normalize(text)} "
+    return any(f" {word}" in padded for word in CHART)
+
+
 def _command_words(text: str) -> str:
     words = normalize(text)
     for prefix in PREFIXES:

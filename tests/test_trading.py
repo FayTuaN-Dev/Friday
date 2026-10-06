@@ -121,15 +121,19 @@ def test_journal_summary_is_sent_only_on_request_and_anonymous(tmp_path):
 
 
 class FakeJob:
-    def __init__(self):
-        self.task, self.sent = None, []
+    def __init__(self, workspace=None):
+        self.task, self.sent, self.options, self.files_seen = None, [], [], []
+        self.workspace = workspace
 
     @property
     def busy(self):
         return False
 
-    def run(self, content):
+    def run(self, content, options=None):
         self.sent.append(content)
+        self.options.append(options)
+        if self.workspace is not None:
+            self.files_seen.append(sorted(p.name for p in self.workspace.glob("*.png")))
         return {"ok": True, "result": "Analyse : idée à tester, risques élevés."}
 
 
@@ -375,3 +379,133 @@ def test_trading_title_fits(tmp_path):
     w.title_bar.set_trading(False)
     assert w.title_bar.title.text() == "F.R.I.D.A.Y."
     w.close()
+
+
+# --- capture ciblée du graphique (PR B) -------------------------------------------------------
+
+
+class FakeCapture:
+    title_part = "TradingView"
+
+    def __init__(self, image=b"\x89PNG-graphique", error=None):
+        self.image, self.error, self.calls = image, error, 0
+
+    def capture(self):
+        from friday.trading.capture import CaptureUnavailable
+
+        self.calls += 1
+        if self.error:
+            raise CaptureUnavailable(self.error)
+        return self.image
+
+
+def test_chart_is_captured_only_when_the_question_is_about_it():
+    from friday.trading.mode import mentions_chart
+
+    assert mentions_chart("Regarde mon graphique, c'est un double sommet ?")
+    assert mentions_chart("que penses-tu de ces bougies ?")
+    assert not mentions_chart("c'est quoi un pip ?")
+    capture = FakeCapture()
+    builder = ContextBuilder(StubLibrary([]), capture=capture)
+    assert not builder.build("c'est quoi un pip ?").images and capture.calls == 0
+    packet = builder.build("Regarde le graphique", chart=True)
+    assert packet.images == [b"\x89PNG-graphique"] and packet.items[0].kind == "capture"
+    assert "lis le fichier" not in packet.render()  # l'image n'est jamais dans le texte
+    assert "lis le fichier « g.png »" in packet.render("g.png")
+
+
+def test_missing_window_means_no_image_never_the_whole_screen():
+    builder = ContextBuilder(StubLibrary([]), capture=FakeCapture(error="Fenêtre introuvable."))
+    packet = builder.build("Regarde le graphique", chart=True)
+    assert packet.images == [] and "Fenêtre introuvable. Aucune image jointe." in packet.notes
+    assert "désactivée" in ContextBuilder(None).build("graphique", chart=True).notes[0]
+
+
+def make_chart_tool(tmp_path):
+    journal = TradeJournal(tmp_path / "t.db")
+    done = []
+    builder = ContextBuilder(StubLibrary([hit(1)]), journal, capture=FakeCapture())
+    job = FakeJob(tmp_path / "claude")
+    tool = TradingAnalysisTool(builder, job, journal, lambda task, r: done.append(r))
+    return tool, journal, done
+
+
+def test_capture_is_sent_with_read_only_then_deleted_and_hashed(tmp_path):
+    from friday.trading.analyst import ISOLATED, WITH_IMAGE
+
+    tool, journal, done = make_chart_tool(tmp_path)
+    question = "Regarde mon graphique : double sommet ?"
+    assert "capture du graphique" in tool.confirmation({"question": question})
+    tool.preview({}).approved = True
+    tool.run(question)
+    wait_for(done)
+    assert tool.job.options == [WITH_IMAGE]
+    assert WITH_IMAGE[WITH_IMAGE.index("--tools") + 1] == "Read" and "--restricted" in WITH_IMAGE
+    assert ISOLATED[ISOLATED.index("--tools") + 1] == ""  # sans capture : aucun outil
+    assert len(tool.job.files_seen[0]) == 1 and tool.job.files_seen[0][0] in tool.job.sent[0]
+    assert not list((tmp_path / "claude").glob("*.png"))  # supprimée après l'analyse
+    images = journal._db.execute("SELECT images FROM sent").fetchone()[0]
+    assert images == hashlib.sha256(b"\x89PNG-graphique").hexdigest()
+
+
+def test_unchecked_capture_does_not_leave(tmp_path):
+    tool, journal, done = make_chart_tool(tmp_path)
+    tool.confirmation({"question": "Regarde mon graphique"})
+    packet = tool.preview({})
+    next(i for i in packet.items if i.kind == "capture").included = False  # décochée
+    packet.approved = True
+    tool.run("Regarde mon graphique")
+    wait_for(done)
+    assert tool.job.options == [None] and tool.job.files_seen == [[]]
+    assert "capture" not in tool.job.sent[0].lower()
+
+
+def test_zone_is_saved_validated_and_cropped(tmp_path):
+    from PIL import Image
+
+    from friday.trading.capture import Zone, load_zone, save_zone, to_png
+
+    path = tmp_path / "trading.json"
+    assert load_zone(path) == Zone()  # rien de choisi : toute la fenêtre
+    save_zone(path, Zone(0.1, 0.2, 0.6, 0.9))
+    assert load_zone(path) == Zone(0.1, 0.2, 0.6, 0.9)
+    path.write_text('{"zone": {"left": 0.8, "top": 0, "right": 0.2, "bottom": 1}}', "utf-8")
+    assert load_zone(path) == Zone()  # zone invalide : toute la fenêtre
+    png = to_png(Image.new("RGB", (3200, 1000)), Zone(0, 0, 0.5, 0.5), max_width=1000)
+    from io import BytesIO
+
+    assert Image.open(BytesIO(png)).size == (1000, 312)
+
+
+def test_zone_picker_saves_the_traced_rectangle(tmp_path):
+    from PIL import Image
+    from PySide6.QtCore import QRect
+    from PySide6.QtWidgets import QApplication
+
+    from friday.trading.capture import load_zone
+    from friday.ui.desktop.settings.zone_picker import ChartZoneRow, ZonePicker
+
+    QApplication.instance() or QApplication([])
+    path = tmp_path / "trading.json"
+    picker = ZonePicker(Image.new("RGB", (800, 400)), path)
+    canvas = picker.canvas
+    canvas.band.setGeometry(QRect(0, 0, canvas.width() // 2, canvas.height()))
+    canvas.band.show()
+    picker._save()
+    zone = load_zone(path)
+    assert zone.left == 0 and zone.right == pytest.approx(0.5, abs=0.01) and zone.bottom == 1
+    assert "Mode trading désactivé" in ChartZoneRow(None).status.text()
+
+
+def test_tradingview_tab_is_recognized_by_its_ticker_title():
+    from friday.trading.capture import is_chart_title
+
+    assert is_chart_title("EURUSD 1,12585 ▲ +0.36% - Google Chrome", "TradingView")  # réel
+    assert is_chart_title("GBPJPY 191.234 ▼ −0.12% - Google Chrome", "TradingView")
+    assert is_chart_title("FX:EURUSD 1.0845 0.00% - Google Chrome", "TradingView")
+    assert is_chart_title("Graphiques TradingView", "TradingView")
+    assert not is_chart_title("IA personnelle locale - Claude - Google Chrome", "TradingView")
+    assert not is_chart_title("Rapport 2025 12 % - Word", "TradingView")
+    # titre réglé à la main : seulement ce morceau de titre
+    assert is_chart_title("MetaTrader 5 - Demo", "MetaTrader")
+    assert not is_chart_title("EURUSD 1,12585 ▲ +0.36% - Google Chrome", "MetaTrader")
