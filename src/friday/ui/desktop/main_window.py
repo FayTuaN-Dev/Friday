@@ -59,6 +59,7 @@ class MainWindow(QMainWindow):
         self.input = InputBar(settings.ptt_key)
         self.input.setEnabled(False)
         self.popups = PopupManager(self)
+        self.settings_window = None  # fenêtre des réglages (ouverte à la demande)
         self._build_layout()
 
         self._connect()
@@ -106,7 +107,7 @@ class MainWindow(QMainWindow):
         b.reply_end.connect(self.chat.end_reply)
         b.notice.connect(self.chat.add_notice)
         b.tool.connect(self.chat.add_tool)
-        b.display.connect(self.popups.show)
+        b.display.connect(self._on_display)
         b.confirmation.connect(
             lambda question: self.chat.add_confirmation(question).answered.connect(
                 self.assistant.answer_confirmation
@@ -122,6 +123,7 @@ class MainWindow(QMainWindow):
         self.input.voice_toggled.connect(lambda: self.input.set_voice(a.toggle_voice()))
         self.input.reset_clicked.connect(self._reset)
         self.title_bar.color_menu.color_chosen.connect(self.apply_color)
+        self.title_bar.settings_button.clicked.connect(self.open_settings)
 
     def apply_color(self, base: QColor, save: bool = True) -> None:
         """Change la couleur de toute l'interface, à chaud (pop-ups ouverts compris)."""
@@ -148,6 +150,36 @@ class MainWindow(QMainWindow):
         event.acceptProposedAction()
         self.input.edit.setFocus()
 
+    def _on_display(self, display) -> None:
+        if display.kind == "settings":  # « ouvre les réglages »
+            self.open_settings()
+        else:
+            self.popups.show(display)
+
+    def open_settings(self) -> None:
+        from friday.ui.desktop.settings.window import SettingsWindow
+
+        if self.settings_window is not None and self.settings_window.isVisible():
+            self.settings_window.raise_()
+            self.settings_window.activateWindow()
+            return
+        self.settings_window = SettingsWindow(self)
+        center = self.frameGeometry().center()
+        self.settings_window.move(center.x() - self.settings_window.width() // 2,
+                                  center.y() - self.settings_window.height() // 2)  # fmt: skip
+        self.settings_window.show_animated()
+
+    def restart(self) -> None:
+        """Relance Friday (réglages du .env pris en compte) : nouveau processus, puis fermeture."""
+        import sys
+
+        from PySide6.QtCore import QProcess
+
+        from friday.core.config import ROOT_DIR
+
+        QProcess.startDetached(sys.executable, ["-m", "friday", *sys.argv[1:]], str(ROOT_DIR))
+        self.close()
+
     def on_ready(self, info: str) -> None:
         self.info.setText(info)
         self.input.setEnabled(True)
@@ -172,5 +204,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         self.popups.close_all()
+        if self.settings_window is not None:
+            self.settings_window.close()
         self.assistant.shutdown()
         super().closeEvent(event)

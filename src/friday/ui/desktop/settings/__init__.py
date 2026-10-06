@@ -1,0 +1,1 @@
+"""Écran de réglages."""

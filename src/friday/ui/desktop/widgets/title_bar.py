@@ -20,6 +20,7 @@ class TitleBar(QWidget):
         row.setSpacing(2)
 
         self.color_button = self._button("Couleur de Friday", "TitleButton")
+        self.settings_button = self._button("Réglages", "TitleButton")
         self.color_menu = ColorMenu(base, self)
         self.color_button.clicked.connect(self._open_color_menu)
         self.minimize = self._button("Réduire", "TitleButton", window.showMinimized)
@@ -32,6 +33,7 @@ class TitleBar(QWidget):
         left_row = QHBoxLayout(left)
         left_row.setContentsMargins(0, 0, 0, 0)
         left_row.addWidget(self.color_button)
+        left_row.addWidget(self.settings_button)
         left_row.addStretch()
         right = QWidget()
         right_row = QHBoxLayout(right)
@@ -57,6 +59,7 @@ class TitleBar(QWidget):
 
     def refresh(self, palette: Palette) -> None:
         self.color_button.setIcon(icon("palette", palette.accent, 16))
+        self.settings_button.setIcon(icon("settings", palette.accent, 16))
         self.minimize.setIcon(icon("minimize", palette.muted, 15))
         self.maximize.setIcon(icon("maximize", palette.muted, 15))
         self.close_button.setIcon(icon("close", palette.muted, 15))
