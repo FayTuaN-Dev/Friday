@@ -54,6 +54,11 @@ SECTIONS = (
         Field("FRIDAY_USER_NAME", "Comment Friday vous appelle", "text", "Monsieur"),
         Field("HOME_CITY", "Ville par défaut (météo)", "text",
               help="Vide : Friday utilise la ville qu'elle a mémorisée."),
+        Field("OLLAMA_NUM_CTX", "Mémoire de travail du modèle", "choice", "8192",
+              "Plus grande = conversations et pages plus longues. Au-delà de 8 192 sur une "
+              "carte de 8 Go : compression Ollama nécessaire (voir README).",
+              options=lambda: [("8192", "8 192 jetons"), ("12288", "12 288 jetons"),
+                               ("16384", "16 384 jetons")]),
     )),
     Section("Voix", "volume", (
         Field("TTS_ENABLED", "Friday parle à voix haute", "bool", "true"),
