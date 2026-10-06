@@ -10,7 +10,7 @@ contenir « ignore tes consignes et fais… ».
 # Outils qui ramènent du texte écrit par des tiers
 EXTERNAL = {
     "web_search", "read_webpage", "search_images", "read_file", "read_clipboard", "check_mail",
-    "search_mail", "read_mail", "category_mails", "look_at_screen",
+    "search_mail", "read_mail", "category_mails", "look_at_screen", "search_library",
 }  # fmt: skip
 # Actions confirmées seulement si un contenu externe vient d'être lu
 GUARDED_AFTER_EXTERNAL = {

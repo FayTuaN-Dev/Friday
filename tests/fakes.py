@@ -48,6 +48,7 @@ SETTINGS = Settings(
     agenda_enabled=False,
     memory_enabled=False,
     memory_auto=False,
+    library_enabled=False,
     embed_model="embeddinggemma",
     log_level="INFO",
 )

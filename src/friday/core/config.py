@@ -52,6 +52,7 @@ class Settings:
     agenda_enabled: bool
     memory_enabled: bool
     memory_auto: bool
+    library_enabled: bool
     embed_model: str
     log_level: str
     interface_color: str = "Or"  # couleur de base de l'interface (palette ou #rrggbb)
@@ -116,6 +117,7 @@ def load_settings() -> Settings:
         agenda_enabled=_bool("AGENDA_ENABLED", True),
         memory_enabled=_bool("MEMORY_ENABLED", True),
         memory_auto=_bool("MEMORY_AUTO", True),
+        library_enabled=_bool("LIBRARY_ENABLED", True),
         embed_model=os.getenv("EMBED_MODEL", "embeddinggemma"),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         interface_color=os.getenv("FRIDAY_COLOR", "Or"),

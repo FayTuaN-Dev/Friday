@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import numpy as np
 import ollama
 
-from friday.app.extras import load_briefing, load_google
+from friday.app.extras import load_briefing, load_google, load_library
 from friday.app.gpu_check import warn_if_spilling
 from friday.app.memory_keeper import MemoryKeeper
 from friday.brain.llm import Brain
@@ -31,6 +31,7 @@ class Components:
     agenda: object | None = None  # AgendaStore (rappels, notes)
     briefing: object | None = None  # Briefing (briefing du matin)
     google: object | None = None  # GoogleAccount (agenda et mails)
+    library: object | None = None  # Library (bibliothèque de documents)
 
 
 def load_components(
@@ -51,6 +52,7 @@ def load_components(
     google = load_google(settings)
     briefing = load_briefing(settings, agenda, google)
     research = ResearchLog()
+    library = load_library(settings, memory)
     contexts = {"web": research.summary}
     if briefing:
         contexts["briefing"] = briefing.summary
@@ -58,7 +60,7 @@ def load_components(
         settings,
         client=client,
         toolbox=default_toolbox(
-            settings, memory, on_background, agenda, briefing, google, research
+            settings, memory, on_background, agenda, briefing, google, research, library
         ),
         recall=(lambda question: format_memories(memory.relevant(question))) if memory else None,
         router=load_router(memory),
@@ -67,7 +69,12 @@ def load_components(
     brain.warmup()
     warn_if_spilling(client, settings.ollama_model, settings.ollama_num_ctx)
     components = Components(
-        brain=brain, memory=memory, agenda=agenda, briefing=briefing, google=google
+        brain=brain,
+        memory=memory,
+        agenda=agenda,
+        briefing=briefing,
+        google=google,
+        library=library,
     )
 
     if memory and settings.memory_auto:

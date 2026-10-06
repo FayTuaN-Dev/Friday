@@ -67,6 +67,10 @@ src/friday/
 │   ├── store.py           AgendaStore : rappels et listes dans SQLite
 │   ├── times.py           calcul des dates (« 18:00 » + « demain » → date exacte)
 │   └── scheduler.py       ReminderScheduler : déclenche à l'heure, rattrape les manqués
+├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
+│   ├── chunker.py         découpe en passages (~900 caractères, chevauchement, n° de page)
+│   ├── store.py           SQLite : documents, passages, vecteurs + index plein texte FTS5
+│   └── library.py         Library : synchronise le dossier, recherche hybride (sens + mots, RRF)
 ├── files/                 fichiers et presse-papier (sans dépendre des outils)
 │   ├── readers.py         read_document : texte d'un PDF (pypdf), Word (python-docx), texte
 │   ├── clipboard.py       presse-papier Windows (ctypes) : texte ou fichiers copiés
@@ -110,6 +114,7 @@ src/friday/
 │   ├── base.py            Tool, ToolBox, ToolResult, Display (contenu à afficher), retry()
 │   ├── web_search.py      recherche internet (DuckDuckGo)
 │   ├── web_page.py        lecture d'une page (trafilatura) : adresse ou numéro d'un résultat
+│   ├── library.py         search_library, list_library, update_library
 │   ├── research.py        carnet de recherche : derniers résultats et pages lues, avec leurs adresses
 │   ├── images.py          recherche et téléchargement d'images
 │   ├── files.py           read_file (par parties) / read_clipboard / copy_to_clipboard

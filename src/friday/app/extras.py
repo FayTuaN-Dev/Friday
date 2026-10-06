@@ -56,3 +56,22 @@ def load_briefing(settings: Settings, agenda, google=None):
 
         sources.weather, sources.news = weather, news
     return Briefing(DATA_DIR / "briefing.json", sources, settings.home_city)
+
+
+def load_library(settings: Settings, memory):
+    """Bibliothèque de documents (data/bibliotheque), indexée en arrière-plan au démarrage.
+    Elle utilise le modèle d'embeddings de la mémoire : sans mémoire, pas de bibliothèque."""
+    if not settings.library_enabled or memory is None:
+        return None
+    try:
+        from friday.library.library import Library
+        from friday.library.store import LibraryStore
+
+        library = Library(
+            DATA_DIR / "bibliotheque", LibraryStore(DATA_DIR / "library.db"), memory.embedder
+        )
+        library.sync_in_background()
+        return library
+    except Exception:
+        log.exception("Bibliothèque indisponible, Friday continue sans")
+        return None

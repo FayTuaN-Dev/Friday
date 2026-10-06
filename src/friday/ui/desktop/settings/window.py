@@ -20,6 +20,7 @@ from friday.ui.desktop.icons import icon
 from friday.ui.desktop.popups.base import Popup
 from friday.ui.desktop.settings.briefing_page import BriefingPage
 from friday.ui.desktop.settings.form_page import FormPage
+from friday.ui.desktop.settings.library_page import LibraryPage
 from friday.ui.desktop.settings.other_pages import AccountsPage, AppearancePage
 
 SIZE = (840, 620)
@@ -41,6 +42,7 @@ class SettingsWindow(Popup):
             ("Voix", "volume", by_name["Voix"]),
             ("Écoute", "mic", by_name["Écoute"]),
             ("Briefing", "sun", BriefingPage(getattr(components, "briefing", None))),
+            ("Bibliothèque", "book", LibraryPage(getattr(components, "library", None))),
             ("Fonctions", "sliders", by_name["Fonctions"]),
             ("Comptes", "cloud", AccountsPage(getattr(components, "google", None))),
         ]
