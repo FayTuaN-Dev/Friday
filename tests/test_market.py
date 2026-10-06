@@ -96,7 +96,9 @@ def test_snapshot_text_is_compact_and_complete():
 
 def test_market_block_joins_the_packet_or_says_why_not():
     instrument = by_symbol("XAUUSD")
-    builder = ContextBuilder(market=lambda i: SimpleNamespace(text=lambda: f"Cours de {i.name}"))
+    builder = ContextBuilder(
+        market=lambda i: SimpleNamespace(text=lambda chart=None: f"Cours de {i.name}")
+    )
     packet = builder.build("Que penses-tu de l'or ?", instrument=instrument)
     assert packet.items[0].kind == "marche" and "Cours de l'or" in packet.render()
 
@@ -129,3 +131,23 @@ def test_quote_tool_reads_the_source(monkeypatch):
     assert "Cours de référence BCE du 2026-10-06 : 1.1269" in markets.MarketQuoteTool().run(
         "EUR/USD").text  # fmt: skip
     assert "inconnu" in markets.MarketQuoteTool().run("???").text
+
+
+def test_levels_follow_the_price_shown_on_the_users_chart():
+    from friday.trading.instruments import chart_price, parse_price
+
+    assert [parse_price(x) for x in ("4 163,210", "1,12585", "4,163.21", "98 765,4")] == [
+        4163.21, 1.12585, 4163.21, 98765.4]  # fmt: skip
+    gold = by_symbol("XAUUSD")
+    assert chart_price("XAUUSD 4 163,210 ▼ −0.02% - Google Chrome", gold) == 4163.21
+    assert chart_price("EURUSD 1,12585 ▲ +0.36% - Google Chrome", gold) is None  # autre graphique
+    daily = candles([4100 + i for i in range(250)], hours=24)
+    snap = Snapshot(gold, Quote(4190.0, 4180.0, "USD", datetime.now(UTC)), candles([4190] * 30),
+                    daily)  # fmt: skip
+    text = snap.text(chart=4162.0)
+    assert "Cours affiché sur le graphique TradingView de l'utilisateur : 4162.00" in text
+    assert "Écart contrat à terme / comptant : +28.00" in text
+    assert "Dernier cours : 4162.00" in text  # recalé
+    euro = Snapshot(by_symbol("EURUSD"), Quote(1.1264, 1.12, "USD", datetime.now(UTC)),
+                    candles([1.12] * 30), candles([1.12] * 30, hours=24))  # fmt: skip
+    assert "Écart" not in euro.text(chart=1.1263)  # forex : même cours, pas de recalage

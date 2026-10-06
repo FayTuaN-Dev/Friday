@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
-from friday.trading import calendar, cot, news, sessions
+from friday.trading import calendar, cot, news, related, sessions
 from friday.trading.cache import age_note
 from friday.trading.calendar import SourceUnavailable
 from friday.trading.instruments import Instrument
@@ -42,14 +42,14 @@ class ContextSources:
     def __init__(
         self, plan_path: Path | None = None, cache_dir: Path | None = None, events=None,
         headlines=news.fetch_headlines, cot_rows=None,
-        now: Callable[[], datetime] = lambda: datetime.now(UTC),
+        now: Callable[[], datetime] = lambda: datetime.now(UTC), quote=related.yahoo_quote,
     ) -> None:  # fmt: skip
         """`events`, `cot_rows` : () → données, ou (données, âge d'une vieille copie)."""
         self.plan_path = plan_path
         cache = (lambda name: cache_dir / name) if cache_dir else (lambda name: None)
         self.events = events or (lambda: calendar.load(cache("ff_calendar.json")))
         self.cot_rows = cot_rows or (lambda: cot.load(cache("cot.txt")))
-        self.headlines, self.now = headlines, now
+        self.headlines, self.now, self.quote = headlines, now, quote
         self._notes: list[str] = []
 
     def blocks(self, instrument: Instrument) -> tuple[list[Block], list[str]]:
@@ -64,6 +64,8 @@ class ContextSources:
             ("actualites", "actualités (FXStreet)",
              lambda: news.text(news.relevant(self.headlines(), instrument, now))),
             ("positionnement", "positionnement COT (CFTC)", lambda: self._cot(instrument)),
+            ("marches_lies", "marchés liés : dollar, taux, volatilité (Yahoo Finance)",
+             lambda: related.text(instrument, self.quote)),
         )  # fmt: skip
         for kind, source, make in steps:
             try:

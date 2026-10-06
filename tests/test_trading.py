@@ -545,3 +545,44 @@ def test_tradingview_tab_is_recognized_by_its_ticker_title():
     # titre réglé à la main : seulement ce morceau de titre
     assert is_chart_title("MetaTrader 5 - Demo", "MetaTrader")
     assert not is_chart_title("EURUSD 1,12585 ▲ +0.36% - Google Chrome", "MetaTrader")
+
+
+def test_chart_is_joined_when_tradingview_shows_the_instrument(tmp_path):
+    from types import SimpleNamespace
+
+    from friday.trading.instruments import by_symbol
+
+    chart = SimpleNamespace(window_title=lambda: "XAUUSD 4 192,9 ▲ +0.87% - Google Chrome")
+    trading = Trading(TradingMode(), None, None, None, capture=chart)
+    assert trading.chart_shows(by_symbol("XAUUSD")) and not trading.chart_shows(by_symbol("EURUSD"))
+    journal = TradeJournal(tmp_path / "t.db")
+    builder = ContextBuilder(StubLibrary([]), journal, capture=FakeCapture())
+    tool = TradingAnalysisTool(builder, FakeJob(), journal, lambda t, r: None,
+                               trading.instrument_for, trading.chart_shows)  # fmt: skip
+    assert "capture du graphique" in tool.confirmation({"question": "Que penses-tu de l'or ?"})
+    tool.confirmation({"question": "Et l'EUR/USD ?"})  # pas affiché : pas de capture, et on le dit
+    packet = tool.preview({})
+    assert not packet.images and "TradingView n'affiche pas EUR/USD" in packet.notes[0]
+
+
+def test_preview_shows_full_text_fits_its_content_and_can_be_resized(tmp_path):
+    from PySide6.QtWidgets import QApplication, QLabel, QSizeGrip
+
+    from friday.tools.base import Display
+    from friday.ui.desktop.popups.send_preview import SendPreviewPopup
+
+    QApplication.instance() or QApplication([])
+    long_text = "Passage très long. " * 120
+    small, _, _ = make_tool(tmp_path, [hit(1, "Court.")])
+    (tmp_path / "b").mkdir()
+    big, _, _ = make_tool(tmp_path / "b", [hit(i, long_text) for i in range(8)])
+    popups = []
+    for tool in (small, big):
+        tool.confirmation({"question": "Double sommet ?"})
+        request = ConfirmationRequest("t", {}, "?", preview=tool.preview({}))
+        popups.append(SendPreviewPopup(Display("send_preview", "Aperçu", {
+            "packet": request.preview, "request": request, "answer": lambda a: None})))  # fmt: skip
+    assert popups[1].height() > popups[0].height()  # taille adaptée au contenu
+    assert popups[1].findChildren(QSizeGrip)  # redimensionnable
+    labels = [w.text() for w in popups[1].findChildren(QLabel)]
+    assert any(len(text) > 1000 for text in labels)  # texte complet, pas un extrait

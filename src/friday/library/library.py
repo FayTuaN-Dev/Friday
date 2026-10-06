@@ -94,6 +94,25 @@ class Library:
     def sync_in_background(self, on_change: Callable[[], None] = lambda: None) -> None:
         threading.Thread(target=self.sync, args=(on_change,), daemon=True).start()
 
+    def add_trading_catalog(self, on_change: Callable[[], None] = lambda: None, fetch=None) -> None:
+        """Télécharge la bibliothèque de trading légale (catalog.py), puis l'indexe — en
+        arrière-plan ; `indexing` dit ce qui se télécharge."""
+        from friday.library.catalog import fetch_catalog
+
+        def progress(title: str) -> None:
+            self.indexing = f"téléchargement de « {title} »"
+            on_change()
+
+        def work() -> None:
+            try:
+                report = (fetch or fetch_catalog)(self.folder, on_progress=progress)
+                log.info("Bibliothèque de trading : %s", {k: len(v) for k, v in report.items()})
+            finally:
+                self.indexing = None
+            self.sync(on_change)
+
+        threading.Thread(target=work, daemon=True, name="catalogue").start()
+
     def _index(self, path: Path, mtime: float) -> None:
         self.indexing = path.name
         document = read_document(path)

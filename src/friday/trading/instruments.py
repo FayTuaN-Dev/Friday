@@ -124,6 +124,28 @@ def detect(text: str) -> Instrument | None:
     return by_symbol(stock.group(1)) if stock else None
 
 
+def parse_price(text: str) -> float | None:
+    """« 4 163,210 », « 1,12585 », « 4,163.21 », « 98 765,4 » → nombre (formats FR et EN)."""
+    raw = re.sub(r"[\s\u00a0\u202f]", "", text)
+    if "," in raw and "." in raw:  # « 4,163.21 » : la virgule sépare les milliers
+        raw = raw.replace(",", "")
+    raw = raw.replace(",", ".")
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def chart_price(title: str, instrument: Instrument) -> float | None:
+    """Le cours affiché par le graphique TradingView, s'il montre bien cet instrument
+    (« XAUUSD 4 163,210 ▼ −0.02% » : le cours exact du graphique de l'utilisateur)."""
+    shown = from_chart_title(title)
+    if shown is None or shown.symbol != instrument.symbol:
+        return None
+    found = re.match(r"^\S+\s+(\d[\d\s\u00a0\u202f.,]*\d)", title.strip())
+    return parse_price(found.group(1)) if found else None
+
+
 def from_chart_title(title: str) -> Instrument | None:
     """Le symbole en tête du titre TradingView (« XAUUSD 4 192,7 ▲ +0.4% - Google Chrome »)."""
     first = title.strip().split(" ")[0] if title.strip() else ""

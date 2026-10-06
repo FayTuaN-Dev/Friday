@@ -30,11 +30,13 @@ class TradingAnalysisTool(Tool):
 
     def __init__(
         self, builder: ContextBuilder, job: ClaudeCodeJob, journal: TradeJournal, on_done: OnDone,
-        instrument_for=None,
+        instrument_for=None, chart_shows=None,
     ) -> None:  # fmt: skip
-        """`instrument_for(question)` : l'instrument dont parle la question (ou None)."""
+        """`instrument_for(question)` : l'instrument dont parle la question (ou None).
+        `chart_shows(instrument)` : TradingView affiche-t-il cet instrument ?"""
         self.builder, self.job, self.journal, self.on_done = builder, job, journal, on_done
         self.instrument_for = instrument_for or (lambda question: None)
+        self.chart_shows = chart_shows or (lambda instrument: False)
         self._pending: Packet | None = None
 
     def label(self, args: dict) -> str:
@@ -43,12 +45,21 @@ class TradingAnalysisTool(Tool):
     def confirmation(self, args: dict) -> str:
         question = str(args.get("question", ""))
         words = question.lower()
+        instrument = self.instrument_for(question)
+        # Capture ciblée : si la question parle du graphique, ou si TradingView affiche
+        # l'instrument dont elle parle (toujours visible et décochable dans l'aperçu)
+        chart = mentions_chart(question) or self.chart_shows(instrument)
         self._pending = self.builder.build(
             question,
             with_journal=any(w in words for w in JOURNAL_WORDS),
-            chart=mentions_chart(question),  # capture ciblée, seulement si la question en parle
-            instrument=self.instrument_for(question),
+            chart=chart,
+            instrument=instrument,
         )
+        if not chart and instrument is not None:
+            self._pending.notes.append(
+                f"Pas de capture : TradingView n'affiche pas {instrument.name} (dites « regarde "
+                "mon graphique » pour joindre le graphique affiché)."
+            )
         extracts = sum(1 for i in self._pending.items if i.kind == "extrait")
         image = ", la capture du graphique" if self._pending.images else ""
         masked = (

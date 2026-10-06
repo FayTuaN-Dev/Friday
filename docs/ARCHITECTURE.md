@@ -84,6 +84,7 @@ src/friday/
 │   ├── news.py            actualités des dernières 24 h (FXStreet), filtrées par instrument
 │   ├── cot.py             positionnement des grands spéculateurs (rapport COT de la CFTC)
 │   ├── sessions.py        heure et séances ouvertes (Sydney, Tokyo, Londres, New York)
+│   ├── related.py         marchés liés : dollar (DXY), taux US 10 ans, VIX, S&P 500, or/argent
 │   ├── context_sources.py assemble ces blocs + le plan de trading ; une source en panne
 │   │                      n'empêche pas les autres
 │   ├── cache.py           cache disque (data/cache) : sources gratuites ménagées, secours
@@ -92,7 +93,9 @@ src/friday/
 ├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
 │   ├── chunker.py         découpe en passages (~900 caractères, chevauchement, n° de page)
 │   ├── store.py           SQLite : documents, passages, vecteurs + index plein texte FTS5
-│   └── library.py         Library : synchronise le dossier, recherche hybride (sens + mots, RRF)
+│   ├── library.py         Library : synchronise le dossier, recherche hybride (sens + mots, RRF)
+│   └── catalog.py         bibliothèque de trading de départ : documents légaux seulement
+│                          (Wikipédia CC BY-SA, AMF, Banque de France, Fed, BRI), source citée
 ├── files/                 fichiers et presse-papier (sans dépendre des outils)
 │   ├── readers.py         read_document : texte d'un PDF (pypdf), Word (python-docx), texte
 │   ├── clipboard.py       presse-papier Windows (ctypes) : texte ou fichiers copiés

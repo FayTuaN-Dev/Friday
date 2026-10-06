@@ -139,12 +139,21 @@ class ContextBuilder:
         if self.market is None:
             return
         try:
-            text = self.market(instrument).text()
+            text = self.market(instrument).text(chart=self._chart_price(instrument))
         except MarketUnavailable as error:
             packet.notes.append(f"{error} Analyse sans données de marché.")
             return
         packet.items.append(Item("marche", f"données de marché {instrument.symbol} "
                                            "(Yahoo Finance, calculs sur le PC)", text))  # fmt: skip
+
+    def _chart_price(self, instrument) -> float | None:
+        """Le cours affiché par TradingView, s'il montre cet instrument."""
+        from friday.trading.instruments import chart_price
+
+        if self.capture is None:
+            return None
+        title = self.capture.window_title()
+        return chart_price(title, instrument) if title else None
 
     def _hits(self, question: str) -> list:
         if self.library is None:

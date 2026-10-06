@@ -143,11 +143,15 @@ class Snapshot:
     hourly: list[Candle]
     daily: list[Candle]
 
-    def text(self, recent: int = 12) -> str:
-        """Résumé compact pour Claude (et l'aperçu)."""
+    def text(self, recent: int = 12, chart: float | None = None) -> str:
+        """Résumé compact pour Claude (et l'aperçu). `chart` : le cours affiché sur le graphique
+        TradingView de l'utilisateur ; s'il diffère (contrat à terme contre comptant : ~28 points
+        sur l'or, constaté), les niveaux sont recalés sur lui."""
         i, q = self.instrument, self.quote
         digits = _digits(i)
-        f = lambda x: "—" if x is None else f"{x:.{digits}f}"  # noqa: E731
+        shift = q.price - chart if chart and i.note else 0.0  # seulement pour un contrat à terme
+        f = lambda x: "—" if x is None else f"{x - shift:.{digits}f}"  # noqa: E731
+        width = lambda x: "—" if x is None else f"{x:.{digits}f}"  # noqa: E731 (écart : non décalé)
         closes_d = [c.close for c in self.daily]
         four = regroup(self.hourly, 4)
         lines = [
@@ -156,11 +160,22 @@ class Snapshot:
             + f", devise {q.currency or i.quote}.",
             f"Dernier cours : {f(q.price)} ({_pct(q.change_percent)} depuis la clôture d'hier), "
             f"à {q.time:%d/%m %H:%M} UTC.",
+        ]
+        if chart:
+            lines.append(f"Cours affiché sur le graphique TradingView de l'utilisateur : "
+                         f"{chart:.{digits}f}.")  # fmt: skip
+        if shift:
+            lines.append(
+                f"Écart contrat à terme / comptant : {shift:+.{digits}f}. TOUS les niveaux "
+                "ci-dessous (cours, moyennes, plus hauts/bas, pivots, bougies) sont recalés sur "
+                "le cours du graphique ; RSI et ATR ne changent pas."
+            )
+        lines += [
             f"Journalier : MM20 {f(sma(closes_d, 20))}, MM50 {f(sma(closes_d, 50))}, MM200 "
-            f"{f(sma(closes_d, 200))}, RSI14 {_n(rsi(closes_d))}, ATR14 {f(atr(self.daily))}.",
-            f"4 h : RSI14 {_n(rsi([c.close for c in four]))}, ATR14 {f(atr(four))}. "
+            f"{f(sma(closes_d, 200))}, RSI14 {_n(rsi(closes_d))}, ATR14 {width(atr(self.daily))}.",
+            f"4 h : RSI14 {_n(rsi([c.close for c in four]))}, ATR14 {width(atr(four))}. "
             f"1 h : RSI14 {_n(rsi([c.close for c in self.hourly]))}, "
-            f"ATR14 {f(atr(self.hourly))}.",
+            f"ATR14 {width(atr(self.hourly))}.",
         ]
         if len(self.daily) >= 21:
             month = self.daily[-21:-1]

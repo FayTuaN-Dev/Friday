@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QPushButton,
+    QSizeGrip,
     QSizePolicy,
     QVBoxLayout,
     QWidget,
@@ -38,6 +39,7 @@ class Popup(QWidget):
         self.key = ""  # identité de la liste affichée (mises à jour sur place)
         self.setAttribute(Qt.WA_TranslucentBackground)  # coins arrondis
         self.resize(*size)
+        self.setMinimumSize(300, 200)
         self._drag_from: QPoint | None = None
 
         header = QWidget(objectName="PopupHeader")
@@ -62,8 +64,23 @@ class Popup(QWidget):
         layout.setSpacing(0)
         layout.addWidget(header)
         self.body = QVBoxLayout()
-        self.body.setContentsMargins(14, 8, 14, 14)
+        self.body.setContentsMargins(14, 8, 14, 4)
         layout.addLayout(self.body, 1)
+        # Poignée du coin bas-droit : la fenêtre s'agrandit (elle n'a pas de bord Windows)
+        corner = QHBoxLayout()
+        corner.setContentsMargins(0, 0, 4, 4)
+        corner.addStretch()
+        grip = QSizeGrip(self)
+        grip.setToolTip("Agrandir")
+        corner.addWidget(grip, 0, Qt.AlignBottom | Qt.AlignRight)
+        layout.addLayout(corner)
+
+    def fit_height(self, content: QWidget, extra: int = 150, screen_share: float = 0.9) -> None:
+        """Hauteur ajustée au contenu, au plus `screen_share` de l'écran (puis défilement)."""
+        screen = self.screen().availableGeometry() if self.screen() else None
+        limit = int(screen.height() * screen_share) if screen else 900
+        wanted = content.sizeHint().height() + extra
+        self.resize(self.width(), max(self.minimumHeight(), min(wanted, limit)))
 
     def show_animated(self) -> None:
         self.setWindowOpacity(0.0)

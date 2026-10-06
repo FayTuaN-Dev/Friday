@@ -65,7 +65,10 @@ def words_for(instrument: Instrument) -> tuple[str, ...]:
     words = list(KEYWORDS.get(instrument.symbol, ()))
     if instrument.kind == "forex":
         words += [instrument.name.lower(), instrument.symbol.lower()]
-        for currency in instrument.currencies:
+        # Le dollar est partout (peso, yen, yuan… « face au dollar ») : pour une paire en
+        # dollars, seule l'autre devise compte (constaté : EUR/USD recevait le peso mexicain).
+        others = [c for c in instrument.currencies if c != "USD"] or list(instrument.currencies)
+        for currency in others:
             words += KEYWORDS.get(currency, ())
     elif instrument.kind == "action":
         words.append(instrument.symbol.lower().split(".")[0])
