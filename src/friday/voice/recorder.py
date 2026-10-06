@@ -7,6 +7,8 @@ from collections.abc import Callable
 import numpy as np
 import sounddevice as sd
 
+from friday.voice.devices import resolve_device
+
 log = logging.getLogger(__name__)
 
 WHISPER_RATE = 16_000
@@ -24,10 +26,10 @@ class Recorder:
     def __init__(
         self, device: int | str | None = None, on_level: Callable[[float], None] | None = None
     ) -> None:
-        self.device = device
+        self.device = resolve_device(device, "input")  # un seul micro, même nom en triple
         self._on_level = on_level  # niveau sonore (0 à 1) toutes les ~20 ms, pour l'animation
         # On enregistre à la fréquence native du micro puis on convertit en 16 kHz pour Whisper.
-        self.sample_rate = int(sd.query_devices(device, kind="input")["default_samplerate"])
+        self.sample_rate = int(sd.query_devices(self.device, kind="input")["default_samplerate"])
         self._frames: list[np.ndarray] = []
         self._lock = threading.Lock()
         self._stream: sd.InputStream | None = None
