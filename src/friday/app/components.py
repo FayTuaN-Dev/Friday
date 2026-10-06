@@ -7,9 +7,10 @@ from dataclasses import dataclass
 import numpy as np
 import ollama
 
-from friday.app.extras import load_briefing, load_google, load_library
+from friday.app.extras import load_briefing, load_google, load_library, load_trading
 from friday.app.gpu_check import warn_if_spilling
 from friday.app.memory_keeper import MemoryKeeper
+from friday.app.prefetch import hints, prefetcher
 from friday.brain.llm import Brain
 from friday.core.config import DATA_DIR, MODELS_DIR, VOICES_DIR, Settings
 from friday.memory.service import MemoryService, format_memories
@@ -32,6 +33,7 @@ class Components:
     briefing: object | None = None  # Briefing (briefing du matin)
     google: object | None = None  # GoogleAccount (agenda et mails)
     library: object | None = None  # Library (bibliothèque de documents)
+    trading: object | None = None  # Trading (mode trading)
 
 
 def load_components(
@@ -53,6 +55,7 @@ def load_components(
     briefing = load_briefing(settings, agenda, google)
     research = ResearchLog()
     library = load_library(settings, memory)
+    trading = load_trading(settings, library)
     contexts = {"web": research.summary}
     if briefing:
         contexts["briefing"] = briefing.summary
@@ -60,14 +63,15 @@ def load_components(
         settings,
         client=client,
         toolbox=default_toolbox(
-            settings, memory, on_background, agenda, briefing, google, research, library
+            settings, memory, on_background, agenda, briefing, google, research, library, trading
         ),
         recall=(lambda question: format_memories(memory.relevant(question))) if memory else None,
         router=load_router(memory),
         skill_contexts=contexts,
-        skill_hints={"library": library.hint} if library else None,
-        prefetch=library.auto_search if library else None,
+        skill_hints=hints(library, trading),
+        skill_gates={"trading": (lambda: trading.mode.enabled) if trading else (lambda: False)},
     )
+    brain.prefetch = prefetcher(library, trading, brain.toolset.router)
     brain.warmup()
     warn_if_spilling(client, settings.ollama_model, settings.ollama_num_ctx)
     components = Components(
@@ -77,6 +81,7 @@ def load_components(
         briefing=briefing,
         google=google,
         library=library,
+        trading=trading,
     )
 
     if memory and settings.memory_auto:

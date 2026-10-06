@@ -14,6 +14,19 @@ MODELS_DIR = DATA_DIR / "models"
 
 
 @dataclass(frozen=True)
+class TradingSettings:
+    """Mode trading (voir trading/) : désactivé par défaut dans les tests."""
+
+    enabled: bool = False
+    passages: int = 10  # extraits de la bibliothèque joints à une analyse
+    max_chars: int = 12_000  # taille maximale du paquet envoyé
+    account_currency: str = "EUR"
+    blocklist: tuple[str, ...] = ()  # mots toujours masqués (nom, n° de client…)
+    capture_window: str = "TradingView"  # titre de la fenêtre du graphique
+    model: str = ""  # vide : celui de Claude Code
+
+
+@dataclass(frozen=True)
 class Settings:
     user_name: str
     ollama_host: str
@@ -56,6 +69,7 @@ class Settings:
     embed_model: str
     log_level: str
     interface_color: str = "Or"  # couleur de base de l'interface (palette ou #rrggbb)
+    trading: TradingSettings = TradingSettings()
 
 
 def _bool(name: str, default: bool) -> bool:
@@ -121,4 +135,15 @@ def load_settings() -> Settings:
         embed_model=os.getenv("EMBED_MODEL", "embeddinggemma"),
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         interface_color=os.getenv("FRIDAY_COLOR", "Or"),
+        trading=TradingSettings(
+            enabled=_bool("TRADING_ENABLED", True),
+            passages=max(1, min(15, int(os.getenv("TRADING_PASSAGES", "10")))),
+            max_chars=int(os.getenv("TRADING_MAX_CHARS", "12000")),
+            account_currency=os.getenv("TRADING_ACCOUNT_CURRENCY", "EUR").upper(),
+            blocklist=tuple(
+                w.strip() for w in os.getenv("TRADING_BLOCKLIST", "").split(",") if w.strip()
+            ),
+            capture_window=os.getenv("TRADING_CAPTURE_WINDOW", "TradingView"),
+            model=os.getenv("TRADING_MODEL", ""),
+        ),
     )

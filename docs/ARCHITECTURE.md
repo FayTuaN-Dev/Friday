@@ -67,6 +67,14 @@ src/friday/
 │   ├── store.py           AgendaStore : rappels et listes dans SQLite
 │   ├── times.py           calcul des dates (« 18:00 » + « demain » → date exacte)
 │   └── scheduler.py       ReminderScheduler : déclenche à l'heure, rattrape les manqués
+├── trading/               mode trading (« mode trading » / « fin du mode trading »)
+│   ├── mode.py            état du mode, commandes, aiguillage local / analyse (déterministe)
+│   ├── masking.py         masquage avant aperçu : montants, comptes, IBAN, e-mails, clés, chemins
+│   ├── context_builder.py paquet minimal (question + extraits plafonnés), balises neutralisées ;
+│   │                      `approved` ne passe à True que par la confirmation de l'utilisateur
+│   ├── analyst.py         Claude ISOLÉ : --restricted, --tools "", sans MCP ni session gardée
+│   ├── risk_calc.py       valeur du pip, taille de position, risque/rendement, R (déterministe)
+│   └── journal.py         data/trading.db : trades + trace de chaque envoi (empreinte des images)
 ├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
 │   ├── chunker.py         découpe en passages (~900 caractères, chevauchement, n° de page)
 │   ├── store.py           SQLite : documents, passages, vecteurs + index plein texte FTS5
@@ -108,6 +116,7 @@ src/friday/
 │   ├── extras.py          chargement du compte Google et du briefing
 │   ├── components.py      chargement des modèles (chacun peut échouer sans tout bloquer)
 │   ├── gpu_check.py       au démarrage : le modèle tient-il entier dans la carte graphique ?
+│   ├── prefetch.py        préparé d'office : bibliothèque, ou analyse de trading (en mode trading)
 │   └── events.py          AssistantState + contrat AssistantListener
 ├── tools/                 outils que le LLM peut appeler (plugins)
 │   ├── __init__.py        default_toolbox() : liste des outils actifs
@@ -115,6 +124,8 @@ src/friday/
 │   ├── web_search.py      recherche internet (DuckDuckGo)
 │   ├── web_page.py        lecture d'une page (trafilatura) : adresse ou numéro d'un résultat
 │   ├── library.py         search_library, list_library, update_library
+│   ├── trading.py         calculs de risque et journal (locaux, mode trading seulement)
+│   ├── trading_analysis.py analyse par Claude : aperçu, refus sans validation, journal
 │   ├── research.py        carnet de recherche : derniers résultats et pages lues, avec leurs adresses
 │   ├── images.py          recherche et téléchargement d'images
 │   ├── files.py           read_file (par parties) / read_clipboard / copy_to_clipboard

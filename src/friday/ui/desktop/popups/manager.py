@@ -14,6 +14,7 @@ from friday.ui.desktop.popups.items import ItemsPopup
 from friday.ui.desktop.popups.memories import MemoriesPopup
 from friday.ui.desktop.popups.results import ResultsPopup
 from friday.ui.desktop.popups.screen import ScreenPopup
+from friday.ui.desktop.popups.send_preview import SendPreviewPopup
 from friday.ui.desktop.popups.weather import WeatherPopup
 
 POPUPS = {
@@ -26,6 +27,7 @@ POPUPS = {
     "items": ItemsPopup,
     "files": FilesPopup,
     "screen": ScreenPopup,
+    "send_preview": SendPreviewPopup,
 }
 MAX_OPEN = 3
 GAP = 12  # espace entre la fenêtre et le pop-up

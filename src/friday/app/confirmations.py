@@ -5,6 +5,7 @@ import threading
 
 from friday.app.events import AssistantListener
 from friday.brain.events import ConfirmationRequest
+from friday.tools.base import Display
 from friday.voice.wake import normalize
 
 log = logging.getLogger(__name__)
@@ -44,6 +45,11 @@ class ConfirmationGate:
     def ask(self, request: ConfirmationRequest) -> None:
         with self._lock:
             self._pending = request
+        if request.preview is not None:  # montrer EXACTEMENT ce qui partira
+            self.listener.on_display(Display(
+                "send_preview", "Aperçu de l'envoi",
+                {"packet": request.preview, "request": request, "answer": self.answer},
+            ))  # fmt: skip
         self.listener.on_confirmation(request.question)
 
     def answer(self, approved: bool) -> None:
