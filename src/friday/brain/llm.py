@@ -30,12 +30,22 @@ OLLAMA_ERRORS = (ollama.ResponseError, ConnectionError, httpx.TransportError)
 
 # Nombre maximum d'allers-retours avec les outils pour une même question
 MAX_TOOL_ROUNDS = 4  # dont, au besoin, un tour pour charger une compétence (load_skill)
+# Contre les boucles (« token repeat limit reached ») : une longueur maximale (une réponse
+# orale n'a jamais besoin de plus). Pas de pénalité de répétition : mesurée, elle fait
+# rater des appels d'outils (« quelles catégories de mails ? » : 5/8 → 2/8 à 1,0).
+MAX_TOKENS = 1024
+MAX_TOKENS_THINKING = 4096  # la réflexion consomme beaucoup de jetons avant la réponse
 # Délai pour répondre à « Je lance ? » ; sans réponse, l'action n'est pas faite.
 CONFIRM_TIMEOUT = 60.0
 
 
 class BrainError(RuntimeError):
     """Le modèle est injoignable ou a renvoyé une erreur."""
+
+    @property
+    def looped(self) -> bool:
+        """Le modèle tournait en boucle (Ollama a coupé) : il est joignable, il s'est emmêlé."""
+        return "repeat limit" in str(self)
 
 
 class Brain:
@@ -140,7 +150,10 @@ class Brain:
             stream=True,
             think=self._think,  # réflexion seulement si utile : sinon trop lente pour la voix
             keep_alive="30m",  # garde le modèle chargé en mémoire vidéo
-            options={"num_ctx": self.settings.ollama_num_ctx},
+            options={
+                "num_ctx": self.settings.ollama_num_ctx,
+                "num_predict": MAX_TOKENS_THINKING if self._think else MAX_TOKENS,
+            },
         )
 
     def _run_tools(
