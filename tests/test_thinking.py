@@ -83,3 +83,14 @@ def test_formulas_are_spoken_with_words():
     spoken = clean_for_speech(r"$ I = 12000 \times 0,04 $, soit 25 \% de plus")
     assert spoken == "I = 12000 fois 0,04 , soit 25 pour cent de plus"
     assert clean_for_speech("Rien à changer : 3 pommes.") == "Rien à changer : 3 pommes."
+
+
+def test_only_the_users_own_words_count():
+    from friday.briefing.briefing import REQUEST
+
+    briefing = REQUEST.format(facts="## Météo\n17 °C, pluie 38 %, vent 12 km/h, total 3 mm")
+    assert not needs_thinking(briefing)  # le briefing automatique n'est pas un calcul
+    pasted = "[Texte copié par l'utilisateur :\nFacture 1 : 120 €, total 340 €\n]\nTraduis-le"
+    assert not needs_thinking(pasted)
+    attached = "[Fichier joint : C:/comptes_2026.xlsx]\nCombien font 12 fois 15 ?"
+    assert needs_thinking(attached)  # sa propre question, elle, est un calcul

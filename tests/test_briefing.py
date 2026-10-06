@@ -61,7 +61,7 @@ def test_lists_and_news(tmp_path):
                     agenda=FakeAgenda(notes={"taches": ["payer EDF"]}),
                     news=lambda topic: [f"Titre {topic} {i}" for i in range(5)])  # fmt: skip
     facts = briefing.facts(MORNING)
-    assert "payer EDF" in facts and "Titre tech 2" in facts and "Titre tech 3" not in facts
+    assert "payer EDF" in facts and "Titre tech 4" in facts
 
 
 def test_automatic_briefing_once_a_day_in_the_morning_when_enabled(tmp_path):
@@ -115,3 +115,11 @@ def test_weather_needs_a_city_and_never_invents(tmp_path):
     assert len(briefing.config.sections) == 1
     assert "Météo à Lyon" in briefing.facts(MORNING)
     assert "ville à préciser" not in tool.run("list").text
+
+
+def test_news_keeps_only_relevant_headlines(tmp_path):
+    briefing = make(tmp_path, [Section("actualites", "NVIDIA")],
+                    news=lambda topic: [f"Titre {i}" for i in range(10)])  # fmt: skip
+    facts = briefing.facts(MORNING)
+    assert "Titre 5" in facts and "Titre 6" not in facts  # 6 titres examinés
+    assert "parlent vraiment de « NVIDIA »" in facts

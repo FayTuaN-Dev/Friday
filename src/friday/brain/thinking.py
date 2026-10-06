@@ -20,7 +20,24 @@ CALCULATION = (
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 
 
+AUTOMATIC = "(Message automatique"  # briefing, fin de tâche : pas une question de l'utilisateur
+
+
+def own_words(text: str) -> str:
+    """Ce que l'utilisateur a dit lui-même, sans les pièces jointes ajoutées par Friday
+    (« [Fichier joint : …] », « [Texte copié par l'utilisateur : … ] » : leurs nombres ne
+    font pas de sa demande un calcul) ni les messages automatiques."""
+    if text.startswith(AUTOMATIC):
+        return ""
+    if "\n]\n" in text:  # bloc du texte copié : la demande vient après
+        text = text.rsplit("\n]\n", 1)[1]
+    lines = [line for line in text.splitlines()
+             if not (line.startswith("[") and line.rstrip().endswith("]"))]  # fmt: skip
+    return "\n".join(lines)
+
+
 def needs_thinking(text: str) -> bool:
+    text = own_words(text)
     words = f" {normalize(text)} "
     if any(f" {key}" in words for key in ASK_TO_THINK):
         return True
