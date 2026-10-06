@@ -100,6 +100,7 @@ src/friday/
 │   ├── hands_free_target.py  ce que l'écoute mains libres demande à l'assistant (« Oui ? »…)
 │   ├── extras.py          chargement du compte Google et du briefing
 │   ├── components.py      chargement des modèles (chacun peut échouer sans tout bloquer)
+│   ├── gpu_check.py       au démarrage : le modèle tient-il entier dans la carte graphique ?
 │   └── events.py          AssistantState + contrat AssistantListener
 ├── tools/                 outils que le LLM peut appeler (plugins)
 │   ├── __init__.py        default_toolbox() : liste des outils actifs

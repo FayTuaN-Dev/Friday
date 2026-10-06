@@ -34,8 +34,10 @@ class WhisperSTT:
         from faster_whisper import WhisperModel
 
         try:
+            # int8_float16 n'existe que sur carte graphique : sur processeur, int8.
+            compute_type = "int8" if device == "cpu" else "int8_float16"
             self.model = WhisperModel(
-                model, device=device, compute_type="int8_float16", download_root=str(models_dir)
+                model, device=device, compute_type=compute_type, download_root=str(models_dir)
             )
             self._warmup()
         except (RuntimeError, ValueError) as e:
