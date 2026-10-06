@@ -54,6 +54,7 @@ def load_components(
         toolbox=default_toolbox(settings, memory, on_background, agenda, briefing, google),
         recall=(lambda question: format_memories(memory.relevant(question))) if memory else None,
         router=load_router(memory),
+        skill_contexts={"briefing": briefing.summary} if briefing else None,
     )
     brain.warmup()
     components = Components(

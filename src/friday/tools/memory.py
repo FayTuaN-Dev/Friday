@@ -4,6 +4,14 @@ from friday.memory.service import MemoryService
 from friday.tools.base import Display, Tool, ToolResult
 
 
+def memories_display(memory: MemoryService, refresh: bool = False) -> Display:
+    """Pop-up des souvenirs ; `refresh` : ne fait que mettre à jour celle déjà ouverte."""
+    items = [{"id": m.id, "text": m.text, "date": m.updated_at[:10], "source": m.source}
+             for m in memory.all()]  # fmt: skip
+    return Display("memories", "Ce que je sais sur vous", {"memories": items}, key="memories",
+                   refresh=refresh)  # fmt: skip
+
+
 class RememberTool(Tool):
     name = "remember"
     description = (
@@ -31,7 +39,8 @@ class RememberTool(Tool):
 
     def run(self, fact: str, replaces: int | None = None) -> ToolResult:
         memory = self.memory.remember(fact, "explicit", int(replaces) if replaces else None)
-        return ToolResult(f"C'est mémorisé (souvenir n°{memory.id}) : {memory.text}")
+        return ToolResult(f"C'est mémorisé (souvenir n°{memory.id}) : {memory.text}",
+                          memories_display(self.memory, refresh=True))  # fmt: skip
 
 
 # Mots qui ne disent rien du souvenir visé (« oublie le fait que je … »)
@@ -111,7 +120,10 @@ class ForgetTool(Tool):
 
     def _forget(self, memory_id: int) -> ToolResult:
         forgotten = self.memory.forget(memory_id)
-        return ToolResult(f"C'est oublié : {forgotten.text}" if forgotten else "Rien effacé.")
+        if forgotten is None:
+            return ToolResult("Rien effacé.")
+        return ToolResult(f"C'est oublié : {forgotten.text}",
+                          memories_display(self.memory, refresh=True))  # fmt: skip
 
 
 class ListMemoriesTool(Tool):
@@ -132,15 +144,11 @@ class ListMemoriesTool(Tool):
         memories = self.memory.all()
         if not memories:
             return ToolResult("Ta mémoire est vide pour l'instant.")
-        items = [
-            {"id": m.id, "text": m.text, "date": m.updated_at[:10], "source": m.source}
-            for m in memories
-        ]
         listing = "\n".join(f"- {m.text}" for m in memories)
         return ToolResult(
             text=(
                 f"Tes {len(memories)} souvenirs (affichés à l'écran) :\n{listing}\n"
                 "Résume-les en une ou deux phrases, sans rien ajouter qui n'y figure pas."
             ),
-            display=Display("memories", "Ce que je sais sur vous", {"memories": items}),
+            display=memories_display(self.memory),
         )

@@ -79,9 +79,14 @@ def default_toolbox(
 
         tools += google_tools(google, settings, on_background)
     if briefing is not None:
-        from friday.tools.briefing import ConfigureBriefingTool, MorningBriefingTool
+        from friday.tools.briefing import (
+            ConfigureBriefingTool,
+            MorningBriefingTool,
+            ShowBriefingSettingsTool,
+        )
 
-        tools += [MorningBriefingTool(briefing), ConfigureBriefingTool(briefing)]
+        configure = ConfigureBriefingTool(briefing)
+        tools += [MorningBriefingTool(briefing), configure, ShowBriefingSettingsTool(configure)]
     if tools:  # fermer les pop-ups ouverts par les autres outils
         from friday.tools.popups import ClosePopupsTool
 

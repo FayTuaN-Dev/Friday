@@ -35,6 +35,7 @@ class Popup(QWidget):
         super().__init__(None, Qt.Tool | Qt.FramelessWindowHint)
         self.setObjectName("Popup")
         self.setAttribute(Qt.WA_DeleteOnClose)
+        self.key = ""  # identité de la liste affichée (mises à jour sur place)
         self.setAttribute(Qt.WA_TranslucentBackground)  # coins arrondis
         self.resize(*size)
         self._drag_from: QPoint | None = None

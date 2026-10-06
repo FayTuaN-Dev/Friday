@@ -55,4 +55,9 @@ class ConfirmationRequest:
 
 
 # Une réponse est un flux de morceaux de texte (str) entrecoupés d'événements d'outils.
-BrainEvent = str | ToolStarted | ToolFinished | ConfirmationRequest
+@dataclass
+class ThinkingStarted:
+    """Le modèle va réfléchir avant de répondre (calcul, « réfléchis ») : 10 à 25 s."""
+
+
+BrainEvent = str | ToolStarted | ToolFinished | ConfirmationRequest | ThinkingStarted

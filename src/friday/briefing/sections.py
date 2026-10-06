@@ -9,6 +9,7 @@ from datetime import date, datetime
 from friday.briefing.config import Section
 
 log = logging.getLogger(__name__)
+NEWS_SCANNED = 6  # titres examinés par sujet (Friday n'en garde que les plus pertinents)
 
 
 @dataclass
@@ -72,7 +73,14 @@ def _news(section, sources, now):
     if sources.news is None:
         return None
     titles = sources.news(section.value)
-    return "\n".join(f"- {t}" for t in titles[:3]) or None
+    if not titles:
+        return None
+    # Le moteur mélange parfois les sens (« NVIDIA » : l'entreprise… ou un produit en promo)
+    keep = (
+        f"(Garde les 2 ou 3 nouvelles les plus importantes qui parlent vraiment de "
+        f"« {section.value} » lui-même ; ignore les promotions de produits et les sujets annexes.)"
+    )
+    return "\n".join(f"- {t}" for t in titles[:NEWS_SCANNED]) + "\n" + keep
 
 
 def _free(section, sources, now):

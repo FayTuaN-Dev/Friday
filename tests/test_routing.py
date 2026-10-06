@@ -130,3 +130,19 @@ def test_toolset_ignores_skills_without_tools():
     toolset = Toolset(ToolBox([Echo("check_mail")]), SkillRouter(SKILLS))
     assert [s.name for s in toolset.skills] == ["mail"]
     assert "Compétence inconnue" in toolset.load("calendar")
+
+
+def test_active_skill_context_is_given_to_the_model():
+    client = FakeClient(chunks=["ok"])
+    box = ToolBox([Echo("morning_briefing"), Echo("check_mail")])
+    contexts = {"briefing": lambda: "Rubriques actuelles du briefing : Météo, NVIDIA."}
+    brain = Brain(SETTINGS, client=client, toolbox=box, router=SkillRouter(SKILLS),
+                  skill_contexts=contexts)  # fmt: skip
+    list(brain.reply("Qu'y a-t-il dans mon briefing ?"))
+    assert (
+        "Rubriques actuelles du briefing : Météo, NVIDIA."
+        in client.calls[-1]["messages"][0]["content"]
+    )
+    list(brain.reply("Ai-je des mails ?"))  # briefing gardé un échange : encore là
+    list(brain.reply("Et maintenant des mails ?"))
+    assert "Rubriques actuelles" not in client.calls[-1]["messages"][0]["content"]

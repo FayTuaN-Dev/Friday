@@ -47,6 +47,8 @@ class TerminalUI(NullListener):
         print(f"\n  [{label}]", flush=True)
 
     def on_display(self, display) -> None:
+        if display.refresh:  # mise à jour d'une fenêtre : rien à réafficher en terminal
+            return
         for r in display.data.get("results", []):
             print(f"  • {r['title']} — {r['url']}")
         if display.kind == "article":

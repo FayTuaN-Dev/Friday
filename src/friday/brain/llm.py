@@ -9,9 +9,16 @@ import ollama
 
 from friday.brain import safety
 from friday.brain.conversation import Conversation
-from friday.brain.events import BrainEvent, ConfirmationRequest, ToolFinished, ToolStarted
+from friday.brain.events import (
+    BrainEvent,
+    ConfirmationRequest,
+    ThinkingStarted,
+    ToolFinished,
+    ToolStarted,
+)
 from friday.brain.prompts import build_system_prompt
 from friday.brain.router import SkillRouter
+from friday.brain.thinking import needs_thinking
 from friday.brain.toolset import LOAD_SKILL, Toolset
 from friday.core.config import Settings
 from friday.tools.base import ToolBox, ToolResult
@@ -39,6 +46,7 @@ class Brain:
         toolbox: ToolBox | None = None,
         recall: Callable[[str], str] | None = None,
         router: SkillRouter | None = None,
+        skill_contexts: dict[str, Callable[[], str]] | None = None,
     ) -> None:
         """`router` : aiguillage des compétences (sans lui, tous les outils sont donnés)."""
         self.settings = settings
@@ -48,8 +56,9 @@ class Brain:
         self.recall = recall
         self._memories: str | None = None
         self.conversation = Conversation()
-        self.toolset = Toolset(self.toolbox, router)
+        self.toolset = Toolset(self.toolbox, router, skill_contexts)
         self._tainted = False  # un contenu externe (mail, page, fichier…) a été lu
+        self._think = False  # réflexion pour cette demande (calcul, « réfléchis »)
 
     def warmup(self) -> None:
         """Charge le modèle en mémoire vidéo dès le démarrage (sans générer de texte)."""
@@ -74,7 +83,10 @@ class Brain:
         self._memories = self.recall(user_text) if self.recall else None
         self.toolset.start(user_text)
         self._tainted = safety.mentions_attachment(user_text)
+        self._think = needs_thinking(user_text)
         parts: list[str] = []
+        if self._think:
+            yield ThinkingStarted()
         try:
             for round_ in range(MAX_TOOL_ROUNDS + 1):
                 parts = []
@@ -126,7 +138,7 @@ class Brain:
             messages=messages,
             tools=self.toolset.schemas() if use_tools else None,
             stream=True,
-            think=False,  # le mode « réflexion » de qwen3 est trop lent pour la voix
+            think=self._think,  # réflexion seulement si utile : sinon trop lente pour la voix
             keep_alive="30m",  # garde le modèle chargé en mémoire vidéo
             options={"num_ctx": self.settings.ollama_num_ctx},
         )

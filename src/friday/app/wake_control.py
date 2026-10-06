@@ -9,8 +9,13 @@ from friday.voice.wake import is_stop, is_stop_request, similarity, split_wake_w
 
 log = logging.getLogger(__name__)
 
-# Au-delà de cette part de mots communs avec ce que Friday vient de dire, c'est son écho.
+# Au-delà de cette part de mots communs avec ce que Friday vient de dire, c'est son écho…
 ECHO_SIMILARITY = 0.6
+# … mais seulement pendant qu'elle parle ou juste après : l'utilisateur qui lui répond
+# reprend forcément ses mots (« retire l'agenda du briefing » après la liste des rubriques).
+ECHO_TAIL = 2.0
+# Une phrase qui commence par son nom n'est un écho que si elle répète presque tout.
+NAMED_ECHO_SIMILARITY = 0.85
 # Une phrase sans le nom, entendue peu après la fin d'une fenêtre de relance, est signalée.
 RECENT_SECONDS = 20.0
 
@@ -19,6 +24,8 @@ class WakeTarget(Protocol):
     last_reply_text: str
     busy: bool  # en train de réfléchir ou de parler
     awaiting_confirmation: bool  # « Je lance ? » posé, réponse attendue
+
+    def spoke_recently(self, at: float) -> bool: ...  # parlait à cet instant, ou juste avant
 
     def interrupt(self) -> None: ...
     def acknowledge(self) -> None: ...
@@ -58,8 +65,8 @@ class WakeControl:
         """`spoken_at` : quand la phrase a COMMENCÉ (une longue phrase commencée dans la
         fenêtre de relance compte, même si sa transcription se termine après)."""
         spoken_at = self._clock() if spoken_at is None else spoken_at
-        if self._is_echo(text):
-            log.debug("Écho de Friday ignoré : %s", text)
+        if self._is_echo(text, spoken_at):
+            log.info("Ignoré (écho de la voix de Friday) : %s", text)
             return
 
         # « Je lance ? » en attente : la réponse n'a pas besoin du nom.
@@ -93,6 +100,9 @@ class WakeControl:
             self.target.interrupt()
             self.target.submit_heard(command)
 
-    def _is_echo(self, text: str) -> bool:
+    def _is_echo(self, text: str, spoken_at: float) -> bool:
         said = self.target.last_reply_text
-        return bool(said) and similarity(text, said) >= ECHO_SIMILARITY
+        if not said or not self.target.spoke_recently(spoken_at):
+            return False
+        named = split_wake_word(text, self.pattern) is not None
+        return similarity(text, said) >= (NAMED_ECHO_SIMILARITY if named else ECHO_SIMILARITY)

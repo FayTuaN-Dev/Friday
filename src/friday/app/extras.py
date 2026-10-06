@@ -46,12 +46,12 @@ def load_briefing(settings: Settings, agenda, google=None):
             region = settings.search_region
             try:
                 hits = retry(lambda: DDGS().news(topic, region=region, timelimit="d",
-                                                 max_results=3))  # fmt: skip
+                                                 max_results=6))  # fmt: skip
                 return [f"{h['title']} ({h.get('source', '')})" for h in hits or []]
             except Exception as error:  # service d'actualités saturé : recherche classique
                 log.info("Actualités indisponibles (%s), repli sur la recherche web", error)
                 hits = DDGS().text(f"actualité {topic}", region=region, timelimit="d",
-                                   max_results=3)  # fmt: skip
+                                   max_results=6)  # fmt: skip
                 return [h["title"] for h in hits or []]
 
         sources.weather, sources.news = weather, news

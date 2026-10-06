@@ -2,6 +2,8 @@
 choisies par l'aiguillage, celles de l'échange précédent, et celles que le modèle charge
 lui-même (load_skill) s'il lui en manque une."""
 
+import logging
+from collections.abc import Callable
 from typing import Any
 
 from friday.brain.router import SkillRouter
@@ -9,11 +11,20 @@ from friday.brain.skills import BY_NAME, CORE_GUIDE, CORE_TOOLS, SKILLS
 from friday.tools.base import ToolBox
 
 LOAD_SKILL = "load_skill"
+log = logging.getLogger(__name__)
 
 
 class Toolset:
-    def __init__(self, toolbox: ToolBox, router: SkillRouter | None = None) -> None:
+    def __init__(
+        self,
+        toolbox: ToolBox,
+        router: SkillRouter | None = None,
+        contexts: dict[str, Callable[[], str]] | None = None,
+    ) -> None:
+        """`contexts` : par compétence, un état réel à donner au modèle quand elle est active
+        (ex. les rubriques du briefing), pour qu'il ne l'invente pas."""
         self.toolbox = toolbox
+        self.contexts = contexts or {}
         available = set(toolbox.names())
         self.skills = [s for s in SKILLS if available & set(s.tools)]
         skill_tools = {t for s in SKILLS for t in s.tools}
@@ -42,6 +53,15 @@ class Toolset:
         (« supprime-le », « réponds-lui »), mais pas plus longtemps."""
         if self.router is not None:
             self._previous = set(self._fresh)
+
+    def _context(self, name: str) -> list[str]:
+        if name not in self.contexts:
+            return []
+        try:
+            return [f"  {self.contexts[name]()}"]
+        except Exception as error:  # un état illisible ne doit pas bloquer la réponse
+            log.warning("Contexte « %s » indisponible : %s", name, error)
+            return []
 
     def tool_names(self) -> set[str]:
         names = set(self._always)
@@ -72,7 +92,11 @@ class Toolset:
         return schemas
 
     def guides(self) -> str:
-        parts = [CORE_GUIDE] + [s.guide for s in self.skills if s.name in self.active]
+        parts = [CORE_GUIDE]
+        for skill in self.skills:
+            if skill.name in self.active:
+                parts.append(skill.guide)
+                parts += self._context(skill.name)
         inactive = [s for s in self.skills if s.name not in self.active]
         if self.router is not None and inactive:
             others = ", ".join(s.label for s in inactive)
