@@ -42,6 +42,7 @@ class Assistant:
         self.voice_on = settings.tts_enabled
         self._events: queue.Queue[tuple[str, object]] = queue.Queue()
         self._waiting_since: float | None = None  # plus ancienne demande pas encore traitée
+        self.speech_ended_at = float("-inf")  # fin de la dernière prise de parole (anti-écho)
         self._interrupted = threading.Event()
         self._state: AssistantState | None = None
         self.inputs = VoiceInputs(settings, self)
@@ -222,7 +223,13 @@ class Assistant:
             self.set_state(AssistantState.SPEAKING)
         self.listener.on_speech_audio(audio, sample_rate)
 
+    @property
+    def speaking(self) -> bool:
+        return self._state is AssistantState.SPEAKING
+
     def set_state(self, state: AssistantState) -> None:
+        if self._state is AssistantState.SPEAKING and state is not AssistantState.SPEAKING:
+            self.speech_ended_at = time.monotonic()
         if state != self._state:
             self._state = state
             self.listener.on_state(state)

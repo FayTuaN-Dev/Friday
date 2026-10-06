@@ -54,6 +54,10 @@ class FakeTarget:
         self.last_reply_text = ""
         self.busy = False
         self.awaiting_confirmation = False
+        self.speaking = True  # par défaut : Friday vient de parler (écho possible)
+
+    def spoke_recently(self, at):
+        return self.speaking
 
     def interrupt(self):
         self.calls.append("interrupt")
@@ -137,6 +141,38 @@ def test_own_echo_is_ignored_even_with_name():
     control.on_heard("Friday à votre service, il fait beau aujourd'hui.")
     control.on_heard("Il fait beau aujourd'hui")
     assert target.calls == []
+
+
+def test_answering_friday_with_her_own_words_is_not_an_echo():
+    """Cas réel : après la liste des rubriques, « retire l'agenda du briefing » reprenait
+    ses mots (67 %) et était jeté comme un écho, sans rien dire."""
+    control, target, clock = make_control()
+    target.last_reply_text = (
+        "Voici les rubriques de votre briefing : la météo, vos rappels du jour et votre "
+        "agenda. Souhaitez-vous en modifier ou en retirer certaines ?"
+    )
+    target.speaking = False  # elle a fini de parler depuis plus de 2 s
+    control.open_follow_up()
+    control.on_heard("Oui, retire l'agenda du briefing.")
+    assert target.calls[-1] == ("submit", "Oui, retire l'agenda du briefing.")
+
+
+def test_named_request_is_not_an_echo_even_while_speaking():
+    control, target, _ = make_control()
+    target.last_reply_text = "Voici les rubriques de votre briefing : votre agenda."
+    control.on_heard("Friday, retire l'agenda du briefing.")
+    assert target.calls[-1] == ("submit", "Retire l'agenda du briefing.")
+
+
+def test_echo_window_follows_the_end_of_speech():
+    from friday.app.hands_free_target import HandsFreeTarget
+
+    assistant = SimpleNamespace(speaking=False, speech_ended_at=100.0)
+    target = HandsFreeTarget(assistant)
+    assert target.spoke_recently(101.5)  # 1,5 s après la fin : écho possible
+    assert not target.spoke_recently(103.0)  # 3 s après : c'est l'utilisateur
+    assistant.speaking = True
+    assert target.spoke_recently(500.0)
 
 
 # --- Découpage en phrases (VAD) ---
@@ -228,7 +264,8 @@ def test_request_started_while_friday_says_yes_is_accepted():
         settings=SimpleNamespace(user_name="Monsieur", wake_words=["friday"]),
         listener=SimpleNamespace(on_notice=lambda text: None),
         voice_on=True, components=SimpleNamespace(speaker=speaker), busy=False,
-        reply_spoken="", confirm=SimpleNamespace(waiting=False),
+        reply_spoken="", confirm=SimpleNamespace(waiting=False), speaking=False,
+        speech_ended_at=float("-inf"),
         interrupt=lambda: None, submit_heard=lambda text: submitted.append(text),
     )  # fmt: skip
     submitted = []

@@ -17,6 +17,13 @@ class HandsFreeTarget:
     def busy(self) -> bool:
         return self.assistant.busy
 
+    def spoke_recently(self, at: float) -> bool:
+        """Friday parlait à cet instant, ou venait de finir (l'écho n'est possible qu'alors)."""
+        from friday.app.wake_control import ECHO_TAIL
+
+        a = self.assistant
+        return a.speaking or at - a.speech_ended_at <= ECHO_TAIL
+
     @property
     def awaiting_confirmation(self) -> bool:
         return self.assistant.confirm.waiting
