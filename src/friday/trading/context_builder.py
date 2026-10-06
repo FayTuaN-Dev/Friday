@@ -69,13 +69,14 @@ class ContextBuilder:
     def __init__(
         self, library=None, journal=None, passages: int = 10, max_chars: int = 12_000,
         blocklist: tuple[str, ...] = (),
-        capture=None, market=None,
+        capture=None, market=None, context=None,
     ) -> None:  # fmt: skip
         """`capture` : ChartCapture (fenêtre du graphique), ou None.
-        `market` : instrument → Snapshot (données de marché publiques), ou None."""
+        `market` : instrument → Snapshot (données de marché publiques), ou None.
+        `context` : ContextSources (annonces, actualités, COT, séances, plan), ou None."""
         self.library, self.journal = library, journal
         self.passages, self.max_chars, self.blocklist = passages, max_chars, blocklist
-        self.capture, self.market = capture, market
+        self.capture, self.market, self.context = capture, market, context
 
     def build(
         self, question: str, with_journal: bool = False, chart: bool = False, instrument=None
@@ -88,6 +89,7 @@ class ContextBuilder:
             self._add_capture(packet)
         if instrument is not None:
             self._add_market(packet, instrument)
+            self._add_context(packet, instrument)
         budget = self.max_chars - len(packet.question) - sum(len(i.text) for i in packet.items)
         if with_journal and self.journal is not None:
             packet.items.append(Item("bilan", "journal de trading (anonyme)",
@@ -118,6 +120,18 @@ class ContextBuilder:
             return
         packet.items.append(Item("capture", f"{self.capture.title_part} (zone choisie)", "",
                                  image=image))  # fmt: skip
+
+    def _add_context(self, packet: Packet, instrument) -> None:
+        if self.context is None:
+            return
+        blocks, notes = self.context.blocks(instrument)
+        packet.notes += notes
+        for block in blocks:
+            text = block.text
+            if block.kind == "plan":  # écrit par l'utilisateur : masqué comme sa question
+                masked = mask_personal(text, self.blocklist)
+                text, packet.masked = masked.text, packet.masked + masked.found
+            packet.items.append(Item(block.kind, block.source, text))
 
     def _add_market(self, packet: Packet, instrument) -> None:
         from friday.trading.market import MarketUnavailable
