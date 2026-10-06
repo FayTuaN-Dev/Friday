@@ -3,6 +3,7 @@
 from ddgs import DDGS
 
 from friday.tools.base import Display, Tool, ToolResult, retry
+from friday.tools.research import ResearchLog
 
 
 class WebSearchTool(Tool):
@@ -14,7 +15,14 @@ class WebSearchTool(Tool):
     parameters = {"query": {"type": "string", "description": "La recherche, en mots-clés"}}
     required = ("query",)
 
-    def __init__(self, region: str = "fr-fr", max_results: int = 5, backend: str = "auto") -> None:
+    def __init__(
+        self,
+        region: str = "fr-fr",
+        max_results: int = 5,
+        backend: str = "auto",
+        research: ResearchLog | None = None,
+    ) -> None:
+        self.research = research  # carnet : garde les adresses pour « approfondis le 3 »
         self.region = region
         self.max_results = max_results
         self.backend = backend  # « auto » : ddgs passe d'un moteur à l'autre si l'un refuse
@@ -31,6 +39,8 @@ class WebSearchTool(Tool):
         if not hits:
             return ToolResult(f"Aucun résultat pour « {query} ».")
         results = [{"title": h["title"], "url": h["href"], "snippet": h["body"]} for h in hits]
+        if self.research is not None:
+            self.research.searched(query, [(r["title"], r["url"]) for r in results])
         text = "\n".join(
             f"{i}. {r['title']} — {r['snippet']} (source : {r['url']})"
             for i, r in enumerate(results, 1)

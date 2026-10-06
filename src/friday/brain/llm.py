@@ -18,6 +18,8 @@ from friday.brain.events import (
 )
 from friday.brain.prompts import build_system_prompt
 from friday.brain.router import SkillRouter
+from friday.brain.second_chance import forget_nudges, second_chance
+from friday.brain.summary import Summarizer
 from friday.brain.thinking import needs_thinking
 from friday.brain.toolset import LOAD_SKILL, Toolset
 from friday.core.config import Settings
@@ -66,9 +68,12 @@ class Brain:
         self.recall = recall
         self._memories: str | None = None
         self.conversation = Conversation()
+        self.summarizer = Summarizer(self.client, settings.ollama_model, settings.ollama_num_ctx)
+        self._prompt_tokens = 0  # taille du dernier échange avec le modèle (jetons)
         self.toolset = Toolset(self.toolbox, router, skill_contexts)
         self._tainted = False  # un contenu externe (mail, page, fichier…) a été lu
         self._think = False  # réflexion pour cette demande (calcul, « réfléchis »)
+        self._nudged = False  # relancé pour un « je note » sans outil
 
     def warmup(self) -> None:
         """Charge le modèle en mémoire vidéo dès le démarrage (sans générer de texte)."""
@@ -89,12 +94,15 @@ class Brain:
 
         `cancelled` permet d'abandonner un outil en cours si l'utilisateur interrompt Friday.
         """
+        self.summarizer.wait()  # un résumé en cours modifie le début de la conversation
         self.conversation.add("user", user_text)
         self._memories = self.recall(user_text) if self.recall else None
         self.toolset.start(user_text)
         self._tainted = safety.mentions_attachment(user_text)
         self._think = needs_thinking(user_text)
         parts: list[str] = []
+        acted = False  # un outil a servi pendant cette demande
+        self._nudged = False
         if self._think:
             yield ThinkingStarted()
         try:
@@ -108,11 +116,24 @@ class Brain:
                         parts.append(chunk.message.content)
                         yield chunk.message.content
                     calls.extend(chunk.message.tool_calls or [])
+                    if getattr(chunk, "done", False):
+                        used = (chunk.prompt_eval_count or 0) + (chunk.eval_count or 0)
+                        self._prompt_tokens = used
 
+                said = "".join(parts)
                 if not calls:
-                    self.conversation.add("assistant", "".join(parts))
+                    retry = use_tools and second_chance(
+                        self.toolset, self.conversation, said, acted, self._nudged
+                    )
+                    if retry:
+                        self._nudged = self._nudged or retry == "nudge"
+                        if said.strip():
+                            yield " "
+                        continue
+                    self.conversation.add("assistant", said)
                     break
-                yield from self._run_tools(calls, "".join(parts), cancelled)
+                acted = True
+                yield from self._run_tools(calls, said, cancelled)
         except OLLAMA_ERRORS as e:
             self._forget_unanswered_question()
             log.error("Erreur Ollama : %s", e)
@@ -123,7 +144,10 @@ class Brain:
             said = "".join(parts).strip()
             self.conversation.add("assistant", f"{said} […]" if said else "[interrompu]")
             raise
+        else:
+            self.summarizer.maybe_start(self.conversation, self._prompt_tokens)
         finally:
+            forget_nudges(self.conversation)
             self.conversation.compact_tool_results()
             self.toolset.finish()
 
@@ -139,6 +163,7 @@ class Brain:
                     with_tools=bool(self.toolbox),
                     memories=self._memories,
                     tool_guides=self.toolset.guides() if self.toolbox else None,
+                    summary=self.conversation.summary,
                 ),
             },
             *self.conversation.messages,

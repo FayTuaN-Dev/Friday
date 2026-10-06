@@ -11,6 +11,9 @@ from friday.brain.skills import BY_NAME, CORE_GUIDE, CORE_TOOLS, SKILLS
 from friday.tools.base import ToolBox
 
 LOAD_SKILL = "load_skill"
+# Une compétence qui a servi reste active tant que la conversation continue sans changer de
+# sujet (« approfondis », « et le troisième ? », « garde ça »), au plus ce nombre d'échanges.
+STICKY_TURNS = 3
 log = logging.getLogger(__name__)
 
 
@@ -32,14 +35,14 @@ class Toolset:
         self.router = router
         self.active: set[str] = {s.name for s in self.skills}  # sans aiguillage : tout
         self._fresh: set[str] = set()
-        self._previous: set[str] = set()
+        self._previous: dict[str, int] = {}  # compétence → échanges restants
 
     def start(self, user_text: str) -> None:
         """Début d'une demande : choisit les compétences actives."""
         if self.router is None:
             return
         self._fresh = self.router.choose(user_text) & {s.name for s in self.skills}
-        self.active = self._fresh | self._previous
+        self.active = self._fresh | set(self._previous)
 
     def load(self, name: str) -> str:
         if name not in BY_NAME or BY_NAME[name] not in self.skills:
@@ -48,17 +51,32 @@ class Toolset:
         self._fresh.add(name)
         return f"Compétence « {name} » chargée : ses outils sont maintenant disponibles."
 
+    def widen(self) -> bool:
+        """Filet de sécurité : donne toutes les compétences pour cette demande. Renvoie False
+        s'il n'y avait rien à ajouter."""
+        missing = {s.name for s in self.skills} - self.active
+        if self.router is None or not missing:
+            return False
+        self.active |= missing
+        return True
+
     def finish(self) -> None:
-        """Fin d'une demande : ce qui a servi reste actif pour l'échange suivant
-        (« supprime-le », « réponds-lui »), mais pas plus longtemps."""
-        if self.router is not None:
-            self._previous = set(self._fresh)
+        """Fin d'une demande. Nouveau sujet : ses compétences restent pour la suite, les
+        anciennes partent. Pas de nouveau sujet : les compétences en cours restent, au plus
+        STICKY_TURNS échanges."""
+        if self.router is None:
+            return
+        if self._fresh:
+            self._previous = dict.fromkeys(self._fresh, STICKY_TURNS)
+        else:
+            self._previous = {name: n - 1 for name, n in self._previous.items() if n > 1}
 
     def _context(self, name: str) -> list[str]:
         if name not in self.contexts:
             return []
         try:
-            return [f"  {self.contexts[name]()}"]
+            text = self.contexts[name]()
+            return [f"  {text}"] if text else []
         except Exception as error:  # un état illisible ne doit pas bloquer la réponse
             log.warning("Contexte « %s » indisponible : %s", name, error)
             return []

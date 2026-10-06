@@ -11,6 +11,7 @@ l'IA de Tony Stark (le projet s'appelait d'abord Jarvis).
 - **Interface** : PySide6
 - **Mémoire** : se souvient de vous d'une session à l'autre (SQLite local + embeddings `embeddinggemma`)
 - **Outils** : météo (Open-Meteo), recherche web, lecture de pages et images, sans clé API, affichés en pop-ups
+- **Longues recherches** : « approfondis le résultat 3 » plusieurs échanges plus tard (carnet de recherche), « garde ces points de côté » (notes), et les vieux échanges résumés automatiquement au lieu d'être oubliés
 
 Voir [ROADMAP.md](ROADMAP.md) pour les fonctionnalités et l'avancement, et
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) pour l'organisation du code.

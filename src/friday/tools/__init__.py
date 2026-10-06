@@ -5,9 +5,16 @@ from friday.tools.base import Display, Tool, ToolBox, ToolResult
 
 
 def default_toolbox(
-    settings: Settings, memory=None, on_background=None, agenda=None, briefing=None, google=None
+    settings: Settings,
+    memory=None,
+    on_background=None,
+    agenda=None,
+    briefing=None,
+    google=None,
+    research=None,
 ) -> ToolBox:
-    """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine."""
+    """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine.
+    `research` : carnet de recherche (ResearchLog) partagé par la recherche et la lecture web."""
     tools: list[Tool] = []
     if settings.tools_enabled:
         from friday.tools.images import ImageSearchTool
@@ -17,8 +24,10 @@ def default_toolbox(
 
         tools += [
             WeatherTool(settings.home_city),
-            WebSearchTool(settings.search_region, backend=settings.search_backend),
-            ReadWebPageTool(),
+            WebSearchTool(
+                settings.search_region, backend=settings.search_backend, research=research
+            ),
+            ReadWebPageTool(research),
             ImageSearchTool(settings.search_region),
         ]
     if settings.files_access:

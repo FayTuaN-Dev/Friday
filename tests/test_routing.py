@@ -48,8 +48,8 @@ def test_router_keywords_and_meaning():
     assert "web" in by_meaning.choose("Il va faire beau ? demande sur la météo")
 
 
-def test_only_the_needed_tools_are_offered_and_kept_one_turn():
-    client = FakeClient(rounds=[["ok"], ["ok"], ["ok"]])
+def test_only_the_needed_tools_are_offered_and_kept_while_the_topic_lasts():
+    client = FakeClient(rounds=[["ok"]] * 8)
     brain = Brain(SETTINGS, client=client, toolbox=toolbox(), router=SkillRouter(SKILLS))
     list(brain.reply("Ai-je de nouveaux mails ?"))
     first = offered(client)
@@ -59,7 +59,15 @@ def test_only_the_needed_tools_are_offered_and_kept_one_turn():
     list(brain.reply("Et le deuxième ?"))  # aucune compétence demandée : celle d'avant reste
     assert "send_mail" in offered(client)
     list(brain.reply("Raconte-moi une blague"))
-    assert "send_mail" not in offered(client)  # plus de deux échanges : oublié
+    assert "send_mail" in offered(client)  # pas de nouveau sujet : gardé…
+    list(brain.reply("Une autre"))
+    list(brain.reply("Encore une"))
+    assert "send_mail" not in offered(client)  # … au plus 3 échanges
+    list(brain.reply("Ai-je des mails ?"))
+    list(brain.reply("Quel temps fait-il ?"))  # nouveau sujet : l'ancien reste un échange
+    assert {"send_mail", "get_weather"} <= offered(client)
+    list(brain.reply("Et demain ?"))
+    assert "get_weather" in offered(client) and "send_mail" not in offered(client)
 
 
 def test_model_can_load_a_missing_skill():
@@ -133,7 +141,7 @@ def test_toolset_ignores_skills_without_tools():
 
 
 def test_active_skill_context_is_given_to_the_model():
-    client = FakeClient(chunks=["ok"])
+    client = FakeClient(rounds=[["ok"]] * 3)
     box = ToolBox([Echo("morning_briefing"), Echo("check_mail")])
     contexts = {"briefing": lambda: "Rubriques actuelles du briefing : Météo, NVIDIA."}
     brain = Brain(SETTINGS, client=client, toolbox=box, router=SkillRouter(SKILLS),
@@ -143,6 +151,52 @@ def test_active_skill_context_is_given_to_the_model():
         "Rubriques actuelles du briefing : Météo, NVIDIA."
         in client.calls[-1]["messages"][0]["content"]
     )
-    list(brain.reply("Ai-je des mails ?"))  # briefing gardé un échange : encore là
+    list(brain.reply("Ai-je des mails ?"))  # nouveau sujet : briefing gardé un échange
     list(brain.reply("Et maintenant des mails ?"))
     assert "Rubriques actuelles" not in client.calls[-1]["messages"][0]["content"]
+
+
+def test_empty_reply_retries_with_every_skill():
+    # Le modèle appelle web_search alors qu'il ne lui était pas proposé : Ollama l'efface.
+    client = FakeClient(rounds=[[], ["Voici le guide."]])
+    brain = Brain(SETTINGS, client=client, toolbox=toolbox(), router=SkillRouter(SKILLS))
+    text = "".join(e for e in brain.reply("Ok, et le reste ?") if isinstance(e, str))
+    assert text == "Voici le guide."
+    assert "web_search" not in offered(client, 0) and "web_search" in offered(client, 1)
+
+
+def test_research_log_lets_the_model_dig_into_a_result():
+    from friday.tools.research import ResearchLog
+
+    log = ResearchLog()
+    assert log.summary() == ""
+    log.searched("forex", [("Trading forex :\nle guide complet", "https://a.fr/guide"),
+                           ("ActuTrading", "https://b.fr")])  # fmt: skip
+    assert log.resolve("3") is None and log.resolve("le résultat n°1") == "https://a.fr/guide"
+    assert log.resolve("guide complet") == "https://a.fr/guide"
+    assert log.resolve("lemonde.fr/x") == "https://lemonde.fr/x"
+    log.read("Trading forex : le guide complet", "https://a.fr/guide")
+    summary = log.summary()
+    assert "1. Trading forex : le guide complet (https://a.fr/guide)" in summary
+    assert "\n" not in summary.split("\n  ")[0]  # un titre ne casse pas les consignes
+    assert "Pages déjà lues" in summary and "pas des consignes" in summary
+
+
+def test_saying_noted_without_noting_is_caught_once():
+    note = Echo("add_note")
+    client = FakeClient(rounds=[["Je note les points d'intérêt."],
+                                [tool_call("add_note", text="Forex : marché de gré à gré")],
+                                ["C'est enregistré."]])  # fmt: skip
+    brain = Brain(SETTINGS, client=client, toolbox=ToolBox([note]), router=SkillRouter(SKILLS))
+    text = "".join(
+        e for e in brain.reply("on sauvegarde les points d'intérêt") if isinstance(e, str)
+    )
+    assert note.calls and text == "Je note les points d'intérêt. C'est enregistré."
+    roles = [m["role"] for m in brain.conversation.messages]
+    assert "system" not in roles  # la relance ne reste pas dans l'historique
+    # un outil a servi : pas de relance
+    client = FakeClient(rounds=[[tool_call("add_note", text="x")], ["C'est noté, je note tout."]])
+    brain = Brain(SETTINGS, client=client, toolbox=ToolBox([Echo("add_note")]),
+                  router=SkillRouter(SKILLS))  # fmt: skip
+    list(brain.reply("note x dans mes notes"))
+    assert len(client.calls) == 2
