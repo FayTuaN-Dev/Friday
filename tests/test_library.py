@@ -125,3 +125,21 @@ def test_indexing_survives_a_closed_settings_page(tmp_path):
     QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
     report = library.sync(notify)  # la page n'existe plus : l'indexation va au bout
     assert sorted(report["added"]) == ["forex.md", "recettes.txt"]
+
+
+def test_library_hint_only_when_it_knows_the_topic(tmp_path):
+    library = make_library(tmp_path)
+    assert library.hint("c'est quoi un pip ?") == ""  # vide : pas encore indexée
+    library.sync()
+    library._known = ("", [])  # oublie la réponse gardée pour la question
+    hint = library.hint("c'est quoi un pip ?")
+    assert "forex.md" in hint and "cite le document" in hint
+    assert library.auto_search("c'est quoi un pip ?") == (
+        "search_library",
+        {"query": "c'est quoi un pip ?"},
+    )
+    assert library.hint("raconte-moi une blague") == ""
+    assert library.auto_search("raconte-moi une blague") is None
+    # le présent : internet, jamais un exemple du livre donné comme cours actuel
+    assert library.auto_search("quel est le cours du pip aujourd'hui ?") is None
+    assert library.hint("le pip en ce moment") == ""

@@ -23,11 +23,16 @@ class Toolset:
         toolbox: ToolBox,
         router: SkillRouter | None = None,
         contexts: dict[str, Callable[[], str]] | None = None,
+        hints: dict[str, Callable[[str], str]] | None = None,
     ) -> None:
         """`contexts` : par compétence, un état réel à donner au modèle quand elle est active
-        (ex. les rubriques du briefing), pour qu'il ne l'invente pas."""
+        (ex. les rubriques du briefing), pour qu'il ne l'invente pas.
+        `hints` : par compétence, hint(demande) → consigne si elle s'impose pour CETTE
+        demande (ex. la bibliothèque parle du sujet), "" sinon ; la compétence est activée."""
         self.toolbox = toolbox
         self.contexts = contexts or {}
+        self.hints = hints or {}
+        self._hint_texts: dict[str, str] = {}
         available = set(toolbox.names())
         self.skills = [s for s in SKILLS if available & set(s.tools)]
         skill_tools = {t for s in SKILLS for t in s.tools}
@@ -41,7 +46,15 @@ class Toolset:
         """Début d'une demande : choisit les compétences actives."""
         if self.router is None:
             return
-        self._fresh = self.router.choose(user_text) & {s.name for s in self.skills}
+        available = {s.name for s in self.skills}
+        self._fresh = self.router.choose(user_text) & available
+        self._hint_texts = {}
+        for name, hint in self.hints.items():
+            text = hint(user_text) if name in available else ""
+            if text:
+                self._hint_texts[name] = text
+                self._fresh.add(name)
+                log.info("Compétence « %s » suggérée : %s", name, text[:80])
         self.active = self._fresh | set(self._previous)
 
     def load(self, name: str) -> str:
@@ -115,6 +128,8 @@ class Toolset:
             if skill.name in self.active:
                 parts.append(skill.guide)
                 parts += self._context(skill.name)
+                if skill.name in self._hint_texts:
+                    parts.append(f"  {self._hint_texts[skill.name]}")
         inactive = [s for s in self.skills if s.name not in self.active]
         if self.router is not None and inactive:
             others = ", ".join(s.label for s in inactive)

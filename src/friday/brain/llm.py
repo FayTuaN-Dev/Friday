@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Callable, Iterator
+from types import SimpleNamespace
 from typing import Any
 
 import httpx
@@ -59,6 +60,8 @@ class Brain:
         recall: Callable[[str], str] | None = None,
         router: SkillRouter | None = None,
         skill_contexts: dict[str, Callable[[], str]] | None = None,
+        skill_hints: dict[str, Callable[[str], str]] | None = None,
+        prefetch: Callable[[str], tuple[str, dict] | None] | None = None,
     ) -> None:
         """`router` : aiguillage des compétences (sans lui, tous les outils sont donnés)."""
         self.settings = settings
@@ -70,7 +73,9 @@ class Brain:
         self.conversation = Conversation()
         self.summarizer = Summarizer(self.client, settings.ollama_model, settings.ollama_num_ctx)
         self._prompt_tokens = 0  # taille du dernier échange avec le modèle (jetons)
-        self.toolset = Toolset(self.toolbox, router, skill_contexts)
+        self.toolset = Toolset(self.toolbox, router, skill_contexts, skill_hints)
+        # prefetch(demande) → (outil, arguments) à lancer d'office avant de répondre, ou None
+        self.prefetch = prefetch
         self._tainted = False  # un contenu externe (mail, page, fichier…) a été lu
         self._think = False  # réflexion pour cette demande (calcul, « réfléchis »)
         self._nudged = False  # relancé pour un « je note » sans outil
@@ -106,6 +111,11 @@ class Brain:
         if self._think:
             yield ThinkingStarted()
         try:
+            if self.prefetch and (auto := self.prefetch(user_text)):
+                acted = True
+                name, args = auto
+                call = SimpleNamespace(function=SimpleNamespace(name=name, arguments=args))
+                yield from self._run_tools([call], "", cancelled)
             for round_ in range(MAX_TOOL_ROUNDS + 1):
                 parts = []
                 calls: list[Any] = []

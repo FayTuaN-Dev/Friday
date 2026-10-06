@@ -200,3 +200,37 @@ def test_saying_noted_without_noting_is_caught_once():
                   router=SkillRouter(SKILLS))  # fmt: skip
     list(brain.reply("note x dans mes notes"))
     assert len(client.calls) == 2
+
+
+def test_a_hint_activates_its_skill_for_this_request_only():
+    box = toolbox(Echo("search_library"))
+    client = FakeClient(rounds=[["ok"]] * 2)
+    hints = {
+        "library": lambda text: "Ta bibliothèque parle de ce sujet." if "forex" in text else ""
+    }
+    brain = Brain(SETTINGS, client=client, toolbox=box, router=SkillRouter(SKILLS),
+                  skill_hints=hints)  # fmt: skip
+    list(brain.reply("C'est quoi le forex ?"))
+    assert "search_library" in offered(client)
+    assert "Ta bibliothèque parle de ce sujet." in client.calls[-1]["messages"][0]["content"]
+    list(brain.reply("Ouvre Spotify"))
+    assert "Ta bibliothèque parle" not in client.calls[-1]["messages"][0]["content"]
+
+
+def test_prefetch_runs_the_library_search_before_answering():
+    search = Echo("search_library", text="[guide.pdf, page 3]\nUn pip vaut 0,0001.",
+                  parameters={"query": {"type": "string"}})  # fmt: skip
+    client = FakeClient(rounds=[["D'après votre guide, 0,0001."], ["ok"]])
+
+    def prefetch(question):
+        return ("search_library", {"query": question}) if "pip" in question else None
+
+    brain = Brain(SETTINGS, client=client, toolbox=ToolBox([search]), router=SkillRouter(SKILLS),
+                  prefetch=prefetch)  # fmt: skip
+    events = list(brain.reply("C'est quoi un pip ?"))
+    assert search.calls == [{"query": "C'est quoi un pip ?"}]
+    assert any(isinstance(e, ToolStarted) for e in events)
+    tool_message = next(m for m in brain.conversation.messages if m["role"] == "tool")
+    assert "0,0001" in tool_message["content"] and tool_message["content"] != search.text  # balisé
+    list(brain.reply("Ouvre Spotify"))
+    assert len(search.calls) == 1

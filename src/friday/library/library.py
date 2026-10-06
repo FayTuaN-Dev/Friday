@@ -15,6 +15,7 @@ from pathlib import Path
 from friday.files.readers import SUPPORTED, UnreadableFile, read_document
 from friday.library.chunker import split
 from friday.library.store import Hit, LibraryStore
+from friday.voice.wake import normalize
 
 log = logging.getLogger(__name__)
 
@@ -24,7 +25,34 @@ RRF_K = 60  # constante habituelle de la fusion par rang
 MIN_SIMILARITY = 0.40
 CLOSE_TO_BEST = 0.12  # écart toléré avec le meilleur passage
 EMBED_BATCH = 16
-RETIRED = "_retires"  # « retirer » un document le déplace ici : rien n'est effacé
+RETIRED = "_retires"
+# Questions sur le présent : un livre n'a pas la réponse (constaté : « le cours de l'euro
+# aujourd'hui » → un exemple du guide donné comme cours actuel). Internet, pas la bibliothèque.
+NOW = (
+    " aujourd hui",
+    " actuel",
+    " actuellement",
+    " en ce moment",
+    " maintenant",
+    " ce matin",
+    " ce soir",
+    " hier",
+    " cette semaine",
+    " ce mois",
+    " dernieres nouvelles",
+    " actualite",
+    " news",
+    " en direct",
+    " cours du jour",
+    " a l instant",
+    " recemment",
+    " derniere minute",
+)  # « retirer » un document le déplace ici : rien n'est effacé
+
+
+def about_now(question: str) -> bool:
+    padded = f" {normalize(question)} "
+    return any(word in padded for word in NOW)
 
 
 class Library:
@@ -34,6 +62,7 @@ class Library:
         self.embedder = embedder
         self._sync_lock = threading.Lock()
         self.indexing: str | None = None  # document en cours d'indexation (pour l'affichage)
+        self._known: tuple[str, list[str]] = ("", [])
         folder.mkdir(parents=True, exist_ok=True)
 
     # --- indexation -------------------------------------------------------------------------
@@ -114,6 +143,41 @@ class Library:
         return target
 
     # --- recherche ---------------------------------------------------------------------------
+
+    def knows(self, question: str) -> list[str]:
+        """Documents qui parlent clairement de ce sujet ([] sinon). Mesuré sur un vrai guide :
+        sujets liés 0,43–0,63, sans rapport ≤ 0,16. Gardé pour la question en cours."""
+        if self._known[0] == question:
+            return self._known[1]
+        names: list[str] = []
+        if question.strip() and self.store.documents():
+            try:
+                found = self.store.by_meaning(self.embedder.query(question), CANDIDATES)
+                close = [i for i, score in found if score >= MIN_SIMILARITY]
+                names = list(dict.fromkeys(h.document for h in self.store.hits(close)))[:3]
+            except Exception as error:  # modèle d'embeddings indisponible : tant pis
+                log.warning("Bibliothèque : sujet non vérifié (%s)", error)
+        self._known = (question, names)
+        return names
+
+    def auto_search(self, question: str) -> tuple[str, dict] | None:
+        """Avant de répondre : la bibliothèque connaît le sujet → on y cherche d'office (un
+        petit modèle qui « croit savoir » n'y pense pas tout seul, constaté). Jamais pour une
+        question sur le présent."""
+        if about_now(question) or not self.knows(question):
+            return None
+        return ("search_library", {"query": question})
+
+    def hint(self, question: str) -> str:
+        """Consigne qui accompagne les passages cherchés d'office ("" si rien)."""
+        names = self.knows(question)
+        if not names or about_now(question):
+            return ""
+        return (
+            f"Des passages de la bibliothèque ({', '.join(names)}) viennent d'être cherchés "
+            "pour cette question : réponds à partir d'eux et cite le document. Internet "
+            "seulement en complément, ou pour l'actualité (cours du jour, nouvelles)."
+        )
 
     def search(self, query: str, limit: int = 4) -> list[Hit]:
         by_meaning = self.store.by_meaning(self.embedder.query(query), CANDIDATES)

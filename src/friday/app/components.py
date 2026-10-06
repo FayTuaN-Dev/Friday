@@ -65,6 +65,8 @@ def load_components(
         recall=(lambda question: format_memories(memory.relevant(question))) if memory else None,
         router=load_router(memory),
         skill_contexts=contexts,
+        skill_hints={"library": library.hint} if library else None,
+        prefetch=library.auto_search if library else None,
     )
     brain.warmup()
     warn_if_spilling(client, settings.ollama_model, settings.ollama_num_ctx)
