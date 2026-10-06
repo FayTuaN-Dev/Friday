@@ -49,10 +49,14 @@ def test_prompt_mentions_tools_only_when_available():
     assert "web_search" not in plain.client.calls[0]["messages"][0]["content"]
 
 
-def test_tool_results_are_compacted():
+def test_tool_results_are_compacted_except_the_last_exchange():
     conv = Conversation()
     conv.add("user", "q")
     conv.add("tool", "x" * 5000, tool_name="web_search")
+    conv.compact_tool_results()
+    assert len(conv.messages[1]["content"]) == 5000  # pour « approfondis le troisième »
+    conv.add("assistant", "réponse")
+    conv.add("user", "question suivante")
     conv.compact_tool_results()
     assert len(conv.messages[1]["content"]) < TOOL_RESULT_KEEP_CHARS + 10
 

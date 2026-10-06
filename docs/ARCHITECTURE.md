@@ -36,10 +36,13 @@ src/friday/
 │   ├── prompts.py         personnalité de Friday (prompt système)
 │   ├── skills.py          compétences : outils + consignes + mots-clés + exemples par domaine
 │   ├── router.py          SkillRouter : quelles compétences pour cette demande (mots-clés, sens)
-│   ├── toolset.py         Toolset : outils et consignes donnés au modèle, load_skill (secours)
+│   ├── toolset.py         Toolset : outils et consignes donnés au modèle, load_skill (secours) ;
+│   │                      une compétence reste active tant que le sujet continue (3 échanges)
+│   ├── second_chance.py   relance unique : réponse vide (outil non proposé) ou « je note » sans outil
+│   ├── summary.py         résumé glissant : vieux échanges résumés quand la mémoire de travail se remplit
 │   ├── safety.py          contenu externe encadré ; confirmation des actions qui suivent sa lecture
 │   ├── thinking.py        réflexion à la demande (« réfléchis ») ou pour les calculs
-│   └── conversation.py    mémoire de la conversation en cours
+│   └── conversation.py    mémoire de la conversation en cours (+ résumé du début)
 ├── voice/
 │   ├── recorder.py        Recorder : capture du micro → audio 16 kHz
 │   ├── stt.py             WhisperSTT : voix → texte (faster-whisper)
@@ -105,7 +108,8 @@ src/friday/
 │   ├── __init__.py        default_toolbox() : liste des outils actifs
 │   ├── base.py            Tool, ToolBox, ToolResult, Display (contenu à afficher), retry()
 │   ├── web_search.py      recherche internet (DuckDuckGo)
-│   ├── web_page.py        lecture d'une page (trafilatura)
+│   ├── web_page.py        lecture d'une page (trafilatura) : adresse ou numéro d'un résultat
+│   ├── research.py        carnet de recherche : derniers résultats et pages lues, avec leurs adresses
 │   ├── images.py          recherche et téléchargement d'images
 │   ├── files.py           read_file (par parties) / read_clipboard / copy_to_clipboard
 │   ├── file_search.py     search_files / open_file

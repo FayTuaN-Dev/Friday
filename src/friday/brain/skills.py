@@ -42,7 +42,8 @@ SKILLS = (
            "news", "nouvelles", "page", "lien", "article", "image", "photo ", "photos", "prix",
            "horaire", "resultat", "match", "score", "qui a gagne", "ligue", "championnat",
            "election", "qui est", "combien coute", "wikipedia", "bourse", "cours de", "cours du",
-           "bitcoin", "crypto"),
+           "bitcoin", "crypto", "approfondi", "en savoir plus", "plus de detail", "developpe",
+           "guide", "le point", "numero"),
           ("quel temps fait-il demain", "cherche les dernières nouvelles sur la bourse",
            "montre-moi des images de chats", "qui a gagné le match hier soir",
            "lis-moi cet article")),
@@ -95,9 +96,14 @@ SKILLS = (
           """- set_timer, set_reminder, list_reminders, cancel_reminder : minuteurs et rappels. Pour
   un rappel, donne l'heure (« 18:00 ») et le jour (« demain », « lundi »), ou le délai
   (« 2 minutes »), EXACTEMENT comme l'utilisateur les a dits : ne convertis rien.
-- add_note, list_notes, remove_note : notes et listes (courses, tâches…).""",
+- add_note, list_notes, remove_note : notes et listes (courses, tâches…).
+- Quand l'utilisateur demande de sauvegarder, garder ou mettre de côté des informations
+  (par exemple les points d'intérêt d'une recherche) : appelle add_note pour chacune, dans
+  une liste au nom du sujet. Sans appel à add_note, rien n'est enregistré : ne prétends
+  pas l'avoir fait.""",
           ("rappel", "minuteur", "timer", "alarme", "chrono", "note", "liste", "course",
-           "tache", "achete", "dans 5 minutes", "dans 10 minutes", "previens moi"),
+           "tache", "achete", "dans 5 minutes", "dans 10 minutes", "previens moi", "sauvegard",
+           "point d interet", "points d interet", "de cote", "garde moi", "garde ces"),
           ("rappelle-moi d'appeler maman à 18 h", "minuteur de 10 minutes",
            "ajoute du lait à ma liste de courses", "qu'y a-t-il sur ma liste")),
     Skill("calendar", "agenda Google : voir, ajouter, déplacer, supprimer des rendez-vous",

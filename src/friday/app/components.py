@@ -13,6 +13,7 @@ from friday.brain.llm import Brain
 from friday.core.config import DATA_DIR, MODELS_DIR, VOICES_DIR, Settings
 from friday.memory.service import MemoryService, format_memories
 from friday.tools import ToolResult, default_toolbox
+from friday.tools.research import ResearchLog
 from friday.voice.speaker import Speaker
 
 log = logging.getLogger(__name__)
@@ -48,13 +49,19 @@ def load_components(
         agenda = AgendaStore(DATA_DIR / "agenda.db")
     google = load_google(settings)
     briefing = load_briefing(settings, agenda, google)
+    research = ResearchLog()
+    contexts = {"web": research.summary}
+    if briefing:
+        contexts["briefing"] = briefing.summary
     brain = Brain(
         settings,
         client=client,
-        toolbox=default_toolbox(settings, memory, on_background, agenda, briefing, google),
+        toolbox=default_toolbox(
+            settings, memory, on_background, agenda, briefing, google, research
+        ),
         recall=(lambda question: format_memories(memory.relevant(question))) if memory else None,
         router=load_router(memory),
-        skill_contexts={"briefing": briefing.summary} if briefing else None,
+        skill_contexts=contexts,
     )
     brain.warmup()
     components = Components(
