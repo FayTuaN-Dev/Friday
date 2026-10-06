@@ -44,6 +44,7 @@ class SettingsWindow(Popup):
             ("Briefing", "sun", BriefingPage(getattr(components, "briefing", None))),
             ("Bibliothèque", "book", LibraryPage(getattr(components, "library", None))),
             ("Fonctions", "sliders", by_name["Fonctions"]),
+            ("Trading", "trending", by_name["Trading"]),
             ("Comptes", "cloud", AccountsPage(getattr(components, "google", None))),
         ]
         self.nav = QListWidget(objectName="SettingsNav")

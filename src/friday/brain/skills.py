@@ -160,6 +160,19 @@ SKILLS = (
            "mes cours", "mon cours", "selon mes", "dans mes notes de cours", "mes fiches"),
           ("que dit mon livre sur la gestion du risque", "cherche dans ma bibliothèque",
            "qu'y a-t-il dans mes documents sur le Forex", "d'après mes cours, c'est quoi un pip")),
+    Skill("trading", "mode trading : calculs de risque, journal de trading, analyses",
+          ("position_size", "pip_value", "risk_reward", "log_trade", "close_trade",
+           "trade_stats", "trading_analysis"),
+          """- Mode trading actif. position_size, pip_value, risk_reward : calculs EXACTS faits
+  sur le PC ; extrais les chiffres de la demande, n'en invente aucun (demande ceux qui
+  manquent), puis répète le résultat tel quel. Jamais de calcul de tête.
+- log_trade, close_trade, trade_stats : le journal de trading (local).
+- trading_analysis : faire analyser une question par Claude (l'utilisateur valide d'abord).
+- Tu ne donnes jamais d'ordre ni de signal ; tu ne passes jamais d'ordre.""",
+          ("taille de position", "lots", "pip", "ratio", "risque rendement", "journal de trading",
+           "mes trades", "trade"),
+          ("calcule ma taille de position", "combien vaut un pip sur 0,5 lot",
+           "note ce trade dans le journal", "quel est mon bilan de trading")),
     Skill("claude", "Claude Code : coder, créer ou modifier des fichiers, longues tâches",
           ("ask_claude_code", "cancel_claude_task"),
           """- ask_claude_code : confier une tâche de programmation ou de création de fichiers à Claude

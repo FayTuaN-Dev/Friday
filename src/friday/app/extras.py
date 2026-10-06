@@ -75,3 +75,27 @@ def load_library(settings: Settings, memory):
     except Exception:
         log.exception("Bibliothèque indisponible, Friday continue sans")
         return None
+
+
+def load_trading(settings: Settings, library):
+    """Mode trading (désactivé au démarrage, activé par « mode trading »). Demande Claude Code."""
+    if not settings.trading.enabled or not settings.claude_enabled:
+        return None
+    try:
+        from friday.trading import Trading
+        from friday.trading.analyst import isolated_job
+        from friday.trading.context_builder import ContextBuilder
+        from friday.trading.journal import TradeJournal
+        from friday.trading.mode import TradingMode
+
+        config = settings.trading
+        DATA_DIR.mkdir(exist_ok=True)
+        journal = TradeJournal(DATA_DIR / "trading.db")
+        builder = ContextBuilder(library, journal, config.passages, config.max_chars,
+                                 config.blocklist)  # fmt: skip
+        job = isolated_job(DATA_DIR / "trading_claude", config.model or settings.claude_model,
+                           settings.claude_timeout)  # fmt: skip
+        return Trading(TradingMode(), journal, builder, job, config.account_currency)
+    except Exception:
+        log.exception("Mode trading indisponible, Friday continue sans")
+        return None

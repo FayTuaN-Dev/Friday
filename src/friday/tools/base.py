@@ -65,6 +65,10 @@ class Tool(ABC):
         """Question posée avant d'exécuter un outil sensible."""
         return f"Je lance « {self.label(args)} » ?"
 
+    def preview(self, args: dict[str, Any]) -> Any:
+        """Ce que l'outil montrera avant confirmation (None : la question suffit)."""
+        return None
+
     def cancel(self) -> None:  # noqa: B027 (facultatif : la plupart des outils n'ont rien à faire)
         """Appelé si l'outil est abandonné (délai dépassé, interruption) : à libérer ici."""
 
@@ -108,6 +112,11 @@ class ToolBox:
         """La question à poser avant d'exécuter cet outil, ou None s'il n'en faut pas."""
         tool = self._tools.get(name)
         return tool.confirmation(args) if tool and tool.needs_confirmation else None
+
+    def preview(self, name: str, args: dict[str, Any]) -> Any:
+        """Aperçu à montrer avec la confirmation (appelé APRÈS `confirmation`)."""
+        tool = self._tools.get(name)
+        return tool.preview(args) if tool else None
 
     def run(
         self,

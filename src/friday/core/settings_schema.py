@@ -91,5 +91,17 @@ SECTIONS = (
         Field("MEMORY_ENABLED", "Mémoire à long terme", "bool", "true"),
         Field("MEMORY_AUTO", "Mémorisation automatique", "bool", "true"),
         Field("LIBRARY_ENABLED", "Bibliothèque de documents", "bool", "true"),
+        Field("TRADING_ENABLED", "Mode trading (« mode trading »)", "bool", "true",
+              "Analyses par Claude après aperçu ; calculs et journal en local."),
+    )),
+    Section("Trading", "trending", (
+        Field("TRADING_ACCOUNT_CURRENCY", "Devise du compte", "text", "EUR",
+              "Pour la valeur du pip et la taille de position (calculées sur le PC)."),
+        Field("TRADING_PASSAGES", "Extraits de la bibliothèque par analyse", "int", "10",
+              "Envoyés à Claude avec la question (après aperçu).", 1, 15),
+        Field("TRADING_MAX_CHARS", "Taille maximale d'un envoi (caractères)", "int", "12000",
+              "Au-delà, les extraits les moins utiles ne partent pas.", 2000, 30000, 1000),
+        Field("TRADING_BLOCKLIST", "Mots toujours masqués", "text", "",
+              "Séparés par des virgules : votre nom, n° de client du courtier…"),
     )),
 )  # fmt: skip

@@ -34,6 +34,9 @@ class ConfirmationRequest:
     args: dict[str, Any]
     question: str
     approved: bool = False
+    # Ce qui partira, à montrer avant la réponse (ex. le paquet d'une analyse de trading) ;
+    # son `approved` passe à True seulement si l'utilisateur accepte.
+    preview: Any = None
     _answered: threading.Event = field(default_factory=threading.Event, repr=False)
 
     @property

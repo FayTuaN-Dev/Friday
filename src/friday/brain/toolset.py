@@ -24,23 +24,32 @@ class Toolset:
         router: SkillRouter | None = None,
         contexts: dict[str, Callable[[], str]] | None = None,
         hints: dict[str, Callable[[str], str]] | None = None,
+        gates: dict[str, Callable[[], bool]] | None = None,
     ) -> None:
         """`contexts` : par compétence, un état réel à donner au modèle quand elle est active
         (ex. les rubriques du briefing), pour qu'il ne l'invente pas.
         `hints` : par compétence, hint(demande) → consigne si elle s'impose pour CETTE
-        demande (ex. la bibliothèque parle du sujet), "" sinon ; la compétence est activée."""
+        demande (ex. la bibliothèque parle du sujet), "" sinon ; la compétence est activée.
+        `gates` : par compétence, gate() → False la rend inexistante pour l'instant (ex. le
+        trading hors du mode trading : ni proposée, ni chargeable)."""
+        self.gates = gates or {}
         self.toolbox = toolbox
         self.contexts = contexts or {}
         self.hints = hints or {}
         self._hint_texts: dict[str, str] = {}
         available = set(toolbox.names())
-        self.skills = [s for s in SKILLS if available & set(s.tools)]
+        self._skills = [s for s in SKILLS if available & set(s.tools)]
         skill_tools = {t for s in SKILLS for t in s.tools}
         self._always = (set(CORE_TOOLS) | (available - skill_tools)) & available
         self.router = router
-        self.active: set[str] = {s.name for s in self.skills}  # sans aiguillage : tout
+        self.active: set[str] = {s.name for s in self._skills}  # sans aiguillage : tout
         self._fresh: set[str] = set()
         self._previous: dict[str, int] = {}  # compétence → échanges restants
+
+    @property
+    def skills(self) -> list:
+        """Les compétences utilisables en ce moment (portes ouvertes)."""
+        return [s for s in self._skills if self.gates.get(s.name, lambda: True)()]
 
     def start(self, user_text: str) -> None:
         """Début d'une demande : choisit les compétences actives."""

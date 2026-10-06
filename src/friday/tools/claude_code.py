@@ -20,6 +20,8 @@ INSTRUCTIONS = (
     "Termine par un compte rendu court : ce que tu as fait et les fichiers créés ou modifiés."
 )
 LLM_MAX_CHARS = 2500
+# acceptEdits : peut créer et modifier des fichiers du dossier, pas lancer de commandes
+DEFAULT_OPTIONS = ("--permission-mode", "acceptEdits")
 
 OnDone = Callable[[str, ToolResult], None]
 
@@ -36,8 +38,13 @@ def snapshot(folder: Path) -> dict[str, float]:
 class ClaudeCodeJob:
     """Une tâche Claude Code en cours (une seule à la fois)."""
 
-    def __init__(self, workspace: Path, model: str, timeout: float) -> None:
+    def __init__(
+        self, workspace: Path, model: str, timeout: float,
+        options: tuple[str, ...] = DEFAULT_OPTIONS, instructions: str = INSTRUCTIONS,
+    ) -> None:  # fmt: skip
+        """`options` : droits donnés à Claude (voir trading/analyst.py pour une version isolée)."""
         self.workspace, self.model, self.timeout = workspace, model, timeout
+        self.options, self.instructions = options, instructions
         self.task: str | None = None
         self._process: subprocess.Popen | None = None
 
@@ -53,8 +60,7 @@ class ClaudeCodeJob:
         before, start = snapshot(self.workspace), time.monotonic()
         command = [
             executable, "-p", task, "--model", self.model, "--output-format", "json",
-            # acceptEdits : peut créer et modifier des fichiers du dossier, pas lancer de commandes
-            "--permission-mode", "acceptEdits", "--append-system-prompt", INSTRUCTIONS,
+            *self.options, "--append-system-prompt", self.instructions,
         ]  # fmt: skip
         self._process = subprocess.Popen(
             command, cwd=self.workspace, stdout=subprocess.PIPE, stderr=subprocess.PIPE,

@@ -62,6 +62,7 @@ class Brain:
         skill_contexts: dict[str, Callable[[], str]] | None = None,
         skill_hints: dict[str, Callable[[str], str]] | None = None,
         prefetch: Callable[[str], tuple[str, dict] | None] | None = None,
+        skill_gates: dict[str, Callable[[], bool]] | None = None,
     ) -> None:
         """`router` : aiguillage des compétences (sans lui, tous les outils sont donnés)."""
         self.settings = settings
@@ -73,7 +74,7 @@ class Brain:
         self.conversation = Conversation()
         self.summarizer = Summarizer(self.client, settings.ollama_model, settings.ollama_num_ctx)
         self._prompt_tokens = 0  # taille du dernier échange avec le modèle (jetons)
-        self.toolset = Toolset(self.toolbox, router, skill_contexts, skill_hints)
+        self.toolset = Toolset(self.toolbox, router, skill_contexts, skill_hints, skill_gates)
         # prefetch(demande) → (outil, arguments) à lancer d'office avant de répondre, ou None
         self.prefetch = prefetch
         self._tainted = False  # un contenu externe (mail, page, fichier…) a été lu
@@ -214,9 +215,13 @@ class Brain:
             if not question and self._tainted and name in safety.GUARDED_AFTER_EXTERNAL:
                 question = safety.guard_question(self.toolbox.label(name, args))
             if question:
-                request = ConfirmationRequest(name, args, question)
+                preview = self.toolbox.preview(name, args)
+                request = ConfirmationRequest(name, args, question, preview=preview)
                 yield request  # l'assistant pose la question et note qu'une réponse est attendue
-                if not request.wait(CONFIRM_TIMEOUT, cancelled):
+                approved = request.wait(CONFIRM_TIMEOUT, cancelled)
+                if preview is not None:
+                    preview.approved = approved  # seul ce « oui » explicite valide l'envoi
+                if not approved:
                     log.info("Outil %s refusé ou sans réponse", name)
                     refused = ToolResult(
                         "L'utilisateur n'a pas confirmé : rien n'a été lancé. Dis-le en une phrase."

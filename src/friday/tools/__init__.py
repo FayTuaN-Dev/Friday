@@ -13,6 +13,7 @@ def default_toolbox(
     google=None,
     research=None,
     library=None,
+    trading=None,
 ) -> ToolBox:
     """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine.
     `research` : carnet de recherche (ResearchLog) partagé par la recherche et la lecture web."""
@@ -66,6 +67,24 @@ def default_toolbox(
         tools.append(LookAtScreenTool(reader, capture_screen))
         if claude is not None:  # secours, avec confirmation
             tools.append(AskClaudeAboutScreenTool(claude, capture_screen))
+    if trading is not None and on_background is not None:
+        from friday.tools.trading import (
+            CloseTradeTool,
+            LogTradeTool,
+            PipValueTool,
+            PositionSizeTool,
+            RiskRewardTool,
+            TradeStatsTool,
+        )
+        from friday.tools.trading_analysis import TradingAnalysisTool
+
+        account = trading.account_currency
+        tools += [
+            PositionSizeTool(account), PipValueTool(account), RiskRewardTool(),
+            LogTradeTool(trading.journal), CloseTradeTool(trading.journal),
+            TradeStatsTool(trading.journal),
+            TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background),
+        ]  # fmt: skip
     if library is not None:
         from friday.tools.library import ListLibraryTool, SearchLibraryTool, UpdateLibraryTool
 

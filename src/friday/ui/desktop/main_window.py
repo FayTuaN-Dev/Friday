@@ -153,6 +153,8 @@ class MainWindow(QMainWindow):
     def _on_display(self, display) -> None:
         if display.kind == "settings":  # « ouvre les réglages »
             self.open_settings()
+        elif display.kind == "trading_mode":  # badge du mode trading
+            self.title_bar.set_trading(display.data.get("on", False))
         else:
             self.popups.show(display)
 

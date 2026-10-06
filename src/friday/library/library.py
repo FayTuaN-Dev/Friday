@@ -169,13 +169,15 @@ class Library:
             "Internet seulement en complément, ou pour l'actualité."
         )
 
-    def search(self, query: str, limit: int = 4) -> list[Hit]:
+    def search(self, query: str, limit: int = 4, close_to_best: float = CLOSE_TO_BEST) -> list[Hit]:
+        """`close_to_best` : écart toléré avec le meilleur passage (plus large pour une analyse
+        de trading, qui veut 8 à 15 extraits)."""
         by_meaning = self.store.by_meaning(self.embedder.query(query), CANDIDATES)
         best = by_meaning[0][1] if by_meaning else 0.0
         if best >= MIN_SIMILARITY:
             # Seulement les passages presque aussi proches que le meilleur : sinon des
             # passages hors sujet comblent la liste (« pip » → un passage sur le pain).
-            by_meaning = [(i, score) for i, score in by_meaning if score >= best - CLOSE_TO_BEST]
+            by_meaning = [(i, score) for i, score in by_meaning if score >= best - close_to_best]
             by_words = self.store.by_words(query, CANDIDATES)
         else:
             # Le sens ne suffit pas : seuls les passages avec TOUS les mots importants

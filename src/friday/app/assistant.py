@@ -24,11 +24,17 @@ from friday.app.voice_inputs import VoiceInputs
 from friday.brain.llm import BrainError
 from friday.core.config import LOGS_DIR, Settings
 from friday.files.clipboard import read_clipboard
-from friday.tools.base import ToolResult
+from friday.tools.base import Display, ToolResult
 
 log = logging.getLogger(__name__)
 
 Loader = Callable[..., Components]
+TRADING_ON = (
+    "Le mode trading vient d'être activé. Annonce-le en une ou deux phrases : les questions "
+    "d'analyse partent à Claude seulement après un aperçu à valider ; calculs de risque et "
+    "journal restent sur le PC ; « fin du mode trading » pour en sortir."
+)
+TRADING_OFF = "Le mode trading est désactivé. Dis-le en une phrase : tout redevient local."
 
 
 class Assistant:
@@ -170,7 +176,8 @@ class Assistant:
             self.listener.on_notice("Nouvelle conversation")
         elif kind in ("text", "heard"):
             self.listener.on_user_message(str(payload), by_voice=kind == "heard")
-            self._respond(self.attachments.wrap(str(payload)), said=str(payload))
+            if not self._trading_command(str(payload)):
+                self._respond(self.attachments.wrap(str(payload)), said=str(payload))
         elif kind == "done":  # une tâche de fond (Claude) est terminée
             self._announce(*payload)
         elif kind == "briefing" and (request := morning_request(self.components.briefing)):
@@ -182,7 +189,24 @@ class Assistant:
                 return
             if not self.confirm.route(text):
                 self.listener.on_user_message(text, by_voice=True)
-                self._respond(self.attachments.wrap(text), said=text)
+                if not self._trading_command(text):
+                    self._respond(self.attachments.wrap(text), said=text)
+
+    def _trading_command(self, text: str) -> bool:
+        """« mode trading » / « fin du mode trading » : reconnu par le code, pas le modèle."""
+        trading = self.components.trading
+        change = trading.mode.command(text) if trading else None
+        if change is None:
+            return False
+        trading.mode.enabled = change == "on"
+        log.info("Mode trading %s", "activé" if trading.mode.enabled else "désactivé")
+        self.listener.on_display(Display("trading_mode", "Mode trading",
+                                         {"on": trading.mode.enabled}))  # fmt: skip
+        self._respond(
+            "(Message automatique, pas de l'utilisateur.) "
+            + (TRADING_ON if trading.mode.enabled else TRADING_OFF)
+        )
+        return True
 
     def _announce(self, task: str, result: ToolResult) -> None:
         """Une tâche de fond est finie : Friday l'annonce de lui-même (`result.text` le guide)."""

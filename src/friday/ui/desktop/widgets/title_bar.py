@@ -9,6 +9,8 @@ from friday.ui.desktop.icons import icon
 from friday.ui.desktop.theme import Palette
 from friday.ui.desktop.widgets.color_menu import ColorMenu
 
+TITLE = "F.R.I.D.A.Y."
+
 
 class TitleBar(QWidget):
     def __init__(self, window: QWidget, base: QColor) -> None:
@@ -27,7 +29,8 @@ class TitleBar(QWidget):
         self.maximize = self._button("Agrandir", "TitleButton", self.toggle_maximized)
         self.close_button = self._button("Fermer", "CloseButton", window.close)
 
-        title = QLabel("F.R.I.D.A.Y.", objectName="Title", alignment=Qt.AlignCenter)
+        title = QLabel(TITLE, objectName="Title", alignment=Qt.AlignCenter)
+        self.title = title
         # Le titre reste centré : même largeur réservée à gauche et à droite
         left = QWidget()
         left_row = QHBoxLayout(left)
@@ -56,6 +59,14 @@ class TitleBar(QWidget):
         if slot:
             button.clicked.connect(slot)
         return button
+
+    def set_trading(self, on: bool) -> None:
+        """Le mode trading se voit : le titre l'annonce tant qu'il est actif."""
+        # Espacement des lettres réduit en mode trading : le titre tient dans sa place.
+        self.title.setText(f"{TITLE} · TRADING" if on else TITLE)
+        self.title.setProperty("trading", on)
+        self.title.style().unpolish(self.title)
+        self.title.style().polish(self.title)
 
     def refresh(self, palette: Palette) -> None:
         self.color_button.setIcon(icon("palette", palette.accent, 16))
