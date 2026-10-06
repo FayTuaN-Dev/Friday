@@ -18,6 +18,11 @@ from PySide6.QtWidgets import (
 from friday.tools.base import Display
 from friday.ui.desktop.popups.base import Popup
 
+KINDS = {
+    "extrait": "Extrait", "capture": "Capture", "bilan": "Bilan", "marche": "Marché",
+    "calendrier": "Calendrier", "actualites": "Actualités", "positionnement": "Positionnement",
+    "seances": "Séances", "plan": "Plan",
+}  # fmt: skip
 SNIPPET = 360  # caractères d'un extrait affichés (le texte complet en info-bulle)
 
 
@@ -74,7 +79,7 @@ class SendPreviewPopup(Popup):
         card = QFrame(objectName="ResultCard")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(12, 8, 12, 8)
-        box = QCheckBox(f"{item.kind.capitalize()} · {item.source}")
+        box = QCheckBox(f"{KINDS.get(item.kind, item.kind.capitalize())} · {item.source}")
         box.setChecked(item.included)
         box.toggled.connect(lambda checked, i=item: setattr(i, "included", checked))
         self.boxes.append(box)

@@ -80,6 +80,13 @@ src/friday/
 │   │                      Yahoo, pip/point, lot, devises) ; détection dans la phrase ou le titre
 │   ├── market.py          bougies OHLC (Yahoo) + indicateurs calculés sur le PC (MM, RSI, ATR, pivots)
 │   ├── reference_rates.py cours de référence officiels de la BCE (Frankfurter)
+│   ├── calendar.py        annonces économiques (ForexFactory) des devises de l'instrument
+│   ├── news.py            actualités des dernières 24 h (FXStreet), filtrées par instrument
+│   ├── cot.py             positionnement des grands spéculateurs (rapport COT de la CFTC)
+│   ├── sessions.py        heure et séances ouvertes (Sydney, Tokyo, Londres, New York)
+│   ├── context_sources.py assemble ces blocs + le plan de trading ; une source en panne
+│   │                      n'empêche pas les autres
+│   ├── cache.py           cache disque (data/cache) : sources gratuites ménagées, secours
 │   ├── risk_calc.py       valeur du pip/point, taille de position, R/R, R — tout instrument
 │   └── journal.py         data/trading.db : trades + trace de chaque envoi (empreinte des images)
 ├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
