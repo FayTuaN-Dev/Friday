@@ -22,6 +22,7 @@ from friday.ui.desktop.settings.briefing_page import BriefingPage
 from friday.ui.desktop.settings.form_page import FormPage
 from friday.ui.desktop.settings.library_page import LibraryPage
 from friday.ui.desktop.settings.other_pages import AccountsPage, AppearancePage
+from friday.ui.desktop.settings.zone_picker import chart_zone_widget
 
 SIZE = (840, 620)
 
@@ -44,7 +45,7 @@ class SettingsWindow(Popup):
             ("Briefing", "sun", BriefingPage(getattr(components, "briefing", None))),
             ("Bibliothèque", "book", LibraryPage(getattr(components, "library", None))),
             ("Fonctions", "sliders", by_name["Fonctions"]),
-            ("Trading", "trending", by_name["Trading"]),
+            ("Trading", "trending", self._trading_page(by_name["Trading"], components)),
             ("Comptes", "cloud", AccountsPage(getattr(components, "google", None))),
         ]
         self.nav = QListWidget(objectName="SettingsNav")
@@ -66,6 +67,12 @@ class SettingsWindow(Popup):
         middle.addWidget(self.stack, 1)
         self.body.addLayout(middle, 1)
         self.body.addLayout(self._footer())
+
+    @staticmethod
+    def _trading_page(form: FormPage, components) -> FormPage:
+        trading = getattr(components, "trading", None)
+        form.add_extra(chart_zone_widget(getattr(trading, "capture", None)))
+        return form
 
     def _footer(self) -> QHBoxLayout:
         self.banner = QLabel(objectName="Hint", wordWrap=True)

@@ -52,7 +52,8 @@ class ClaudeCodeJob:
     def busy(self) -> bool:
         return self.task is not None
 
-    def run(self, task: str) -> dict:
+    def run(self, task: str, options: tuple[str, ...] | None = None) -> dict:
+        """`options` : droits pour CETTE tâche (sinon ceux du job)."""
         executable = shutil.which("claude")
         if executable is None:
             return {"ok": False, "result": "Le programme « claude » est introuvable."}
@@ -60,7 +61,7 @@ class ClaudeCodeJob:
         before, start = snapshot(self.workspace), time.monotonic()
         command = [
             executable, "-p", task, "--model", self.model, "--output-format", "json",
-            *self.options, "--append-system-prompt", self.instructions,
+            *(options or self.options), "--append-system-prompt", self.instructions,
         ]  # fmt: skip
         self._process = subprocess.Popen(
             command, cwd=self.workspace, stdout=subprocess.PIPE, stderr=subprocess.PIPE,

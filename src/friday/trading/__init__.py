@@ -16,3 +16,4 @@ class Trading:
     builder: ContextBuilder
     job: ClaudeCodeJob  # Claude isolé (analyst.py)
     account_currency: str = "EUR"
+    capture: object = None  # ChartCapture (fenêtre du graphique), ou None
