@@ -92,7 +92,9 @@ src/friday/
 ├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
 │   ├── chunker.py         découpe en passages (~900 caractères, chevauchement, n° de page)
 │   ├── store.py           SQLite : documents, passages, vecteurs + index plein texte FTS5
-│   └── library.py         Library : synchronise le dossier, recherche hybride (sens + mots, RRF)
+│   ├── library.py         Library : synchronise le dossier, recherche hybride (sens + mots, RRF)
+│   └── catalog.py         bibliothèque de trading de départ : documents légaux seulement
+│                          (Wikipédia CC BY-SA, AMF, Banque de France, Fed, BRI), source citée
 ├── files/                 fichiers et presse-papier (sans dépendre des outils)
 │   ├── readers.py         read_document : texte d'un PDF (pypdf), Word (python-docx), texte
 │   ├── clipboard.py       presse-papier Windows (ctypes) : texte ou fichiers copiés

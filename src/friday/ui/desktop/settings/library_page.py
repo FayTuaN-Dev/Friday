@@ -47,6 +47,15 @@ class LibraryPage(QWidget):
             buttons.addWidget(button)
         buttons.addStretch()
         layout.addLayout(buttons)
+        trading = QHBoxLayout()
+        catalog = QPushButton("Ajouter la bibliothèque de trading", objectName="SettingsSmall")
+        catalog.clicked.connect(self._add_trading)
+        trading.addWidget(catalog)
+        trading.addWidget(QLabel(
+            "26 documents gratuits et légaux (Wikipédia, AMF, Banque de France, Fed, BRI). "
+            "Les livres s'achètent : voir docs/livres-trading.md.", objectName="Hint",
+            wordWrap=True), 1)  # fmt: skip
+        layout.addLayout(trading)
         self.status = QLabel(objectName="Hint", wordWrap=True)
         layout.addWidget(self.status)
         self.rows = QVBoxLayout()
@@ -109,6 +118,10 @@ class LibraryPage(QWidget):
 
     def _open_folder(self) -> None:
         os.startfile(self.library.folder)  # noqa: S606 (dossier de Friday)
+
+    def _add_trading(self) -> None:
+        self.status.setText("Téléchargement de la bibliothèque de trading…")
+        self.library.add_trading_catalog(self._notify)
 
     def _sync(self) -> None:
         self.status.setText("Mise à jour…")

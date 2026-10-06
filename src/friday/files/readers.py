@@ -62,8 +62,13 @@ def _read_text(path: Path) -> str:
 
 
 def _read_pdf(path: Path) -> Document:
+    import logging
+
     from pypdf import PdfReader
     from pypdf.errors import PdfReadError
+
+    # Avertissements techniques sans conséquence (polices) : ils noieraient le journal.
+    logging.getLogger("pypdf").setLevel(logging.ERROR)
 
     try:
         reader = PdfReader(path)
