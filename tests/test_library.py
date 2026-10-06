@@ -143,3 +143,9 @@ def test_library_hint_only_when_it_knows_the_topic(tmp_path):
     # le présent : internet, jamais un exemple du livre donné comme cours actuel
     assert library.auto_search("quel est le cours du pip aujourd'hui ?") is None
     assert library.hint("le pip en ce moment") == ""
+    for question in (
+        "quels est le cours de l'euro/dollars aujourdh'ui ?",  # faute réelle
+        "quel est le cours de l'euro dollar ?",
+        "combien vaut le pip ?",
+    ):
+        assert library.auto_search(question) is None, question

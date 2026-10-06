@@ -25,29 +25,18 @@ RRF_K = 60  # constante habituelle de la fusion par rang
 MIN_SIMILARITY = 0.40
 CLOSE_TO_BEST = 0.12  # écart toléré avec le meilleur passage
 EMBED_BATCH = 16
-RETIRED = "_retires"
+RETIRED = "_retires"  # « retirer » un document le déplace ici : rien n'est effacé
 # Questions sur le présent : un livre n'a pas la réponse (constaté : « le cours de l'euro
 # aujourd'hui » → un exemple du guide donné comme cours actuel). Internet, pas la bibliothèque.
+# Préfixes (« aujourd » : résiste à « aujourdh'ui », faute réelle).
 NOW = (
-    " aujourd hui",
-    " actuel",
-    " actuellement",
-    " en ce moment",
-    " maintenant",
-    " ce matin",
-    " ce soir",
-    " hier",
-    " cette semaine",
-    " ce mois",
-    " dernieres nouvelles",
-    " actualite",
-    " news",
-    " en direct",
-    " cours du jour",
-    " a l instant",
-    " recemment",
-    " derniere minute",
-)  # « retirer » un document le déplace ici : rien n'est effacé
+    " aujourd", " auj ", " actuel", " en ce moment", " maintenant", " ce matin", " ce soir",
+    " hier", " cette semaine", " ce mois", " dernieres nouvelles", " actualite", " news",
+    " en direct", " a l instant", " recemment", " derniere minute",
+    # un cours, un prix : toujours le présent (le livre n'a que des exemples)
+    " cours de l", " cours du ", " cours des ", " combien vaut", " combien coute",
+    " prix du ", " prix de l", " taux de change actuel",
+)  # fmt: skip
 
 
 def about_now(question: str) -> bool:
@@ -175,8 +164,9 @@ class Library:
             return ""
         return (
             f"Des passages de la bibliothèque ({', '.join(names)}) viennent d'être cherchés "
-            "pour cette question : réponds à partir d'eux et cite le document. Internet "
-            "seulement en complément, ou pour l'actualité (cours du jour, nouvelles)."
+            "pour cette question : réponds à partir d'eux et cite le document. Leurs chiffres "
+            "sont des exemples : jamais un cours ou un prix actuel (pour ça : web_search). "
+            "Internet seulement en complément, ou pour l'actualité."
         )
 
     def search(self, query: str, limit: int = 4) -> list[Hit]:
