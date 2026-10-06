@@ -89,9 +89,10 @@ def test_one_source_down_does_not_block_the_others(tmp_path):
     plan = tmp_path / "plan.txt"
     save_plan(plan, "Risque 1 % par trade, compte de 5 000 €, pas de trade avant le NFP.")
     sources = ContextSources(plan, events=failing, headlines=lambda: [], cot_rows=lambda: [],
-                             now=lambda: NOW)  # fmt: skip
+                             now=lambda: NOW, quote=lambda ticker: (100.0, 99.0))  # fmt: skip
     blocks, notes = sources.blocks(by_symbol("EURUSD"))
-    assert [b.kind for b in blocks] == ["actualites", "positionnement", "seances", "plan"]
+    kinds = [b.kind for b in blocks]
+    assert kinds == ["actualites", "positionnement", "marches_lies", "seances", "plan"]
     assert "Calendrier économique indisponible" in notes[0] and "sans ce bloc" in notes[0]
     packet = ContextBuilder(context=sources).build("EUR/USD ?", instrument=by_symbol("EURUSD"))
     plan_item = next(i for i in packet.items if i.kind == "plan")
@@ -153,3 +154,28 @@ def test_disk_cache_spares_free_sources_and_survives_a_block(tmp_path):
         cached_text(tmp_path / "rien.json", 3600, blocked)  # aucune copie : l'erreur remonte
     with pytest.raises(SourceUnavailable, match="code 429 : trop de demandes"):
         calendar.load(tmp_path / "vide.json", get=lambda *a, **k: blocked())
+
+
+def test_related_markets_are_chosen_by_instrument_kind():
+    from friday.trading import related
+    from friday.trading.market import MarketUnavailable
+
+    prices = {
+        "DX-Y.NYB": (101.84, 102.17), "^TNX": (5.27, 5.31), "^VIX": (15.0, 15.5),
+        "GC=F": (4190.0, 4157.0), "SI=F": (61.6, 60.9), "^GSPC": (7818.9, 7774.0),
+    }  # fmt: skip
+
+    def quote(ticker):
+        if ticker not in prices:
+            raise MarketUnavailable("indisponible")
+        return prices[ticker]
+
+    gold = related.text(by_symbol("XAUUSD"), quote)
+    assert "indice dollar (DXY) : 101.84 (-0.32 %)" in gold
+    assert "taux américain à 10 ans (%) : 5.27 (-0.04 point)" in gold  # un taux : en points
+    assert "rapport or/argent : 68.0" in gold and "or (contrat à terme)" not in gold  # pas lui-même
+    stock = related.text(by_symbol("AAPL"), quote)
+    assert "S&P 500" in stock and "rapport" not in stock
+    prices.pop("^VIX")
+    assert "VIX (peur des marchés actions) : indisponible" in related.text(by_symbol("EURUSD"),
+                                                                           quote)  # fmt: skip

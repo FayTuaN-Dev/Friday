@@ -84,6 +84,7 @@ src/friday/
 │   ├── news.py            actualités des dernières 24 h (FXStreet), filtrées par instrument
 │   ├── cot.py             positionnement des grands spéculateurs (rapport COT de la CFTC)
 │   ├── sessions.py        heure et séances ouvertes (Sydney, Tokyo, Londres, New York)
+│   ├── related.py         marchés liés : dollar (DXY), taux US 10 ans, VIX, S&P 500, or/argent
 │   ├── context_sources.py assemble ces blocs + le plan de trading ; une source en panne
 │   │                      n'empêche pas les autres
 │   ├── cache.py           cache disque (data/cache) : sources gratuites ménagées, secours
