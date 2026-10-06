@@ -8,6 +8,7 @@ import numpy as np
 import ollama
 
 from friday.app.extras import load_briefing, load_google
+from friday.app.gpu_check import warn_if_spilling
 from friday.app.memory_keeper import MemoryKeeper
 from friday.brain.llm import Brain
 from friday.core.config import DATA_DIR, MODELS_DIR, VOICES_DIR, Settings
@@ -64,6 +65,7 @@ def load_components(
         skill_contexts=contexts,
     )
     brain.warmup()
+    warn_if_spilling(client, settings.ollama_model, settings.ollama_num_ctx)
     components = Components(
         brain=brain, memory=memory, agenda=agenda, briefing=briefing, google=google
     )

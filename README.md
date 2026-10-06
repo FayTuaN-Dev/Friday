@@ -28,6 +28,16 @@ uv sync
 copy .env.example .env
 ```
 
+### Mémoire de travail doublée (facultatif, carte de 8 Go)
+
+Ollama peut compresser la mémoire de travail du modèle (perte de qualité imperceptible) : on
+passe de 8 192 à **16 384 jetons** dans la même mémoire vidéo, pour de longues conversations
+et des pages entières. Dans les variables d'environnement Windows (compte utilisateur) :
+`OLLAMA_FLASH_ATTENTION=1` et `OLLAMA_KV_CACHE_TYPE=q8_0`, redémarrer Ollama, puis choisir
+16 384 dans *Réglages → Général* (ou `OLLAMA_NUM_CTX=16384` dans `.env`). Au démarrage, Friday
+prévient dans le journal si le modèle déborde de la carte graphique (elle serait alors lente).
+Mesuré sur RTX 3070 : 6,3 Go, 100 % carte graphique, ~57 jetons/s (contre 58,9 à 8 192).
+
 ### Agenda et mails Google (facultatif, gratuit, une seule fois)
 
 1. Sur https://console.cloud.google.com/, créer un projet « Friday ».
