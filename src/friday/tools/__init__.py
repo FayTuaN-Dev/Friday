@@ -20,6 +20,7 @@ def default_toolbox(
     tools: list[Tool] = []
     if settings.tools_enabled:
         from friday.tools.images import ImageSearchTool
+        from friday.tools.markets import MarketQuoteTool
         from friday.tools.weather import WeatherTool
         from friday.tools.web_page import ReadWebPageTool
         from friday.tools.web_search import WebSearchTool
@@ -31,6 +32,7 @@ def default_toolbox(
             ),
             ReadWebPageTool(research),
             ImageSearchTool(settings.search_region),
+            MarketQuoteTool(),
         ]
     if settings.files_access:
         from friday.files.folders import search_folders
@@ -83,7 +85,8 @@ def default_toolbox(
             PositionSizeTool(account), PipValueTool(account), RiskRewardTool(),
             LogTradeTool(trading.journal), CloseTradeTool(trading.journal),
             TradeStatsTool(trading.journal),
-            TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background),
+            TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background,
+                                trading.instrument_for),
         ]  # fmt: skip
     if library is not None:
         from friday.tools.library import ListLibraryTool, SearchLibraryTool, UpdateLibraryTool

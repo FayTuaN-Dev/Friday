@@ -69,20 +69,26 @@ class ContextBuilder:
     def __init__(
         self, library=None, journal=None, passages: int = 10, max_chars: int = 12_000,
         blocklist: tuple[str, ...] = (),
-        capture=None,
+        capture=None, market=None,
     ) -> None:  # fmt: skip
-        """`capture` : ChartCapture (fenêtre du graphique), ou None."""
+        """`capture` : ChartCapture (fenêtre du graphique), ou None.
+        `market` : instrument → Snapshot (données de marché publiques), ou None."""
         self.library, self.journal = library, journal
         self.passages, self.max_chars, self.blocklist = passages, max_chars, blocklist
-        self.capture = capture
+        self.capture, self.market = capture, market
 
-    def build(self, question: str, with_journal: bool = False, chart: bool = False) -> Packet:
-        """`chart` : la question parle du graphique → capture ciblée (à la demande seulement)."""
+    def build(
+        self, question: str, with_journal: bool = False, chart: bool = False, instrument=None
+    ) -> Packet:
+        """`chart` : la question parle du graphique → capture ciblée (à la demande seulement).
+        `instrument` : celui dont on parle → ses données de marché (publiques) jointes."""
         asked = mask_personal(question, self.blocklist)
         packet = Packet(asked.text, masked=list(asked.found))
         if chart:
             self._add_capture(packet)
-        budget = self.max_chars - len(packet.question)
+        if instrument is not None:
+            self._add_market(packet, instrument)
+        budget = self.max_chars - len(packet.question) - sum(len(i.text) for i in packet.items)
         if with_journal and self.journal is not None:
             packet.items.append(Item("bilan", "journal de trading (anonyme)",
                                      self.journal.summary()))  # fmt: skip
@@ -112,6 +118,19 @@ class ContextBuilder:
             return
         packet.items.append(Item("capture", f"{self.capture.title_part} (zone choisie)", "",
                                  image=image))  # fmt: skip
+
+    def _add_market(self, packet: Packet, instrument) -> None:
+        from friday.trading.market import MarketUnavailable
+
+        if self.market is None:
+            return
+        try:
+            text = self.market(instrument).text()
+        except MarketUnavailable as error:
+            packet.notes.append(f"{error} Analyse sans données de marché.")
+            return
+        packet.items.append(Item("marche", f"données de marché {instrument.symbol} "
+                                           "(Yahoo Finance, calculs sur le PC)", text))  # fmt: skip
 
     def _hits(self, question: str) -> list:
         if self.library is None:

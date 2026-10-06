@@ -29,19 +29,23 @@ CORE_GUIDE = """- close_popups : fermer les fenêtres que tu as affichées (rés
 
 SKILLS = (
     Skill("web", "internet : météo, recherche, actualité, pages web, images",
-          ("get_weather", "web_search", "read_webpage", "search_images"),
+          ("get_weather", "web_search", "read_webpage", "search_images", "market_quote"),
           """- get_weather : la météo (actuelle et sur 7 jours). Toujours cet outil pour la météo,
   jamais la recherche web.
 - web_search : chercher sur internet : actualité, faits récents, prix, horaires, résultats
   sportifs, ou dès que tu as un doute. Ne réponds jamais de mémoire à une question
   d'actualité : cherche d'abord.
 - read_webpage : lire une page précise (un lien donné, ou un résultat à approfondir).
-- search_images : montrer des images à l'écran.""",
+- search_images : montrer des images à l'écran.
+- market_quote : le cours d'une devise, de l'or, de l'argent, du pétrole, d'un indice, d'une
+  crypto ou d'une action. Toujours cet outil pour un cours, jamais web_search.""",
           ("meteo", "quel temps", "temps qu", "pluie", "pleu", "neige", "temperature", "degre",
            "vent ", "cherche", "recherche", "internet", "web", "actualit", "info ", "infos",
            "news", "nouvelles", "page", "lien", "article", "image", "photo ", "photos", "prix",
            "horaire", "resultat", "match", "score", "qui a gagne", "ligue", "championnat",
            "election", "qui est", "combien coute", "wikipedia", "bourse", "cours de", "cours du",
+           "taux de change", "combien vaut", "l or ", "argent metal", "petrole", "bitcoin",
+           "matieres premieres", "devise",
            "bitcoin", "crypto", "approfondi", "en savoir plus", "plus de detail", "developpe",
            "guide", "le point", "numero"),
           ("quel temps fait-il demain", "cherche les dernières nouvelles sur la bourse",

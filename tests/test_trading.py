@@ -288,10 +288,46 @@ def test_risk_calculations():
         risk_calc.risk_reward("EUR/USD", 1.10, 1.09, 1.08)  # stop et objectif du même côté
 
 
+class FakePrices:
+    """Cours manquants, sans internet."""
+
+    def __init__(self, price=1.10, rate=0.9, broken=False):
+        self._price, self._rate, self.broken = price, rate, broken
+
+    def price(self, instrument):
+        if self.broken:
+            raise risk_calc.MissingRate("Cours indisponibles.")
+        return self._price
+
+    def rate(self, quote, account):
+        if self.broken:
+            raise risk_calc.MissingRate("Cours BCE indisponible.")
+        return self._rate
+
+
 def test_risk_tool_answers_exact_figures():
-    text = PositionSizeTool("EUR").run("EUR/USD", 10_000, 1, 20, price=1.10).text
+    tool = PositionSizeTool("EUR", FakePrices())
+    text = tool.run("EUR/USD", 10_000, 1, 20, price=1.10).text
     assert "0,55 lot" in text and "100,00 EUR" in text
-    assert "Calcul impossible" in PositionSizeTool("EUR").run("EUR/USD", 10_000, 1, 20).text
+    assert "cours 1.1 récupéré" in tool.run("EUR/USD", 10_000, 1, 20).text  # cours manquant
+    broken = PositionSizeTool("EUR", FakePrices(broken=True))
+    assert "Calcul impossible" in broken.run("EUR/USD", 10_000, 1, 20).text
+    assert "demande-la" in tool.run("EUR/USD", 10_000, 1).text  # stop manquant
+
+
+def test_risk_works_for_gold_silver_and_stocks():
+    from friday.tools.trading import PipValueTool
+
+    # Or : 1 lot = 100 onces, 1 point = 0,1 $ → 10 $ par point, converti en EUR (0,9)
+    assert risk_calc.pip_value("XAUUSD", 1, "USD") == pytest.approx(10)
+    gold = PositionSizeTool("EUR", FakePrices(rate=0.9))
+    text = gold.run("or", 10_000, 1, entry=4190.0, stop=4180.0).text  # stop donné en prix
+    assert "l'or (XAUUSD)" in text and "100,0 pips" in text and "0,11 lot" in text  # 100 € / 900 €
+    assert "cours BCE" in text and "1 point = 0.1 USD" in text
+    assert risk_calc.pip_value("XAGUSD", 1, "USD") == pytest.approx(50)  # 5 000 onces × 0,01
+    stock = PositionSizeTool("USD").run("AAPL", 5_000, 1, entry=333.0, stop=328.0).text
+    assert "AAPL" in stock and "10,00 titre(s)" in stock  # 50 $ de risque / 5 $ par titre
+    assert "Calcul exact" in PipValueTool("USD").run("XAUUSD", 0.5).text
 
 
 def test_journal_logs_what_was_sent_with_image_hashes(tmp_path):

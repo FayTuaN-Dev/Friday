@@ -87,6 +87,7 @@ def load_trading(settings: Settings, library):
         from friday.trading.capture import ChartCapture
         from friday.trading.context_builder import ContextBuilder
         from friday.trading.journal import TradeJournal
+        from friday.trading.market import snapshot
         from friday.trading.mode import TradingMode
 
         config = settings.trading
@@ -94,7 +95,7 @@ def load_trading(settings: Settings, library):
         journal = TradeJournal(DATA_DIR / "trading.db")
         capture = ChartCapture(config.capture_window, DATA_DIR / "trading.json")
         builder = ContextBuilder(library, journal, config.passages, config.max_chars,
-                                 config.blocklist, capture)  # fmt: skip
+                                 config.blocklist, capture, snapshot)  # fmt: skip
         job = isolated_job(DATA_DIR / "trading_claude", config.model or settings.claude_model,
                            settings.claude_timeout)  # fmt: skip
         return Trading(TradingMode(), journal, builder, job, config.account_currency, capture)

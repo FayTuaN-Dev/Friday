@@ -132,3 +132,4 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 | E | Longues conversations : carnet de recherche, résumé glissant, mémoire de travail doublée (16 k) | Friday tient une longue recherche | ✅ |
 | F | Bibliothèque de documents (RAG local) | « Que dit mon livre sur… » | ✅ |
 | G | Mode trading : analyses par Claude isolé après aperçu, calculs de risque, journal local, capture ciblée du graphique TradingView (données OHLC : plus tard) | Friday m'accompagne en trading | ✅ |
+| H | Données pour les analyses : marché (bougies, indicateurs), cours ; calendrier économique, actualités, COT, séances ; bibliothèque de trading légale | Des analyses mieux informées, tout instrument | 🟡 |

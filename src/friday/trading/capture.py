@@ -189,6 +189,11 @@ class ChartCapture:
             )
         return window_image(found[0])
 
+    def window_title(self) -> str | None:
+        """Titre de la fenêtre du graphique (« XAUUSD 4 192,7 ▲… » : le symbole affiché)."""
+        found = find_window(self.title_part)
+        return found[1] if found else None
+
     def capture(self) -> bytes:
         """PNG de la zone choisie de la fenêtre du graphique."""
         return to_png(self.full_window(), load_zone(self.zone_path))
