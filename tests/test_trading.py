@@ -495,3 +495,17 @@ def test_zone_picker_saves_the_traced_rectangle(tmp_path):
     zone = load_zone(path)
     assert zone.left == 0 and zone.right == pytest.approx(0.5, abs=0.01) and zone.bottom == 1
     assert "Mode trading désactivé" in ChartZoneRow(None).status.text()
+
+
+def test_tradingview_tab_is_recognized_by_its_ticker_title():
+    from friday.trading.capture import is_chart_title
+
+    assert is_chart_title("EURUSD 1,12585 ▲ +0.36% - Google Chrome", "TradingView")  # réel
+    assert is_chart_title("GBPJPY 191.234 ▼ −0.12% - Google Chrome", "TradingView")
+    assert is_chart_title("FX:EURUSD 1.0845 0.00% - Google Chrome", "TradingView")
+    assert is_chart_title("Graphiques TradingView", "TradingView")
+    assert not is_chart_title("IA personnelle locale - Claude - Google Chrome", "TradingView")
+    assert not is_chart_title("Rapport 2025 12 % - Word", "TradingView")
+    # titre réglé à la main : seulement ce morceau de titre
+    assert is_chart_title("MetaTrader 5 - Demo", "MetaTrader")
+    assert not is_chart_title("EURUSD 1,12585 ▲ +0.36% - Google Chrome", "MetaTrader")

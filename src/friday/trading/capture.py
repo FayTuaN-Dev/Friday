@@ -10,6 +10,7 @@ import ctypes
 import io
 import json
 import os
+import re
 import sys
 from ctypes import wintypes
 from dataclasses import asdict, dataclass
@@ -18,6 +19,9 @@ from pathlib import Path
 MAX_WIDTH = 1600
 PW_RENDERFULLCONTENT = 2  # contenu rendu par la carte graphique (navigateurs, Electron)
 PER_MONITOR_AWARE_V2 = ctypes.c_void_p(-4)
+# TradingView ne met pas son nom dans le titre de l'onglet : « EURUSD 1,12585 ▲ +0.36% »
+# (symbole, cours, variation). Constaté dans Chrome.
+TICKER_TITLE = re.compile(r"^[A-Z0-9:._!/-]{2,}\s+\d[\d\s.,]*\s*[▲▼]?\s*[+\-−]?\d[\d.,]*\s?%")
 
 
 class CaptureUnavailable(Exception):
@@ -86,13 +90,21 @@ def _api():
     return user32, gdi32
 
 
+def is_chart_title(title: str, title_part: str) -> bool:
+    """Le titre contient `title_part`, ou (réglage par défaut « TradingView ») c'est un titre de
+    graphique TradingView : symbole, cours, variation en %."""
+    if title_part.lower() in title.lower():
+        return True
+    return title_part.lower() == "tradingview" and bool(TICKER_TITLE.match(title))
+
+
 def find_window(title_part: str) -> tuple[int, str] | None:
-    """La plus grande fenêtre visible (non réduite) dont le titre contient `title_part`, hors
-    des fenêtres de Friday elle-même."""
+    """La plus grande fenêtre visible (non réduite) au titre de graphique, hors des fenêtres
+    de Friday elle-même."""
     if sys.platform != "win32" or not title_part.strip():
         return None
     user32 = ctypes.windll.user32
-    wanted, own_pid, found = title_part.lower(), os.getpid(), []
+    own_pid, found = os.getpid(), []
 
     @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
     def visit(hwnd, _):
@@ -103,7 +115,7 @@ def find_window(title_part: str) -> tuple[int, str] | None:
         user32.GetWindowTextW(hwnd, title, length + 1)
         pid = wintypes.DWORD()
         user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-        if wanted in title.value.lower() and pid.value != own_pid:
+        if is_chart_title(title.value, title_part) and pid.value != own_pid:
             rect = wintypes.RECT()
             user32.GetWindowRect(hwnd, ctypes.byref(rect))
             area = (rect.right - rect.left) * (rect.bottom - rect.top)
