@@ -33,6 +33,13 @@ class Briefing:
     def sources_city_known(self) -> bool:
         return bool(self.default_city)
 
+    def summary(self) -> str:
+        """Une ligne pour le modèle : les rubriques réelles (il en inventait sinon)."""
+        config = self.config
+        state = "activé" if config.enabled else "désactivé"
+        names = ", ".join(s.label() for s in config.sections) or "aucune rubrique"
+        return f"Rubriques actuelles du briefing ({state}) : {names}. N'en cite aucune autre."
+
     def due(self, now: datetime) -> bool:
         """Briefing automatique : activé, dans la plage horaire, pas encore fait aujourd'hui."""
         c = self.config

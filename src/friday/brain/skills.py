@@ -124,14 +124,21 @@ SKILLS = (
           ("ai-je de nouveaux mails", "lis-moi le mail de Julie", "réponds-lui que c'est d'accord",
            "trie mes mails", "supprime les mails de cette catégorie")),
     Skill("briefing", "briefing du matin et ses rubriques",
-          ("morning_briefing", "configure_briefing"),
-          """- morning_briefing : le briefing du matin sur demande (« mon briefing », « quoi de neuf
-  aujourd'hui ? »). configure_briefing : ajouter / retirer une rubrique (météo, agenda,
-  mails, rappels, une liste, l'actualité d'un sujet, une rubrique libre), les lister,
-  activer ou désactiver le briefing automatique. Dès que l'utilisateur parle de SON
+          ("morning_briefing", "show_briefing_settings", "configure_briefing"),
+          """- morning_briefing : DIRE le briefing du matin (« fais-moi mon briefing », « quoi de neuf
+  aujourd'hui ? »).
+- show_briefing_settings : AFFICHER ce que contient le briefing, ses rubriques, pour que
+  l'utilisateur les vérifie ou les modifie. Dès qu'il dit « affiche » ou « montre » le
+  briefing, ou parle de ses notes, réglages, rubriques ou contenu (« affiche le briefing »,
+  « les notes du briefing », « tu as la météo et quoi d'autre ? »), c'est
+  show_briefing_settings : jamais morning_briefing ni list_notes.
+- configure_briefing : ajouter / retirer une rubrique (météo, agenda, mails, rappels, une
+  liste, l'actualité d'un sujet, une rubrique libre), activer ou désactiver le briefing
+  automatique. Dès que l'utilisateur parle de SON
   briefing (« ajoute l'actualité tech à mon briefing »), c'est configure_briefing : jamais
   web_search ni get_weather.""",
-          ("briefing", "rubrique", "quoi de neuf", "bonjour friday"),
+          ("briefing", "brief ", "brief du", "rubrique", "quoi de neuf", "bonjour friday",
+           "surveilles le matin", "regardes le matin"),
           ("fais-moi mon briefing", "ajoute la météo à mon briefing", "désactive le briefing")),
     Skill("claude", "Claude Code : coder, créer ou modifier des fichiers, longues tâches",
           ("ask_claude_code", "cancel_claude_task"),

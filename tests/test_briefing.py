@@ -123,3 +123,14 @@ def test_news_keeps_only_relevant_headlines(tmp_path):
     facts = briefing.facts(MORNING)
     assert "Titre 5" in facts and "Titre 6" not in facts  # 6 titres examinés
     assert "parlent vraiment de « NVIDIA »" in facts
+
+
+def test_show_settings_displays_sections_without_doing_the_briefing(tmp_path):
+    from friday.tools.briefing import ShowBriefingSettingsTool
+
+    calls = []
+    briefing = make(tmp_path, [Section("meteo", "Lyon"), Section("actualites", "NVIDIA")],
+                    weather=lambda city: calls.append(city) or "beau")  # fmt: skip
+    result = ShowBriefingSettingsTool(ConfigureBriefingTool(briefing)).run()
+    assert "Météo du jour (Lyon)" in result.text and "Actualité : NVIDIA" in result.text
+    assert result.display.kind == "items" and calls == []  # rien n'est récupéré ni dit

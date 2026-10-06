@@ -46,6 +46,7 @@ class Brain:
         toolbox: ToolBox | None = None,
         recall: Callable[[str], str] | None = None,
         router: SkillRouter | None = None,
+        skill_contexts: dict[str, Callable[[], str]] | None = None,
     ) -> None:
         """`router` : aiguillage des compétences (sans lui, tous les outils sont donnés)."""
         self.settings = settings
@@ -55,7 +56,7 @@ class Brain:
         self.recall = recall
         self._memories: str | None = None
         self.conversation = Conversation()
-        self.toolset = Toolset(self.toolbox, router)
+        self.toolset = Toolset(self.toolbox, router, skill_contexts)
         self._tainted = False  # un contenu externe (mail, page, fichier…) a été lu
         self._think = False  # réflexion pour cette demande (calcul, « réfléchis »)
 

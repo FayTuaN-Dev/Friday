@@ -10,9 +10,9 @@ from friday.tools.base import Display, Tool, ToolResult
 class MorningBriefingTool(Tool):
     name = "morning_briefing"
     description = (
-        "Fait le briefing du matin (météo, rappels du jour, listes, actualités… selon les "
-        "rubriques choisies) quand l'utilisateur le demande : « mon briefing », « quoi de neuf "
-        "aujourd'hui ? »."
+        "DIT le briefing du matin à voix haute (météo, actualités… selon les rubriques) : "
+        "« fais-moi mon briefing », « quoi de neuf aujourd'hui ? ». Pas pour afficher ou "
+        "modifier ses rubriques : c'est show_briefing_settings / configure_briefing."
     )
     parameters: dict = {}
     timeout = 30  # météo et actualités en ligne
@@ -34,6 +34,31 @@ class MorningBriefingTool(Tool):
         return ToolResult(
             f"Informations du briefing, rubrique par rubrique :\n\n{facts}\n\nPrésente-les en "
             "quelques phrases, dans l'ordre, sans liste. N'invente rien et n'ajoute rien."
+        )
+
+
+class ShowBriefingSettingsTool(Tool):
+    name = "show_briefing_settings"
+    description = (
+        "AFFICHE dans une fenêtre les rubriques du briefing (ce qu'il contient, ce que Friday "
+        "surveille le matin), pour les vérifier, modifier ou retirer : « montre ce qu'il y a "
+        "dans mon briefing », « affiche les rubriques du brief », « qu'est-ce que tu regardes "
+        "le matin ? ». Ne dit PAS le briefing."
+    )
+    parameters: dict = {}
+
+    def __init__(self, configure: "ConfigureBriefingTool") -> None:
+        self.configure = configure
+
+    def label(self, args: dict) -> str:
+        return "☀️ Rubriques du briefing"
+
+    def run(self) -> ToolResult:
+        result = self.configure.run("list")
+        return ToolResult(
+            f"{result.text} Elles sont affichées : cite-les brièvement et propose de les "
+            "modifier ou d'en retirer.",
+            result.display,
         )
 
 
