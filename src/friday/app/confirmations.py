@@ -13,10 +13,14 @@ log = logging.getLogger(__name__)
 YES = {
     "oui", "ouais", "ok", "okay", "d accord", "vas y", "go", "lance", "lance le", "lance la",
     "c est parti", "confirme", "je confirme", "bien sur", "parfait", "yes", "allez",
+    # constaté : pris pour de nouvelles questions (et envoyés à Claude comme telles)
+    "valide", "je valide", "envoie", "envoie le", "envoie la", "envoyer", "tu peux envoyer",
+    "tu peux y aller", "c est bon", "envoie a claude", "ok envoie", "oui envoie",
 }  # fmt: skip
 NO = {
     "non", "annule", "annuler", "stop", "laisse tomber", "pas maintenant", "non merci",
-    "surtout pas", "attends", "no",
+    "surtout pas", "attends", "no", "n envoie pas", "ne l envoie pas", "annule l envoi",
+    "pas d envoi", "n envoie rien",
 }  # fmt: skip
 
 

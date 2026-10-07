@@ -65,6 +65,8 @@ class SendPreviewPopup(Popup):
         buttons.addWidget(cancel)
         buttons.addWidget(send)
         self.body.addLayout(buttons)
+        # Au premier plan : il attend une réponse (derrière TradingView, on ne le voyait pas)
+        self.setWindowFlag(Qt.WindowStaysOnTopHint, True)
         # Réponse donnée à la voix (« oui » / « non ») : l'aperçu se ferme de lui-même.
         self._watch = QTimer(self, interval=300)
         self._watch.timeout.connect(self._closed_elsewhere)

@@ -224,3 +224,76 @@ def test_memory_requests_stay_local():
     mode = TradingMode()
     assert mode.route("mes dernières analyses") == "local"
     assert mode.route("tes analyses sur l'or ont-elles marché ?") == "local"
+
+
+# --- l'aperçu ne disparaît plus pendant la lecture (constaté après T6) -------------------------
+
+
+def test_more_ways_to_say_yes_or_no_to_a_preview():
+    from friday.app.confirmations import classify
+
+    for text in ("valide", "Tu peux envoyer", "envoie", "c'est bon", "oui, envoie", "Confirmé."):
+        assert classify(text) == "yes", text
+    for text in ("n'envoie pas", "annule l'envoi", "non"):
+        assert classify(text) == "no", text
+    assert classify("que penses-tu de l'argent ?") == "other"
+
+
+def test_a_preview_waits_longer_and_says_when_it_expired(monkeypatch):
+    from fakes import SETTINGS, FakeClient, tool_call
+
+    from friday.brain import llm
+    from friday.brain.events import ConfirmationRequest, ToolFinished
+    from friday.brain.llm import Brain
+    from friday.tools.base import Tool, ToolBox, ToolResult
+
+    class Send(Tool):
+        name, description, parameters = "send", "Envoie.", {}
+        needs_confirmation = True
+
+        def confirmation(self, args):
+            return "J'envoie ?"
+
+        def preview(self, args):
+            return SimpleNamespace(approved=False)
+
+        def run(self):
+            return ToolResult("envoyé")
+
+    waited = []
+    real_wait = ConfirmationRequest.wait
+
+    def fake_wait(self, timeout, cancelled=lambda: False):
+        waited.append(timeout)
+        return real_wait(self, 0.0, cancelled)  # personne ne répond
+
+    monkeypatch.setattr(ConfirmationRequest, "wait", fake_wait)
+    client = FakeClient(rounds=[[tool_call("send")], ["ok"]])
+    brain = Brain(SETTINGS, client=client, toolbox=ToolBox([Send()]))
+    events = list(brain.reply("envoie"))
+    assert waited == [llm.PREVIEW_TIMEOUT] and llm.PREVIEW_TIMEOUT >= 300
+    (finished,) = [e for e in events if isinstance(e, ToolFinished)]
+    assert "Pas de réponse en 5 min" in finished.result.text
+
+
+def test_the_preview_stays_on_top_and_ui_errors_reach_the_log(caplog):
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication
+
+    from friday.brain.events import ConfirmationRequest
+    from friday.tools.base import Display
+    from friday.trading.context_builder import Packet
+    from friday.ui.desktop.app import log_uncaught
+    from friday.ui.desktop.popups.send_preview import SendPreviewPopup
+
+    QApplication.instance() or QApplication([])
+    request = ConfirmationRequest("trading_analysis", {}, "J'envoie ?")
+    popup = SendPreviewPopup(Display("send_preview", "Aperçu", {
+        "packet": Packet("L'or ?"), "request": request, "answer": request.answer}))  # fmt: skip
+    assert popup.windowFlags() & Qt.WindowStaysOnTopHint
+    popup.close()
+    try:
+        raise RuntimeError("bouton cassé")
+    except RuntimeError as error:
+        log_uncaught(RuntimeError, error, error.__traceback__)
+    assert "Erreur dans l'interface" in caplog.text and "bouton cassé" in caplog.text
