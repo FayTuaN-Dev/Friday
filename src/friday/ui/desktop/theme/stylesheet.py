@@ -173,4 +173,19 @@ def _settings(p: Palette) -> str:
         background: {p.accent_soft};
     }}
     #SettingsSwatch {{ text-align: left; padding-left: 12px; }}
+    #JournalTable {{
+        background: {p.surface}; border: none; border-radius: 12px; gridline-color: {p.bg};
+        selection-background-color: {p.accent_soft}; selection-color: {p.text}; font-size: 13px;
+    }}
+    #JournalTable QHeaderView::section {{
+        background: {p.bg}; color: {p.muted}; border: none; padding: 6px 8px;
+    }}
+    #JournalTable {{ outline: none; }}
+    #JournalTable::item {{ padding: 4px 6px; border: none; }}
+    #JournalTable::item:selected {{ background: {p.accent_soft}; color: {p.text}; }}
+    #JournalForm {{ background: {p.surface}; border-radius: 14px; }}
+    #JournalForm QLineEdit, #JournalForm QComboBox, #JournalField {{
+        background: {p.bg}; border: 1px solid {p.accent_glow}; border-radius: 10px;
+        padding: 5px 10px; font-size: 13px; selection-background-color: {p.accent_soft};
+    }}
     """

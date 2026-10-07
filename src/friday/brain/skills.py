@@ -166,11 +166,12 @@ SKILLS = (
            "qu'y a-t-il dans mes documents sur le Forex", "d'après mes cours, c'est quoi un pip")),
     Skill("trading", "mode trading : calculs de risque, journal de trading, analyses",
           ("position_size", "pip_value", "risk_reward", "log_trade", "close_trade",
-           "trade_stats", "trading_analysis"),
+           "trade_stats", "trading_analysis", "open_journal"),
           """- Mode trading actif. position_size, pip_value, risk_reward : calculs EXACTS faits
   sur le PC ; extrais les chiffres de la demande, n'en invente aucun (demande ceux qui
   manquent), puis répète le résultat tel quel. Jamais de calcul de tête.
-- log_trade, close_trade, trade_stats : le journal de trading (local).
+- log_trade, close_trade, trade_stats : le journal de trading (local) ; open_journal :
+  l'ouvrir à l'écran (« ouvre mon journal »).
 - trading_analysis : faire analyser une question par Claude (l'utilisateur valide d'abord).
 - Tu ne donnes jamais d'ordre ni de signal ; tu ne passes jamais d'ordre.""",
           ("taille de position", "lots", "pip", "ratio", "risque rendement", "journal de trading",

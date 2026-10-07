@@ -1,7 +1,7 @@
 """Outils locaux du mode trading : calculs de risque (déterministes) et journal. Rien ne part
 en ligne ; le modèle local ne fait qu'extraire les chiffres de la demande."""
 
-from friday.tools.base import Tool, ToolResult
+from friday.tools.base import Display, Tool, ToolResult
 from friday.trading import risk_calc
 from friday.trading.journal import TradeJournal
 
@@ -215,3 +215,17 @@ class TradeStatsTool(Tool):
         ]
         return ToolResult(self.journal.summary() + ("\nDerniers :\n" + "\n".join(lines)
                                                      if lines else ""))  # fmt: skip
+
+
+class OpenJournalTool(Tool):
+    name = "open_journal"
+    description = "Ouvre la fenêtre du journal de trading (« ouvre mon journal », « mes trades »)."
+    parameters = {}
+
+    def label(self, args: dict) -> str:
+        return "📒 Journal de trading"
+
+    def run(self) -> ToolResult:
+        return ToolResult(
+            "Journal ouvert. Dis-le en une phrase.", Display("journal", "Journal de trading")
+        )

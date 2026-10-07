@@ -69,9 +69,12 @@ class SettingsWindow(Popup):
         self.body.addLayout(middle, 1)
         self.body.addLayout(self._footer())
 
-    @staticmethod
-    def _trading_page(form: FormPage, components) -> FormPage:
+    def _trading_page(self, form: FormPage, components) -> FormPage:
         trading = getattr(components, "trading", None)
+        journal = QPushButton("Ouvrir le journal de trading", objectName="SettingsSmall")
+        journal.setEnabled(trading is not None)
+        journal.clicked.connect(self.main_window.open_journal)
+        form.add_extra(journal)
         form.add_extra(chart_zone_widget(getattr(trading, "capture", None)))
         context = getattr(getattr(trading, "builder", None), "context", None)
         form.add_extra(TradingPlanRow(getattr(context, "plan_path", None)))
