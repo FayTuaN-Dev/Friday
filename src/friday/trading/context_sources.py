@@ -43,13 +43,17 @@ class ContextSources:
         self, plan_path: Path | None = None, cache_dir: Path | None = None, events=None,
         headlines=news.fetch_headlines, cot_rows=None,
         now: Callable[[], datetime] = lambda: datetime.now(UTC), quote=related.yahoo_quote,
+        hours: tuple[int, int] = (9, 18), result=None,
     ) -> None:  # fmt: skip
+        """`hours` : plage de trading de l'utilisateur (Paris). `result(titre, devise)` :
+        résultat publié d'une annonce (FredResults), ou None."""
         """`events`, `cot_rows` : () → données, ou (données, âge d'une vieille copie)."""
         self.plan_path = plan_path
         cache = (lambda name: cache_dir / name) if cache_dir else (lambda name: None)
         self.events = events or (lambda: calendar.load(cache("ff_calendar.json")))
         self.cot_rows = cot_rows or (lambda: cot.load(cache("cot.txt")))
         self.headlines, self.now, self.quote = headlines, now, quote
+        self.hours, self.result = hours, result
         self._notes: list[str] = []
 
     def blocks(self, instrument: Instrument) -> tuple[list[Block], list[str]]:
@@ -59,8 +63,8 @@ class ContextSources:
         steps = (
             ("calendrier", "calendrier économique (ForexFactory)",
              lambda: calendar.text(calendar.relevant(
-                 self._data(self.events, "Calendrier économique"), instrument.currencies, now),
-                 now)),
+                 self._data(self.events, "Calendrier économique"), instrument.currencies, now,
+                 self.hours[1]), now, self.result)),
             ("actualites", "actualités (FXStreet)",
              lambda: news.text(news.relevant(self.headlines(), instrument, now))),
             ("positionnement", "positionnement COT (CFTC)", lambda: self._cot(instrument)),
@@ -72,7 +76,8 @@ class ContextSources:
                 found.append(Block(kind, source, make()))
             except SourceUnavailable as error:
                 notes.append(f"{error} Analyse sans ce bloc.")
-        found.append(Block("seances", "heure et séances (calcul sur le PC)", sessions.text(now)))
+        found.append(Block("seances", "heure, séances et plage de trading (calcul sur le PC)",
+                           sessions.text(now, self.hours)))  # fmt: skip
         plan = load_plan(self.plan_path) if self.plan_path else ""
         if plan:
             found.append(Block("plan", "votre plan de trading", plan[:PLAN_CHARS]))

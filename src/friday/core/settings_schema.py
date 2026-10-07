@@ -103,6 +103,12 @@ SECTIONS = (
               "Au-delà, les extraits les moins utiles ne partent pas.", 2000, 30000, 1000),
         Field("TRADING_BLOCKLIST", "Mots toujours masqués", "text", "",
               "Séparés par des virgules : votre nom, n° de client du courtier…"),
+        Field("TRADING_HOURS", "Mes heures de trading (Paris)", "text", "9-18",
+              "Ex. « 9-18 » : Claude en tient compte (une annonce à 20 h ne bloque pas la "
+              "journée)."),
+        Field("FRED_API_KEY", "Clé FRED (gratuite)", "text", "",
+              "Résultats publiés des annonces américaines. Clé sur fredaccount.stlouisfed.org "
+              "→ API Keys."),
         Field("TRADING_CAPTURE_WINDOW", "Fenêtre du graphique (titre)", "text", "TradingView",
               "Seule cette fenêtre est capturée, quand la question parle du graphique. "
               "« TradingView » reconnaît aussi un onglet au titre « EURUSD 1,1258 ▲ +0.36% »."),

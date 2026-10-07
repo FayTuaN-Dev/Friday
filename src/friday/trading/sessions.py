@@ -55,7 +55,24 @@ def next_opening(now: datetime) -> tuple[str, datetime] | None:
     return best
 
 
-def text(now: datetime) -> str:
+def trading_window(now: datetime, hours: tuple[int, int]) -> str:
+    """Où en est la plage de trading de l'utilisateur (heure de Paris)."""
+    from friday.trading.calendar import delay
+
+    local = now.astimezone(PARIS)
+    start = local.replace(hour=hours[0], minute=0, second=0, microsecond=0)
+    end = local.replace(hour=hours[1], minute=0, second=0, microsecond=0)
+    span = f"Plage de trading de l'utilisateur : {hours[0]} h – {hours[1]} h (Paris)"
+    if local.weekday() >= 5:
+        return f"{span} : week-end."
+    if local < start:
+        return f"{span} : commence dans {delay((start - local).total_seconds() / 60)}."
+    if local < end:
+        return f"{span} : en cours, encore {delay((end - local).total_seconds() / 60)}."
+    return f"{span} : terminée pour aujourd'hui."
+
+
+def text(now: datetime, hours: tuple[int, int] | None = None) -> str:
     paris = now.astimezone(PARIS)
     sessions = open_sessions(now)
     if forex_closed(now):
@@ -68,4 +85,5 @@ def text(now: datetime) -> str:
     upcoming = next_opening(now)
     after = (f" Prochaine ouverture : {upcoming[0]} à {upcoming[1].astimezone(PARIS):%H:%M} "
              "(Paris).") if upcoming else ""  # fmt: skip
-    return f"Il est {french(paris)} à Paris ({now:%H:%M} UTC). {state}{after}"
+    window = f" {trading_window(now, hours)}" if hours else ""
+    return f"Il est {french(paris)} à Paris ({now:%H:%M} UTC). {state}{after}{window}"
