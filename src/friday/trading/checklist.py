@@ -81,6 +81,19 @@ class Verdict:
         statuses = {c.status for c in self.checks}
         return "rouge" if KO in statuses else "orange" if UNKNOWN in statuses else "vert"
 
+    def spoken(self) -> str:
+        """La phrase à dire, construite par le code (le modèle mélangeait les règles en
+        résumant, constaté : « le stop ne respecte pas 1,5 ATR » pour un stop ✅)."""
+        broken = [c.rule for c in self.checks if c.status == KO]
+        missing = [c.rule for c in self.checks if c.status == UNKNOWN]
+        if not broken and not missing:
+            return "Feu vert : toutes les règles de ton plan sont respectées."
+        if not broken:
+            return f"Feu orange : rien d'enfreint, à vérifier : {' ; '.join(missing)}."
+        plural = "règles enfreintes" if len(broken) > 1 else "règle enfreinte"
+        also = f" À vérifier aussi : {' ; '.join(missing)}." if missing else ""
+        return f"Feu rouge : {plural} : {' ; '.join(broken)}.{also}"
+
     def text(self) -> str:
         broken = [c.rule for c in self.checks if c.status == KO]
         missing = [c.rule for c in self.checks if c.status == UNKNOWN]

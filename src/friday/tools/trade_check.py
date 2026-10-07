@@ -75,10 +75,10 @@ class TradeCheckTool(Tool):
         items = [{"text": verdict.text().split("\n")[0], "meta": "Calculé sur le PC, sans Claude"}]
         items += [{"text": f"{ICONS[c.status]} {c.rule}", "meta": c.detail} for c in verdict.checks]
         return ToolResult(
-            "Check-list exacte, faite sur le PC à partir du plan :\n" + verdict.text()
-            + "\nÀ l'oral : dis la couleur du feu et seulement les règles enfreintes ou à "
-            "vérifier, en deux phrases au plus ; le détail est affiché. Ce n'est ni un signal ni "
-            "un conseil : seulement le respect du plan.",
+            "Check-list faite sur le PC à partir du plan (le détail de chaque règle est affiché). "
+            "Dis EXACTEMENT cette phrase, sans rien ajouter sur les règles : "
+            f"« {verdict.spoken()} » Puis, en quelques mots, que ce n'est ni un signal ni "
+            "un conseil.",
             Display("items", f"Check-list : {title}", {"icon": "🚦", "items": items}),
         )  # fmt: skip
 

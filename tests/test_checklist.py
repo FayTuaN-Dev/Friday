@@ -76,6 +76,7 @@ def test_red_light_names_each_broken_rule():
     assert found["RSI"] == KO  # zone miroir 50–60 à la vente
     assert found["Risque"] == KO and found["Au"] == KO
     assert verdict.light == "rouge" and verdict.text().startswith("🔴 Feu rouge : 4 règle(s)")
+    assert verdict.spoken().startswith("Feu rouge : règles enfreintes : Tendance (EMA200")
 
 
 def test_tight_stop_far_entry_and_small_target_are_refused():
@@ -166,18 +167,22 @@ def make_check_tool(tmp_path, events=(), fail_market=False):
 def test_tool_shows_the_checklist_and_reads_the_saved_rules(tmp_path):
     tool, journal = make_check_tool(tmp_path)
     result = tool.run("achat", 4280, 4260, "l'or", 4320, 1)
-    assert result.text.startswith("Check-list exacte") and "🟢 Feu vert" in result.text
+    assert "« Feu vert : toutes les règles de ton plan sont respectées. »" in result.text
     assert result.display.kind == "items" and result.display.data["icon"] == "🚦"
     assert result.display.data["items"][0]["text"].startswith("🟢")
     journal.open_trade("XAUUSD", "achat", 4200, 4180)
     save_rules(tmp_path / "rules.json", PlanRules(max_open=1))
-    assert "🔴 Feu rouge" in tool.run("achat", 4280, 4260, "or", 4320, 1).text
+    red = tool.run("achat", 4280, 4260, "or", 4320, 1).text
+    assert "« Feu rouge : règle enfreinte : Au plus 1 trade(s) ouvert(s). »" in red
+    assert "Stop d'au moins" not in red  # seules les règles enfreintes sont dites
     assert "stop doit être sous" in tool.run("achat", 4280, 4290, "or").text
 
 
 def test_tool_works_without_market_data(tmp_path):
     tool, _ = make_check_tool(tmp_path, fail_market=True)
-    assert "cours indisponibles" in tool.run("achat", 4280, 4260, "or", 4320, 1).text
+    result = tool.run("achat", 4280, 4260, "or", 4320, 1)
+    assert "Feu orange : rien d'enfreint, à vérifier : Données de marché" in result.text
+    assert "cours indisponibles" in result.display.data["items"][1]["meta"]
 
 
 def test_a_priced_trade_idea_stays_local_in_trading_mode():
