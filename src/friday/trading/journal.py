@@ -123,6 +123,20 @@ class TradeJournal:
         """Tous les trades, les plus récents d'abord."""
         return self._trades("ORDER BY id DESC", ())
 
+    def equity(self) -> list[tuple[int, str, float, float]]:
+        """La courbe des résultats : (n°, instrument, résultat, cumul) de chaque trade clôturé,
+        dans l'ordre de clôture."""
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT id, pair, result_r FROM trades WHERE result_r IS NOT NULL"
+                " ORDER BY closed_at, id"
+            ).fetchall()
+        total, points = 0.0, []
+        for trade_id, pair, result in rows:
+            total += result
+            points.append((trade_id, pair, result, total))
+        return points
+
     def stats(self) -> Stats:
         with self._lock:
             results = [r for (r,) in self._db.execute(

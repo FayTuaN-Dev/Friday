@@ -21,6 +21,7 @@ from PySide6.QtWidgets import (
 
 from friday.trading.instruments import parse_price
 from friday.trading.journal import Trade, TradeJournal
+from friday.ui.desktop.journal.equity_chart import EquityChart, fr
 from friday.ui.desktop.journal.trade_form import TradeForm
 from friday.ui.desktop.popups.base import Popup
 
@@ -39,16 +40,20 @@ def stats_text(journal: TradeJournal) -> str:
     s = journal.stats()
     if not s.closed:
         return f"Aucun trade clôturé pour l'instant · {s.open} en cours"
-    return (f"{s.closed} trade(s) clôturé(s) · {s.win_rate:.0%} gagnants · moyenne "
-            f"{s.average_r:+.2f} R · total {s.total_r:+.1f} R · {s.open} en cours")  # fmt: skip
+    return (
+        f"{s.closed} trade(s) clôturé(s) · {s.win_rate:.0%} gagnants · moyenne "
+        f"{fr(s.average_r, True)} R · total {fr(s.total_r, True)} R · {s.open} en cours"
+    )
 
 
 class JournalWindow(Popup):
     def __init__(self, journal: TradeJournal) -> None:
-        super().__init__("📒", "Journal de trading", (980, 640))
+        super().__init__("📒", "Journal de trading", (980, 800))
         self.journal = journal
         self.stats = QLabel(objectName="SettingsTitle", wordWrap=True)
         self.body.addWidget(self.stats)
+        self.curve = EquityChart()  # le total en R au fil des trades clôturés
+        self.body.addWidget(self.curve)
         self.table = QTableWidget(0, len(COLUMNS), objectName="JournalTable")
         self.table.setHorizontalHeaderLabels(COLUMNS)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -96,6 +101,7 @@ class JournalWindow(Popup):
     def refresh(self) -> None:
         self._seen = self.journal.version
         self.stats.setText(stats_text(self.journal))
+        self.curve.set_points(self.journal.equity())
         trades = self.journal.all_trades()
         self.table.setRowCount(len(trades))
         for row, t in enumerate(trades):
