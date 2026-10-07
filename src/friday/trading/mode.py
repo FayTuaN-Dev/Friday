@@ -31,6 +31,10 @@ LOCAL = (
     "check list", "checklist", "respecte mon plan", "respecte le plan", "respecte t il mon plan",
     "respecte t il le plan", "verifie mon trade", "verifie ce trade", "verifie mon idee",
     "feu vert",
+    # backtest du plan (sur le PC)
+    "backtest", "back test", "teste mon plan", "tester mon plan", "teste le plan",
+    "sur l historique", "aurait gagne", "aurait perdu", "aurait il gagne", "aurait il perdu",
+    "et avec un objectif", "et avec un stop", "et avec une variante",
 )  # fmt: skip
 # Une idée de trade chiffrée (« acheter l'or à 4 160, stop 4 140 ») : la check-list, en local.
 DIRECTIONS = ("acheter", "achete", "achat", "vendre", "vends", "vend", "vente", "long", "short",

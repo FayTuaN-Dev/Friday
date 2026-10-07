@@ -95,6 +95,9 @@ src/friday/
 │   ├── checklist.py       check-list avant trade : idée, données, verdict (feu vert/orange/rouge)
 │   ├── plan_checks.py     les règles vérifiées une par une (tendance, repli, RSI, stop, R, risque,
 │   │                      annonce forte, trades ouverts) — sans modèle ni Claude
+│   ├── backtest/          backtest du plan : series.py (EMA, RSI, ATR en série), engine.py
+│   │                      (règles rejouées bougie 1 h après bougie, sans voir le futur),
+│   │                      report.py (bilan en R, marge d'incertitude, variantes à une règle)
 │   └── journal.py         data/trading.db : trades + trace de chaque envoi (empreinte des images)
 ├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
 │   ├── chunker.py         découpe en passages (~900 caractères, chevauchement, n° de page)
@@ -149,6 +152,7 @@ src/friday/
 │   ├── library.py         search_library, list_library, update_library
 │   ├── trading.py         calculs de risque et journal (locaux, mode trading seulement)
 │   ├── trade_check.py     check-list avant trade (« acheter l'or à 4 160, stop 4 140 »)
+│   ├── backtest.py        backtest_plan : le plan rejoué sur ~2,5 ans de bougies 1 h (Yahoo)
 │   ├── markets.py         market_quote : le cours d'un instrument, à la source (tous les jours)
 │   ├── trading_analysis.py analyse par Claude : aperçu, refus sans validation, journal
 │   ├── research.py        carnet de recherche : derniers résultats et pages lues, avec leurs adresses
