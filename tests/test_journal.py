@@ -84,6 +84,7 @@ def test_window_shows_stats_closes_and_deletes(journal):
     window.close_selected()
     assert journal.get(trade.id).result_r == pytest.approx(2.0)
     assert window.table.item(0, 9).text() == "+2.00 R" and "100% gagnants" in window.stats.text()
+    assert "total +2,00 R" in window.stats.text() and window.curve.points[-1][3] == 2.0
     window.table.selectRow(0)
     window.delete_selected()  # premier clic : on demande
     assert journal.get(trade.id) is not None and window.delete_button.text() == "Confirmer ?"
@@ -118,3 +119,45 @@ def test_open_journal_by_voice_and_from_settings(tmp_path):
     app.processEvents()
     assert w.journal_window is not None and w.popups.popups == []
     w.close()
+
+
+def test_equity_follows_closing_order(journal):
+    first = journal.open_trade("EURUSD", "achat", 1.10, 1.09)
+    second = journal.open_trade("XAUUSD", "vente", 4160, 4180)
+    journal.open_trade("GBPUSD", "achat", 1.30, 1.29)  # en cours : pas sur la courbe
+    journal.close_trade(second.id, 4180)  # -1 R, clôturé en premier
+    journal.close_trade(first.id, 1.12)  # +2 R
+    journal._db.execute(
+        "UPDATE trades SET closed_at = '2026-10-07T10:00' WHERE id = ?", (second.id,)
+    )
+    journal._db.execute(
+        "UPDATE trades SET closed_at = '2026-10-07T11:00' WHERE id = ?", (first.id,)
+    )
+    assert [(n, round(total, 2)) for n, _, _, total in journal.equity()] == [(2, -1.0), (1, 1.0)]
+
+
+def test_curve_ticks_hover_and_empty_state():
+    from types import SimpleNamespace
+
+    from PySide6.QtCore import QPointF
+
+    from friday.ui.desktop.journal.equity_chart import EquityChart, nice_ticks
+
+    assert nice_ticks(-1, 4.75) == [-2, 0, 2, 4, 6]  # ronds, zéro compris, couvre le plus haut
+    for low, high in ((-3.2, 0.4), (0, 0.9), (-0.5, 12.3), (0, 57)):
+        ticks = nice_ticks(low, high)
+        assert ticks[0] <= min(low, 0) and ticks[-1] >= high and 0 in ticks
+    assert nice_ticks(0, 0)[0] == 0
+    chart = EquityChart()
+    chart.resize(600, 200)
+    chart.grab()  # sans trade : un message, pas de courbe vide
+    chart.set_points([(1, "EURUSD", 1.75, 1.75), (2, "XAUUSD", -1.0, 0.75)])
+    shown = []
+    import friday.ui.desktop.journal.equity_chart as module
+
+    module.QToolTip.showText = lambda pos, text, widget=None: shown.append(text)
+    event = SimpleNamespace(position=lambda: QPointF(590, 50),
+                            globalPosition=lambda: QPointF(0, 0))  # fmt: skip
+    chart.mouseMoveEvent(event)
+    assert chart._hover == 2 and shown == ["Trade n°2 · XAUUSD · -1,00 R · cumul +0,75 R"]
+    assert not chart.grab().isNull()

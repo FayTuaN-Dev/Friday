@@ -184,6 +184,7 @@ src/friday/
         │   └── __init__.py    current() / apply_theme() : changement de couleur à chaud
         ├── journal/       journal de trading : window.py (bilan en R, tableau, clôture,
         │                  suppression, export CSV), trade_form.py (nouveau trade vérifié)
+        │                  equity_chart.py (courbe du total en R, survol)
         ├── settings/      écran de réglages (zone_picker.py : tracer la zone du graphique)
         │   ├── window.py      SettingsWindow : menu, pages, Enregistrer / Redémarrer
         │   ├── form_page.py   page construite depuis settings_schema (interrupteurs, listes…)
