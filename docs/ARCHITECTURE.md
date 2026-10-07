@@ -80,7 +80,8 @@ src/friday/
 │   │                      Yahoo, pip/point, lot, devises) ; détection dans la phrase ou le titre
 │   ├── market.py          bougies OHLC (Yahoo) + indicateurs calculés sur le PC (MM, RSI, ATR, pivots)
 │   ├── reference_rates.py cours de référence officiels de la BCE (Frankfurter)
-│   ├── calendar.py        annonces économiques (ForexFactory) des devises de l'instrument
+│   ├── calendar.py        annonces du jour (ForexFactory), « il y a / dans », heure de Paris
+│   ├── fred.py            résultats publiés des annonces américaines (FRED, clé gratuite)
 │   ├── news.py            actualités des dernières 24 h (FXStreet), filtrées par instrument
 │   ├── cot.py             positionnement des grands spéculateurs (rapport COT de la CFTC)
 │   ├── sessions.py        heure et séances ouvertes (Sydney, Tokyo, Londres, New York)

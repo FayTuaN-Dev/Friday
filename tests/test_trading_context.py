@@ -27,8 +27,62 @@ def test_calendar_keeps_the_instruments_important_announcements():
     assert [e.title for e in kept] == ["Non-Farm Payrolls", "OPEC", "ECB Lagarde Speaks"]
     text = calendar.text(kept, NOW)
     assert "mercredi 07/10 16:00 · USD · impact fort · Non-Farm Payrolls" in text  # heure de Paris
-    assert "prévision 150K, précédent 142K" in text and "à venir" in text
+    assert "prévision 150K, précédent 142K" in text and "dans 2 h 00" in text
     assert "Aucune annonce" in calendar.text([], NOW)
+
+
+def test_only_todays_announcements_and_tomorrows_after_the_trading_day():
+    yesterday, tomorrow = event(-20, title="Hier"), event(20, title="Demain 10 h")
+    events = [yesterday, event(-3, title="Ce matin"), event(5, title="Ce soir"), tomorrow]
+    assert [e.title for e in calendar.relevant(events, ("USD",), NOW)] == ["Ce matin", "Ce soir"]
+    evening = NOW + timedelta(hours=5)  # 19 h à Paris : la journée de trading (18 h) est finie
+    titles = [e.title for e in calendar.relevant(events, ("USD",), evening, day_end=18)]
+    assert titles == ["Ce matin", "Ce soir", "Demain 10 h"]
+    text = calendar.text([event(-3, title="Ce matin")], NOW)
+    assert "publiée il y a 3 h 00" in text
+
+
+def test_published_result_is_shown_for_past_announcements():
+    past = event(-1, title="Non-Farm Employment Change")
+    coming = event(2, title="Unemployment Rate")
+    asked = []
+
+    def result(title, currency):
+        asked.append(title)
+        return "+150 k emplois (période 2026-09-01)"
+
+    text = calendar.text([past, coming], NOW, result)
+    assert "RÉSULTAT PUBLIÉ (FRED) +150 k emplois (période 2026-09-01), prévision 150K" in text
+    assert asked == ["Non-Farm Employment Change"]  # pas pour une annonce à venir
+
+
+def test_fred_values_are_computed_by_kind():
+    from friday.trading import fred
+
+    assert fred.series_for("Non-Farm Employment Change", "USD").series == "PAYEMS"
+    assert fred.series_for("Core CPI m/m", "USD").series == "CPILFESL"  # le plus précis d'abord
+    assert fred.series_for("CPI m/m", "EUR") is None  # FRED : chiffres américains
+    payrolls = [("2026-09-01", 159_200.0), ("2026-08-01", 159_050.0)]
+    assert fred.latest(fred.series_for("Non-Farm Employment Change", "USD"), payrolls) == (
+        "+150 k emplois (période 2026-09-01)")  # fmt: skip
+    cpi = [("2026-09-01", 330.0)] + [("x", 329.0)] * 11 + [("2025-09-01", 320.0)]
+    assert "+0.3 % sur un mois" in fred.latest(fred.series_for("CPI m/m", "USD"), cpi)
+    assert "+3.1 % sur un an" in fred.latest(fred.series_for("CPI y/y", "USD"), cpi)
+    assert fred.latest(fred.series_for("Unemployment Rate", "USD"), [("2026-09-01", 4.3)]) == (
+        "4.3% (période 2026-09-01)")  # fmt: skip
+    results = fred.FredResults("cle", fetch=lambda series, key, cache: payrolls)
+    assert results("Non-Farm Employment Change", "USD").startswith("+150 k")
+    assert fred.FredResults("")("Non-Farm Employment Change", "USD") is None  # sans clé : rien
+
+
+def test_trading_window_and_rules_about_announcements():
+    from friday.trading.analyst import RULES
+
+    assert "en cours, encore 4 h 00" in sessions.trading_window(NOW, (9, 18))  # 14 h à Paris
+    assert "commence dans 2 h 00" in sessions.trading_window(NOW - timedelta(hours=7), (9, 18))
+    assert "terminée" in sessions.trading_window(NOW + timedelta(hours=5), (9, 18))
+    assert "Plage de trading de l'utilisateur : 9 h – 18 h" in sessions.text(NOW, (9, 18))
+    assert "interdit d'OUVRIR dans ce créneau" in RULES and "après sa plage" in RULES
 
 
 def test_news_keeps_recent_headlines_about_the_instrument():
@@ -179,3 +233,10 @@ def test_related_markets_are_chosen_by_instrument_kind():
     prices.pop("^VIX")
     assert "VIX (peur des marchés actions) : indisponible" in related.text(by_symbol("EURUSD"),
                                                                            quote)  # fmt: skip
+
+
+def test_trading_hours_setting_is_read_tolerantly():
+    from friday.core.config import _hours
+
+    assert [_hours(v) for v in ("9-18", "9h-18h", "8 h - 17 h 30", "illisible", "18-9")] == [
+        (9, 18), (9, 18), (8, 17), (9, 18), (9, 18)]  # fmt: skip
