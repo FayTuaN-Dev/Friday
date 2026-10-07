@@ -23,6 +23,7 @@ from friday.ui.desktop.settings.form_page import FormPage
 from friday.ui.desktop.settings.library_page import LibraryPage
 from friday.ui.desktop.settings.other_pages import AccountsPage, AppearancePage
 from friday.ui.desktop.settings.trading_plan import TradingPlanRow
+from friday.ui.desktop.settings.trading_rules import TradingRulesRow
 from friday.ui.desktop.settings.zone_picker import chart_zone_widget
 
 SIZE = (840, 620)
@@ -78,6 +79,7 @@ class SettingsWindow(Popup):
         form.add_extra(chart_zone_widget(getattr(trading, "capture", None)))
         context = getattr(getattr(trading, "builder", None), "context", None)
         form.add_extra(TradingPlanRow(getattr(context, "plan_path", None)))
+        form.add_extra(TradingRulesRow(getattr(trading, "rules_path", None)))
         return form
 
     def _footer(self) -> QHBoxLayout:

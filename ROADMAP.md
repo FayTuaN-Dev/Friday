@@ -140,7 +140,7 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 
 | # | Brique | Livrable | Statut |
 |---|---|---|---|
-| T1 | **Check-list avant trade** : les règles du plan vérifiées par le code (tendance / MM200, zone RSI, annonce forte dans les 30 min, risque ≤ 1 %, R/R ≥ 2) | « Je veux acheter l'or à 4 160, stop 4 140 » → feu vert / rouge, règle par règle, sans Claude | ⬜ |
+| T1 | **Check-list avant trade** : les règles du plan vérifiées par le code (tendance / MM200, zone RSI, annonce forte dans les 30 min, risque ≤ 1 %, R/R ≥ 2) | « Je veux acheter l'or à 4 160, stop 4 140 » → feu vert / rouge, règle par règle, sans Claude | ✅ |
 | T2 | **Backtest du plan** sur l'historique (Yahoo : 2 ans en 1 h, plus en journalier) | Nombre de trades, % gagnants, espérance en R, pire série ; comparer des variantes du plan | ⬜ |
 | T3 | **Alertes** : niveaux et conditions du plan surveillés en local, annoncés à la voix | « L'or touche la MM50 4 h avec RSI 44 : ton setup se forme » | ⬜ |
 | T4 | **Journal qui apprend** : setup utilisé, plan respecté ?, capture d'entrée, état d'esprit ; statistiques par setup / instrument / heure ; revue hebdomadaire (bilan anonyme) par Claude | Savoir ce qui marche et ce qui coûte | ⬜ |

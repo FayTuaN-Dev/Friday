@@ -100,6 +100,16 @@ def sma(values: list[float], period: int) -> float | None:
     return sum(values[-period:]) / period if len(values) >= period else None
 
 
+def ema(values: list[float], period: int) -> float | None:
+    """Moyenne mobile exponentielle, amorcée par la moyenne simple des `period` premières."""
+    if len(values) < period:
+        return None
+    value, k = sum(values[:period]) / period, 2 / (period + 1)
+    for v in values[period:]:
+        value += k * (v - value)
+    return value
+
+
 def rsi(closes: list[float], period: int = 14) -> float | None:
     """RSI de Wilder."""
     if len(closes) <= period:

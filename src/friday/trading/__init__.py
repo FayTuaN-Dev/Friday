@@ -2,6 +2,7 @@
 risque déterministes et journal local. Voir docs/ARCHITECTURE.md."""
 
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from friday.tools.claude_code import ClaudeCodeJob
 from friday.trading.context_builder import ContextBuilder
@@ -19,6 +20,7 @@ class Trading:
     account_currency: str = "EUR"
     capture: object = None  # ChartCapture (fenêtre du graphique), ou None
     current: Instrument | None = field(default_factory=lambda: by_symbol("EURUSD"))
+    rules_path: Path | None = None  # règles chiffrées de la check-list (plan_rules.py)
 
     def chart_shows(self, instrument: Instrument | None) -> bool:
         """Le graphique TradingView affiché est-il celui de cet instrument ?"""

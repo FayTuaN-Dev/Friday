@@ -70,6 +70,7 @@ def default_toolbox(
         if claude is not None:  # secours, avec confirmation
             tools.append(AskClaudeAboutScreenTool(claude, capture_screen))
     if trading is not None and on_background is not None:
+        from friday.tools.trade_check import TradeCheckTool
         from friday.tools.trading import (
             CloseTradeTool,
             LogTradeTool,
@@ -85,7 +86,7 @@ def default_toolbox(
         tools += [
             PositionSizeTool(account), PipValueTool(account), RiskRewardTool(),
             LogTradeTool(trading.journal), CloseTradeTool(trading.journal),
-            TradeStatsTool(trading.journal), OpenJournalTool(),
+            TradeStatsTool(trading.journal), OpenJournalTool(), TradeCheckTool(trading),
             TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background,
                                 trading.instrument_for, trading.chart_shows),
         ]  # fmt: skip

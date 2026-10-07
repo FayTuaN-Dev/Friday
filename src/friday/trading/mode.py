@@ -2,7 +2,8 @@
 trading »), reconnu par du code avant le modèle. Hors de ce mode, rien ne change.
 
 En mode trading, l'aiguillage est déterministe :
-- calculs de risque, journal, et tout ce qui relève d'une autre compétence (mails, PC…)
+- calculs de risque, journal, check-list d'une idée de trade (sens + prix + stop), et tout ce
+  qui relève d'une autre compétence (mails, PC…)
   → le modèle local, comme d'habitude ;
 - le reste (une question d'analyse) → le paquet pour Claude, toujours après aperçu.
 """
@@ -26,7 +27,14 @@ LOCAL = (
     "journal", "mes trades", "note le trade", "enregistre le trade", "ajoute un trade",
     "nouveau trade", "cloture le trade", "ferme le trade", "mon bilan", "mes statistiques",
     "mes performances",
+    # check-list avant trade (règles du plan vérifiées par le code)
+    "check list", "checklist", "respecte mon plan", "respecte le plan", "respecte t il mon plan",
+    "respecte t il le plan", "verifie mon trade", "verifie ce trade", "verifie mon idee",
+    "feu vert",
 )  # fmt: skip
+# Une idée de trade chiffrée (« acheter l'or à 4 160, stop 4 140 ») : la check-list, en local.
+DIRECTIONS = ("acheter", "achete", "achat", "vendre", "vends", "vente", "long", "short")
+STOPS = ("stop", "sl")
 # Compétences qui ne concernent pas une analyse de trading : elles restent locales.
 OTHER_SKILLS = {"pc", "mail", "calendar", "reminders", "files", "briefing", "claude"}
 
@@ -50,6 +58,12 @@ def _command_words(text: str) -> str:
     return words.strip()
 
 
+def _trade_idea(padded: str, text: str) -> bool:
+    words = set(padded.split())
+    return bool(words & set(DIRECTIONS)) and bool(words & set(STOPS)) and any(
+        c.isdigit() for c in text)  # fmt: skip
+
+
 class TradingMode:
     def __init__(self) -> None:
         self.enabled = False
@@ -67,7 +81,7 @@ class TradingMode:
     def route(self, text: str, choose: Callable[[str], set[str]] | None = None) -> str:
         """« local » (modèle local) ou « analysis » (paquet pour Claude, après aperçu)."""
         padded = f" {normalize(text)} "
-        if any(f" {key}" in padded for key in LOCAL):
+        if any(f" {key}" in padded for key in LOCAL) or _trade_idea(padded, text):
             return "local"
         if choose is not None and choose(text) & OTHER_SKILLS:
             return "local"
