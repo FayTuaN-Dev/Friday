@@ -101,13 +101,18 @@ src/friday/
 │   ├── briefing.py        briefing trading : annonces fortes (en français, calendar_fr.py), nuit,
 │   │                      niveaux clés (hier rebâti avec les bougies 1 h), tendance, règles du plan
 │   ├── briefing_service.py quand le faire (début de la plage, en semaine, une fois par jour)
+│   ├── warm.py            données publiques préparées en avance (marché, marchés liés, actualités)
+│   │                      pendant le mode trading : l'aperçu ne les attend plus
+│   ├── euro_data.py       zone euro : inflation (Eurostat), chômage et taux de dépôt (BCE), sans clé
+│   ├── analysis_memory.py mémoire des analyses de Claude (et le cours depuis), jointe à l'aperçu
 │   ├── calendar_fr.py     noms français des annonces courantes (ForexFactory les donne en anglais)
 │   ├── alerts/            alertes : store.py (data/trading_alerts.json, écart futures/graphique),
 │   │                      setup.py (setup du plan sur la dernière bougie 1 h fermée, mêmes règles
 │   │                      que le backtest), watcher.py (surveillance en arrière-plan)
 │   ├── journal.py         data/trading.db : trades (avec setup, plan respecté, état d'esprit,
 │   │                      capture d'entrée) ; colonnes ajoutées aux anciens journaux à l'ouverture
-│   ├── sent_log.py        trace de chaque envoi à Claude (empreinte des images), même base
+│   ├── sent_log.py        trace de chaque envoi à Claude (empreinte des images, instrument, cours),
+│   │                      même base ; analyses() : les analyses passées
 │   ├── journal_export.py  export CSV pour Excel, captures d'entrée (data/journal_captures)
 │   └── journal_stats.py   ce que le journal apprend : groupes (setup, instrument, heure, jour,
 │                          plan, état d'esprit), constats, bilan anonyme de la revue hebdomadaire
@@ -171,6 +176,7 @@ src/friday/
 │   ├── backtest.py        backtest_plan : le plan rejoué sur ~2,5 ans de bougies 1 h (Yahoo)
 │   ├── alerts.py          set_price_alert, watch_setup, list_alerts, cancel_alert
 │   ├── trading_briefing.py trading_briefing (lancé d'office par le code : prefetch)
+│   ├── analyses.py        past_analyses : dernières analyses de Claude et le cours depuis
 │   ├── markets.py         market_quote : le cours d'un instrument, à la source (tous les jours)
 │   ├── trading_analysis.py analyse par Claude : aperçu, refus sans validation, journal
 │   ├── research.py        carnet de recherche : derniers résultats et pages lues, avec leurs adresses

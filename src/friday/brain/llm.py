@@ -40,6 +40,9 @@ MAX_TOKENS = 1024
 MAX_TOKENS_THINKING = 4096  # la réflexion consomme beaucoup de jetons avant la réponse
 # Délai pour répondre à « Je lance ? » ; sans réponse, l'action n'est pas faite.
 CONFIRM_TIMEOUT = 60.0
+# Un aperçu à lire (analyse de trading : 8 à 10 éléments) : 60 s ne suffisaient pas, il se
+# fermait pendant la lecture (constaté)
+PREVIEW_TIMEOUT = 300.0
 
 
 class BrainError(RuntimeError):
@@ -218,13 +221,19 @@ class Brain:
                 preview = self.toolbox.preview(name, args)
                 request = ConfirmationRequest(name, args, question, preview=preview)
                 yield request  # l'assistant pose la question et note qu'une réponse est attendue
-                approved = request.wait(CONFIRM_TIMEOUT, cancelled)
+                delay = PREVIEW_TIMEOUT if preview is not None else CONFIRM_TIMEOUT
+                approved = request.wait(delay, cancelled)
                 if preview is not None:
                     preview.approved = approved  # seul ce « oui » explicite valide l'envoi
                 if not approved:
-                    log.info("Outil %s refusé ou sans réponse", name)
+                    log.info("Outil %s %s", name, "sans réponse (délai dépassé)"
+                             if request.timed_out else "refusé")  # fmt: skip
                     refused = ToolResult(
-                        "L'utilisateur n'a pas confirmé : rien n'a été lancé. Dis-le en une phrase."
+                        f"Pas de réponse en {delay / 60:.0f} min : rien n'a été lancé (rien "
+                        "n'est parti). Dis-le en une phrase et propose de redemander."
+                        if request.timed_out
+                        else "L'utilisateur n'a pas confirmé : rien n'a été lancé. Dis-le en "
+                        "une phrase."
                     )
                     self.conversation.add("tool", refused.text, tool_name=name)
                     yield ToolFinished(name, refused)

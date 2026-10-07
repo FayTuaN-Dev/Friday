@@ -14,6 +14,12 @@ from friday.trading.masking import mask_personal, mask_secrets
 
 PASSAGE_CHARS = 1200  # d'un extrait, pas plus
 SPREAD = 0.25  # écart toléré avec le meilleur extrait (la bibliothèque en garde moins)
+ABOUT = 3  # extraits sur l'instrument lui-même, après ceux du sujet de la question
+KIND_TERMS = {
+    "forex": "forex, devises, taux de change", "metal": "métaux précieux, matières premières",
+    "energie": "pétrole, énergie, matières premières", "indice": "indice boursier, actions",
+    "crypto": "cryptomonnaies", "action": "actions, bourse, entreprise",
+}  # fmt: skip
 
 
 @dataclass
@@ -32,6 +38,8 @@ class Packet:
     masked: list[str] = field(default_factory=list)  # types de données masquées
     notes: list[str] = field(default_factory=list)  # pour l'aperçu (« TradingView introuvable »)
     approved: bool = False  # SEULE la confirmation explicite de l'utilisateur le met à True
+    instrument: str | None = None  # symbole dont parle l'analyse (mémoire des analyses)
+    price: float | None = None  # cours Yahoo au moment de l'envoi
 
     @property
     def images(self) -> list[bytes]:
@@ -90,13 +98,14 @@ class ContextBuilder:
         if instrument is not None:
             self._add_market(packet, instrument)
             self._add_context(packet, instrument)
+            self._add_memory(packet, instrument)
         budget = self.max_chars - len(packet.question) - sum(len(i.text) for i in packet.items)
         if with_journal and self.journal is not None:
             review = mask_secrets(self.journal.review(), self.blocklist).text  # noms de setup…
             packet.items.append(Item("bilan", "journal de trading (anonyme : en R, sans prix, "
                                      "montant ni raison écrite)", review))  # fmt: skip
             budget -= len(packet.items[-1].text)
-        for hit in self._hits(question):
+        for hit in self._hits(question, instrument):
             text = mask_secrets(hit.text[:PASSAGE_CHARS], self.blocklist)
             source = mask_secrets(hit.document, self.blocklist).text  # le nom, jamais le chemin
             if hit.page:
@@ -140,12 +149,26 @@ class ContextBuilder:
         if self.market is None:
             return
         try:
-            text = self.market(instrument).text(chart=self._chart_price(instrument))
+            snapshot = self.market(instrument)
+            text = snapshot.text(chart=self._chart_price(instrument))
         except MarketUnavailable as error:
             packet.notes.append(f"{error} Analyse sans données de marché.")
             return
         packet.items.append(Item("marche", f"données de marché {instrument.symbol} "
                                            "(Yahoo Finance, calculs sur le PC)", text))  # fmt: skip
+        packet.price = getattr(getattr(snapshot, "quote", None), "price", None)
+
+    def _add_memory(self, packet: Packet, instrument) -> None:
+        """Les dernières analyses de Claude sur cet instrument, et le cours depuis."""
+        from friday.trading.analysis_memory import past_text
+
+        packet.instrument = instrument.symbol
+        if self.journal is None:
+            return
+        text = past_text(self.journal.analyses(instrument.symbol), packet.price)
+        if text:
+            source = f"tes analyses précédentes sur {instrument.symbol} (et le cours depuis)"
+            packet.items.append(Item("analyses_passees", source, text))
 
     def _chart_price(self, instrument) -> float | None:
         """Le cours affiché par TradingView, s'il montre cet instrument."""
@@ -156,7 +179,18 @@ class ContextBuilder:
         title = self.capture.window_title()
         return chart_price(title, instrument) if title else None
 
-    def _hits(self, question: str) -> list:
+    def _hits(self, question: str, instrument=None) -> list:
+        """Le sujet de la question d'abord ; puis quelques extraits sur l'instrument lui-même
+        (« double sommet » seul ne trouvait rien ; l'or : valeur refuge, matières premières)."""
         if self.library is None:
             return []
-        return self.library.search(question, limit=self.passages, close_to_best=SPREAD)
+        hits = self.library.search(question, limit=self.passages, close_to_best=SPREAD)
+        if instrument is not None and len(hits) < self.passages:
+            about = (
+                f"{instrument.name} ({instrument.symbol}) : {KIND_TERMS.get(instrument.kind, '')}"
+            )
+            seen = {(h.document, h.page, h.text) for h in hits}
+            extra = [h for h in self.library.search(about, limit=ABOUT, close_to_best=SPREAD)
+                     if (h.document, h.page, h.text) not in seen]  # fmt: skip
+            hits += extra[: self.passages - len(hits)]
+        return hits

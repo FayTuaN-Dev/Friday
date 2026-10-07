@@ -143,10 +143,14 @@ def test_one_source_down_does_not_block_the_others(tmp_path):
     plan = tmp_path / "plan.txt"
     save_plan(plan, "Risque 1 % par trade, compte de 5 000 €, pas de trade avant le NFP.")
     sources = ContextSources(plan, events=failing, headlines=lambda: [], cot_rows=lambda: [],
-                             now=lambda: NOW, quote=lambda ticker: (100.0, 99.0))  # fmt: skip
+                             now=lambda: NOW, quote=lambda ticker: (100.0, 99.0),
+                             euro=lambda: "Zone euro : inflation 3,8 %")  # fmt: skip
     blocks, notes = sources.blocks(by_symbol("EURUSD"))
     kinds = [b.kind for b in blocks]
-    assert kinds == ["actualites", "positionnement", "marches_lies", "seances", "plan"]
+    assert kinds == ["actualites", "positionnement", "marches_lies", "zone_euro", "seances",
+                     "plan"]  # fmt: skip
+    gold = [b.kind for b in sources.blocks(by_symbol("XAUUSD"))[0]]
+    assert "zone_euro" not in gold  # seulement pour un instrument en euro
     assert "Calendrier économique indisponible" in notes[0] and "sans ce bloc" in notes[0]
     packet = ContextBuilder(context=sources).build("EUR/USD ?", instrument=by_symbol("EURUSD"))
     plan_item = next(i for i in packet.items if i.kind == "plan")

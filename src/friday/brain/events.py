@@ -37,6 +37,7 @@ class ConfirmationRequest:
     # Ce qui partira, à montrer avant la réponse (ex. le paquet d'une analyse de trading) ;
     # son `approved` passe à True seulement si l'utilisateur accepte.
     preview: Any = None
+    timed_out: bool = False  # pas de réponse à temps (≠ un « non »)
     _answered: threading.Event = field(default_factory=threading.Event, repr=False)
 
     @property
@@ -53,6 +54,7 @@ class ConfirmationRequest:
         deadline = time.monotonic() + timeout
         while not self._answered.wait(0.1):
             if cancelled() or time.monotonic() > deadline:
+                self.timed_out = not cancelled()
                 self.answer(False)
         return self.approved
 

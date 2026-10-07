@@ -76,8 +76,11 @@ class Stats:
 
 
 # Colonnes ajoutées après coup : un journal plus ancien les reçoit à l'ouverture
-ADDED = {"setup": "TEXT NOT NULL DEFAULT ''", "plan_ok": "INTEGER",
-         "mood": "TEXT NOT NULL DEFAULT ''"}  # fmt: skip
+ADDED = {
+    "trades": {"setup": "TEXT NOT NULL DEFAULT ''", "plan_ok": "INTEGER",
+               "mood": "TEXT NOT NULL DEFAULT ''"},
+    "sent": {"instrument": "TEXT", "price": "REAL"},  # mémoire des analyses (T6)
+}  # fmt: skip
 FIELDS = (
     "id, opened_at, pair, direction, entry, stop, target, lots, reason, exit, result_r, "
     "setup, plan_ok, mood, capture, closed_at"
@@ -95,11 +98,13 @@ class TradeJournal(SentLog):
         self.version = 0  # augmente à chaque changement : l'écran du journal se rafraîchit
         with self._lock:
             self._db.executescript(SCHEMA)
-            known = {row[1] for row in self._db.execute("PRAGMA table_info(trades)")}
-            for column, kind in ADDED.items():
-                if column not in known:
-                    self._db.execute(f"ALTER TABLE trades ADD COLUMN {column} {kind}")
+            for table, columns in ADDED.items():
+                known = {row[1] for row in self._db.execute(f"PRAGMA table_info({table})")}
+                for column, kind in columns.items():
+                    if column not in known:
+                        self._db.execute(f"ALTER TABLE {table} ADD COLUMN {column} {kind}")
             self._db.commit()
+        self.backfill_instruments()
 
     def open_trade(
         self, pair: str, direction: str, entry: float, stop: float,

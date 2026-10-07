@@ -134,6 +134,10 @@ def load_components(
         from friday.app.trading_alerts import start_alerts
 
         start_alerts(trading.alerts, lambda: components.speaker, on_background)
+    if trading is not None and trading.prepare is not None:
+        from friday.trading.warm import start_warming
+
+        start_warming(trading, trading.prepare)  # aperçu des analyses instantané
     if trading is not None and trading.briefing is not None and on_background is not None:
         from friday.app.trading_briefing import start_trading_briefing
 
