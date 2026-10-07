@@ -24,6 +24,8 @@ class TradingSettings:
     blocklist: tuple[str, ...] = ()  # mots toujours masqués (nom, n° de client…)
     capture_window: str = "TradingView"  # titre de la fenêtre du graphique
     model: str = ""  # vide : celui de Claude Code
+    hours: tuple[int, int] = (9, 18)  # plage de trading de l'utilisateur (heure de Paris)
+    fred_key: str = ""  # clé gratuite FRED : résultats publiés des annonces américaines
 
 
 @dataclass(frozen=True)
@@ -70,6 +72,16 @@ class Settings:
     log_level: str
     interface_color: str = "Or"  # couleur de base de l'interface (palette ou #rrggbb)
     trading: TradingSettings = TradingSettings()
+
+
+def _hours(value: str) -> tuple[int, int]:
+    """« 9-18 », « 9h-18h » → (9, 18) ; valeur illisible : (9, 18)."""
+    import re
+
+    found = re.findall(r"\d{1,2}", value)
+    if len(found) >= 2 and 0 <= int(found[0]) < int(found[1]) <= 24:  # « 8 h - 17 h 30 »
+        return int(found[0]), int(found[1])
+    return 9, 18
 
 
 def _bool(name: str, default: bool) -> bool:
@@ -145,5 +157,7 @@ def load_settings() -> Settings:
             ),
             capture_window=os.getenv("TRADING_CAPTURE_WINDOW", "TradingView"),
             model=os.getenv("TRADING_MODEL", ""),
+            hours=_hours(os.getenv("TRADING_HOURS", "9-18")),
+            fred_key=os.getenv("FRED_API_KEY", "").strip(),
         ),
     )

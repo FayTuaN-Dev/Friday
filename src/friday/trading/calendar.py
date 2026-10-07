@@ -71,13 +71,17 @@ def load(cache_path: Path | None = None, get=httpx.get) -> tuple[list[Event], fl
 
 
 def relevant(events: list[Event], currencies: tuple[str, ...], now: datetime,
-             before_h: int = 12, after_h: int = 48) -> list[Event]:  # fmt: skip
-    """Annonces à fort / moyen impact des `currencies` (et celles qui touchent tout le monde)."""
-    start, end = now - timedelta(hours=before_h), now + timedelta(hours=after_h)
+             day_end: int = 18) -> list[Event]:  # fmt: skip
+    """Annonces à fort / moyen impact des `currencies` (et celles qui touchent tout le monde) :
+    celles du JOUR (heure de Paris) ; et celles du lendemain une fois la journée de trading
+    finie (`day_end`, heure de Paris) — constaté : toute la semaine partait sinon."""
+    local = now.astimezone(PARIS)
+    start = local.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = start + timedelta(days=2 if local.hour >= day_end else 1)
     return sorted(
         (e for e in events
          if e.impact in IMPACTS and (e.currency in currencies or e.currency == "All")
-         and start <= e.time <= end),
+         and start <= e.time.astimezone(PARIS) < end),
         key=lambda e: e.time,
     )  # fmt: skip
 
@@ -88,15 +92,32 @@ def _french(moment):
     return french(moment)
 
 
-def text(events: list[Event], now: datetime) -> str:
+def delay(minutes: float) -> str:
+    """« 2 h 05 », « 40 min »."""
+    minutes = int(round(abs(minutes)))
+    return f"{minutes // 60} h {minutes % 60:02d}" if minutes >= 60 else f"{minutes} min"
+
+
+def text(events: list[Event], now: datetime, result=None) -> str:
+    """`result(titre, devise)` : le résultat publié d'une annonce passée (FRED), ou None."""
     if not events:
-        return "Aucune annonce à fort ou moyen impact de 12 h avant à 48 h après (ForexFactory)."
-    lines = ["Annonces économiques (ForexFactory ; heure de Paris ; « passée » = déjà publiée) :"]
+        return "Aucune annonce à fort ou moyen impact aujourd'hui (ForexFactory)."
+    lines = [
+        f"Annonces du jour (ForexFactory ; heure de Paris ; il est {now.astimezone(PARIS):%H:%M}) :"
+    ]
     for e in events:
-        state = "passée" if e.time <= now else "à venir"
-        figures = ", ".join(part for part in (
-            f"prévision {e.forecast}" if e.forecast else "",
-            f"précédent {e.previous}" if e.previous else "") if part)  # fmt: skip
+        minutes = (e.time - now).total_seconds() / 60
+        state = f"publiée il y a {delay(minutes)}" if minutes <= 0 else f"dans {delay(minutes)}"
+        figures = [f"prévision {e.forecast}" if e.forecast else "",
+                   f"précédent {e.previous}" if e.previous else ""]  # fmt: skip
+        if minutes <= 0 and result is not None:
+            try:
+                published = result(e.title, e.currency)
+            except SourceUnavailable:
+                published = None
+            if published:
+                figures.insert(0, f"RÉSULTAT PUBLIÉ (FRED) {published}")
+        shown = ", ".join(f for f in figures if f)
         lines.append(f"- {_french(e.time)} · {e.currency} · impact {IMPACTS[e.impact]} · "
-                     f"{e.title}{f' ({figures})' if figures else ''} · {state}")  # fmt: skip
+                     f"{e.title}{f' ({shown})' if shown else ''} · {state}")  # fmt: skip
     return "\n".join(lines)
