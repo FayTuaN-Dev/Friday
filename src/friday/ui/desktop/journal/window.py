@@ -1,11 +1,12 @@
-"""Fenêtre « Journal de trading » : le bilan en R, tous les trades, et les actions (nouveau,
+"""Fenêtre « Journal de trading » : le bilan en R, ce que dit le journal (constats), tous les
+trades, et les actions (nouveau, compléter setup / plan / état d'esprit, voir la capture,
 clôturer au prix de sortie, supprimer en deux clics, exporter en CSV). Tout reste sur le PC.
 Elle se met à jour seule quand le journal change (par exemple un trade noté à la voix)."""
 
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QTimer
-from PySide6.QtGui import QColor
+from PySide6.QtCore import Qt, QTimer, QUrl
+from PySide6.QtGui import QColor, QDesktopServices
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFileDialog,
@@ -17,16 +18,20 @@ from PySide6.QtWidgets import (
     QStyleFactory,
     QTableWidget,
     QTableWidgetItem,
+    QVBoxLayout,
 )
 
 from friday.trading.instruments import parse_price
 from friday.trading.journal import Trade, TradeJournal
 from friday.ui.desktop.journal.equity_chart import EquityChart, fr
+from friday.ui.desktop.journal.insights import Insights
+from friday.ui.desktop.journal.notes import TradeNotes
 from friday.ui.desktop.journal.trade_form import TradeForm
 from friday.ui.desktop.popups.base import Popup
 
 COLUMNS = ("N°", "Ouvert le", "Instrument", "Sens", "Entrée", "Stop", "Objectif", "R/R prévu",
-           "Sortie", "Résultat", "Raison")  # fmt: skip
+           "Sortie", "Résultat", "Setup", "Plan", "Esprit", "📷", "Raison")  # fmt: skip
+RESULT = COLUMNS.index("Résultat")
 GAIN, LOSS = QColor("#4cc38a"), QColor("#e5636b")
 
 
@@ -47,13 +52,16 @@ def stats_text(journal: TradeJournal) -> str:
 
 
 class JournalWindow(Popup):
-    def __init__(self, journal: TradeJournal) -> None:
-        super().__init__("📒", "Journal de trading", (980, 800))
+    def __init__(self, journal: TradeJournal, snapshot=None, folder: Path | None = None) -> None:
+        """`snapshot`, `folder` : capture d'entrée (voir TradeForm)."""
+        super().__init__("📒", "Journal de trading", (1080, 880))
         self.journal = journal
         self.stats = QLabel(objectName="SettingsTitle", wordWrap=True)
         self.body.addWidget(self.stats)
         self.curve = EquityChart()  # le total en R au fil des trades clôturés
         self.body.addWidget(self.curve)
+        self.insights = Insights(journal)
+        self.body.addWidget(self.insights)
         self.table = QTableWidget(0, len(COLUMNS), objectName="JournalTable")
         self.table.setHorizontalHeaderLabels(COLUMNS)
         self.table.setSelectionBehavior(QAbstractItemView.SelectRows)
@@ -71,7 +79,7 @@ class JournalWindow(Popup):
         self.table.itemSelectionChanged.connect(self._selected)
         self.body.addWidget(self.table, 1)
         self.body.addLayout(self._actions())
-        self.form = TradeForm(journal)
+        self.form = TradeForm(journal, snapshot, folder)
         self.form.added.connect(lambda _id: self.refresh())
         self.body.addWidget(self.form)
         self._confirm_delete: int | None = None
@@ -81,7 +89,7 @@ class JournalWindow(Popup):
         self._watch.start()
         self.refresh()
 
-    def _actions(self) -> QHBoxLayout:
+    def _actions(self) -> QVBoxLayout:
         row = QHBoxLayout()
         self.exit_price = QLineEdit(placeholderText="Prix de sortie", objectName="JournalField")
         self.exit_price.setMaximumWidth(160)
@@ -91,30 +99,46 @@ class JournalWindow(Popup):
         self.close_button.clicked.connect(self.close_selected)
         self.delete_button.clicked.connect(self.delete_selected)
         export.clicked.connect(self._export)
+        self.notes = TradeNotes(self.journal)  # compléter le trade sélectionné
+        self.note_button = QPushButton("Compléter", objectName="SettingsSmall")
+        self.note_button.clicked.connect(self.annotate_selected)
+        self.capture_button = QPushButton("Voir la capture", objectName="SettingsSmall")
+        self.capture_button.clicked.connect(self.show_capture)
         self.message = QLabel(objectName="Hint", wordWrap=True)
-        for widget in (self.exit_price, self.close_button, self.delete_button):
+        for widget in (self.exit_price, self.close_button, self.delete_button, self.capture_button):
             row.addWidget(widget)
         row.addWidget(self.message, 1)
         row.addWidget(export)
-        return row
+        notes = QHBoxLayout()  # 2e ligne : compléter le trade sélectionné
+        notes.addWidget(QLabel("Compléter le trade choisi :", objectName="Hint"))
+        notes.addWidget(self.notes, 1)
+        notes.addWidget(self.note_button)
+        column = QVBoxLayout()
+        column.addLayout(row)
+        column.addLayout(notes)
+        return column
 
     def refresh(self) -> None:
         self._seen = self.journal.version
         self.stats.setText(stats_text(self.journal))
         self.curve.set_points(self.journal.equity())
+        self.insights.refresh()
+        self.notes.reload()
         trades = self.journal.all_trades()
         self.table.setRowCount(len(trades))
         for row, t in enumerate(trades):
             values = (t.id, t.opened_at.replace("T", " ")[:16], t.pair, t.direction, t.entry,
                       t.stop, t.target, planned_ratio(t), t.exit,
-                      "" if t.result_r is None else f"{t.result_r:+.2f} R", t.reason)  # fmt: skip
+                      "" if t.result_r is None else f"{t.result_r:+.2f} R", t.setup,
+                      {True: "oui", False: "non"}.get(t.plan_ok, ""), t.mood,
+                      "📷" if t.capture else "", t.reason)  # fmt: skip
             for column, value in enumerate(values):
                 item = QTableWidgetItem("" if value is None else f"{value:g}"
                                         if isinstance(value, float) else str(value))  # fmt: skip
                 item.setData(Qt.UserRole, t.id)
-                if column == 9 and t.result_r is not None:
+                if column == RESULT and t.result_r is not None:
                     item.setForeground(GAIN if t.result_r > 0 else LOSS)
-                if column == 10:
+                if column == len(COLUMNS) - 1:
                     item.setToolTip(t.reason)
                 self.table.setItem(row, column, item)
         self._selected()
@@ -136,6 +160,28 @@ class JournalWindow(Popup):
         self.delete_button.setEnabled(trade is not None)
         self.close_button.setEnabled(trade is not None and trade.exit is None)
         self.exit_price.setEnabled(trade is not None and trade.exit is None)
+        self.note_button.setEnabled(trade is not None)
+        self.capture_button.setEnabled(trade is not None and bool(trade.capture))
+
+    def annotate_selected(self) -> None:
+        trade = self.selected_trade()
+        if trade is None:
+            return
+        values = {k: v for k, v in self.notes.values().items() if v not in ("", None)}
+        if not values:
+            self.message.setText("⚠️ Choisissez le setup, le plan ou l'état d'esprit à noter.")
+            return
+        self.journal.annotate(trade.id, **values)
+        self.notes.clear()
+        self.message.setText(f"Trade n°{trade.id} complété.")
+        self.refresh()
+
+    def show_capture(self) -> None:
+        trade = self.selected_trade()
+        if trade is not None and trade.capture and Path(trade.capture).is_file():
+            QDesktopServices.openUrl(QUrl.fromLocalFile(trade.capture))
+        elif trade is not None:
+            self.message.setText("⚠️ Capture introuvable sur ce PC.")
 
     def close_selected(self) -> None:
         trade = self.selected_trade()

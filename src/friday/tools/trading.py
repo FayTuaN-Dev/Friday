@@ -1,9 +1,8 @@
-"""Outils locaux du mode trading : calculs de risque (déterministes) et journal. Rien ne part
-en ligne ; le modèle local ne fait qu'extraire les chiffres de la demande."""
+"""Outils locaux du mode trading : calculs de risque (déterministes). Rien ne part en ligne ;
+le modèle local ne fait qu'extraire les chiffres de la demande. Le journal : trading_journal.py."""
 
-from friday.tools.base import Display, Tool, ToolResult
+from friday.tools.base import Tool, ToolResult
 from friday.trading import risk_calc
-from friday.trading.journal import TradeJournal
 
 
 def _n(value: float, digits: int = 2) -> str:
@@ -153,79 +152,4 @@ class RiskRewardTool(Tool):
             f"Calcul exact : {rr.direction}, risque {_n(rr.risk_pips, 1)} pips, gain potentiel "
             f"{_n(rr.reward_pips, 1)} pips, ratio 1 pour {_n(rr.ratio)}. "
             "Donne ces chiffres tels quels."
-        )
-
-
-class LogTradeTool(Tool):
-    name = "log_trade"
-    description = "Note un trade dans le journal de trading local (paire, sens, entrée, stop…)."
-    parameters = {
-        "pair": INSTRUMENT,
-        "direction": {"type": "string", "enum": ["achat", "vente"]},
-        "entry": {"type": "number", "description": "Prix d'entrée"},
-        "stop": {"type": "number", "description": "Stop loss"},
-        "target": {"type": "number", "description": "Objectif, s'il est donné"},
-        "lots": {"type": "number", "description": "Taille, si elle est donnée"},
-        "reason": {"type": "string", "description": "Raison du trade, avec ses mots"},
-    }
-    required = ("pair", "direction", "entry", "stop")
-
-    def __init__(self, journal: TradeJournal) -> None:
-        self.journal = journal
-
-    def run(self, pair: str, direction: str, entry: float, stop: float, target: float | None = None,
-            lots: float | None = None, reason: str = "") -> ToolResult:  # fmt: skip
-        trade = self.journal.open_trade(pair, direction, entry, stop, target, lots, reason)
-        return ToolResult(f"Trade n°{trade.id} noté dans le journal (local) : {direction} "
-                          f"{trade.pair} à {entry}, stop {stop}.")  # fmt: skip
-
-
-class CloseTradeTool(Tool):
-    name = "close_trade"
-    description = "Clôture un trade du journal avec son prix de sortie (résultat calculé en R)."
-    parameters = {
-        "trade_id": {"type": "integer", "description": "Numéro du trade"},
-        "exit_price": {"type": "number", "description": "Prix de sortie"},
-    }
-    required = ("trade_id", "exit_price")
-
-    def __init__(self, journal: TradeJournal) -> None:
-        self.journal = journal
-
-    def run(self, trade_id: int, exit_price: float) -> ToolResult:
-        trade = self.journal.close_trade(int(trade_id), exit_price)
-        if trade is None:
-            return ToolResult(f"Pas de trade n°{trade_id} en cours dans le journal.")
-        return ToolResult(f"Trade n°{trade.id} clôturé : {trade.result_r:+.2f} R.")
-
-
-class TradeStatsTool(Tool):
-    name = "trade_stats"
-    description = "Bilan du journal de trading et derniers trades (« mon bilan », « mes trades »)."
-    parameters = {}
-
-    def __init__(self, journal: TradeJournal) -> None:
-        self.journal = journal
-
-    def run(self) -> ToolResult:
-        lines = [
-            f"- n°{t.id} {t.direction} {t.pair} à {t.entry} (stop {t.stop}) : "
-            + (f"{t.result_r:+.2f} R" if t.result_r is not None else "en cours")
-            for t in self.journal.recent(5)
-        ]
-        return ToolResult(self.journal.summary() + ("\nDerniers :\n" + "\n".join(lines)
-                                                     if lines else ""))  # fmt: skip
-
-
-class OpenJournalTool(Tool):
-    name = "open_journal"
-    description = "Ouvre la fenêtre du journal de trading (« ouvre mon journal », « mes trades »)."
-    parameters = {}
-
-    def label(self, args: dict) -> str:
-        return "📒 Journal de trading"
-
-    def run(self) -> ToolResult:
-        return ToolResult(
-            "Journal ouvert. Dis-le en une phrase.", Display("journal", "Journal de trading")
         )

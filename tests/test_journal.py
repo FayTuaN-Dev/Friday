@@ -34,12 +34,15 @@ def test_stats_delete_and_version(journal):
 
 
 def test_csv_export_for_excel(journal, tmp_path):
-    trade = journal.open_trade("EURUSD", "achat", 1.1, 1.098, None, 0.5, "repli MM50")
+    trade = journal.open_trade("EURUSD", "achat", 1.1, 1.098, None, 0.5, "repli MM50",
+                               setup="Repli EMA50", plan_ok=True, mood="calme")  # fmt: skip
     journal.close_trade(trade.id, 1.104)
     path = tmp_path / "journal.csv"
     assert journal.export_csv(path) == 1
     rows = list(csv.reader(path.open(encoding="utf-8-sig"), delimiter=";"))
-    assert rows[0][2] == "instrument" and rows[1][2] == "EURUSD" and rows[1][-1] == "2.0"
+    assert rows[0][2] == "instrument" and rows[1][2] == "EURUSD" and rows[1][10] == "2.0"
+    assert rows[0][11:] == ["setup", "plan respecté", "état d'esprit"]
+    assert rows[1][11:] == ["Repli EMA50", "oui", "calme"]
 
 
 def test_form_checks_before_writing():
@@ -108,7 +111,7 @@ def test_open_journal_by_voice_and_from_settings(tmp_path):
     from fakes import SETTINGS
     from test_desktop import StubAssistant
 
-    from friday.tools.trading import OpenJournalTool
+    from friday.tools.trading_journal import OpenJournalTool
     from friday.ui.desktop.main_window import MainWindow
 
     assistant = StubAssistant()

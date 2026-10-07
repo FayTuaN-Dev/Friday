@@ -44,6 +44,8 @@ DIRECTIONS = ("acheter", "achete", "achat", "vendre", "vends", "vend", "vente", 
 STOPS = ("stop", "sl")
 # … sauf si l'utilisateur demande explicitement l'avis de Claude sur cette idée.
 ASK_ANALYSIS = ("claude", "analyse", "analyser", "ton avis", "qu en penses", "que penses")
+# Revue hebdomadaire du journal : par Claude (bilan anonyme, après aperçu), jamais locale.
+REVIEW = ("revue", "bilan de la semaine", "bilan hebdo", "debrief de la semaine")
 # Compétences qui ne concernent pas une analyse de trading : elles restent locales.
 OTHER_SKILLS = {"pc", "mail", "calendar", "reminders", "files", "briefing", "claude"}
 
@@ -65,6 +67,11 @@ def _command_words(text: str) -> str:
         if words.startswith(prefix):
             words = words[len(prefix) :]
     return words.strip()
+
+
+def is_review(text: str) -> bool:
+    padded = f" {normalize(text)} "
+    return any(f" {word}" in padded for word in REVIEW)
 
 
 def is_trade_idea(text: str) -> bool:
@@ -95,6 +102,8 @@ class TradingMode:
     def route(self, text: str, choose: Callable[[str], set[str]] | None = None) -> str:
         """« local » (modèle local) ou « analysis » (paquet pour Claude, après aperçu)."""
         padded = f" {normalize(text)} "
+        if is_review(text):
+            return "analysis"
         if any(f" {key}" in padded for key in LOCAL) or is_trade_idea(text):
             return "local"
         if choose is not None and choose(text) & OTHER_SKILLS:

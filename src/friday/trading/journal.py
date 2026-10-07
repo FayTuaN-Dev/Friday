@@ -2,7 +2,6 @@
 Claude (ce qui est parti, quand, empreinte des images). Rien de ce fichier ne part en ligne ;
 seul un résumé anonyme (`summary`) peut être joint à une analyse, via l'aperçu."""
 
-import hashlib
 import sqlite3
 import threading
 from dataclasses import dataclass
@@ -10,6 +9,7 @@ from datetime import datetime
 from pathlib import Path
 
 from friday.trading.risk_calc import result_in_r
+from friday.trading.sent_log import SentLog
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS trades (
@@ -25,7 +25,10 @@ CREATE TABLE IF NOT EXISTS trades (
     capture TEXT,                  -- chemin local d'une capture (jamais envoyé)
     exit REAL,
     closed_at TEXT,
-    result_r REAL                  -- résultat en multiples du risque initial
+    result_r REAL,                 -- résultat en multiples du risque initial
+    setup TEXT NOT NULL DEFAULT '', -- le setup utilisé (« repli EMA50 »…)
+    plan_ok INTEGER,               -- plan respecté ? 1 / 0 / NULL (non dit)
+    mood TEXT NOT NULL DEFAULT ''  -- état d'esprit à l'entrée
 );
 CREATE TABLE IF NOT EXISTS sent (
     id INTEGER PRIMARY KEY,
@@ -52,6 +55,11 @@ class Trade:
     reason: str
     exit: float | None
     result_r: float | None
+    setup: str = ""
+    plan_ok: bool | None = None
+    mood: str = ""
+    capture: str | None = None
+    closed_at: str | None = None
 
 
 @dataclass
@@ -67,36 +75,63 @@ class Stats:
         return self.wins / self.closed if self.closed else None
 
 
-CSV_COLUMNS = ("n°", "ouvert le", "instrument", "sens", "entrée", "stop", "objectif", "lots",
-               "raison", "sortie", "résultat (R)")  # fmt: skip
+# Colonnes ajoutées après coup : un journal plus ancien les reçoit à l'ouverture
+ADDED = {"setup": "TEXT NOT NULL DEFAULT ''", "plan_ok": "INTEGER",
+         "mood": "TEXT NOT NULL DEFAULT ''"}  # fmt: skip
+FIELDS = (
+    "id, opened_at, pair, direction, entry, stop, target, lots, reason, exit, result_r, "
+    "setup, plan_ok, mood, capture, closed_at"
+)
 
 
 def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
-class TradeJournal:
+class TradeJournal(SentLog):
     def __init__(self, path: Path | str) -> None:
         self._db = sqlite3.connect(str(path), check_same_thread=False)
         self._lock = threading.Lock()
         self.version = 0  # augmente à chaque changement : l'écran du journal se rafraîchit
         with self._lock:
             self._db.executescript(SCHEMA)
+            known = {row[1] for row in self._db.execute("PRAGMA table_info(trades)")}
+            for column, kind in ADDED.items():
+                if column not in known:
+                    self._db.execute(f"ALTER TABLE trades ADD COLUMN {column} {kind}")
             self._db.commit()
 
     def open_trade(
         self, pair: str, direction: str, entry: float, stop: float,
         target: float | None = None, lots: float | None = None, reason: str = "",
+        setup: str = "", plan_ok: bool | None = None, mood: str = "",
     ) -> Trade:  # fmt: skip
         with self._lock:
             cursor = self._db.execute(
-                "INSERT INTO trades (opened_at, pair, direction, entry, stop, target, lots, reason)"
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (_now(), pair.upper(), direction, entry, stop, target, lots, reason),
-            )
+                "INSERT INTO trades (opened_at, pair, direction, entry, stop, target, lots, reason,"
+                " setup, plan_ok, mood) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (_now(), pair.upper(), direction, entry, stop, target, lots, reason,
+                 setup.strip(), plan_ok, mood.strip()),
+            )  # fmt: skip
             self._db.commit()
             self.version += 1
         return self.get(cursor.lastrowid)
+
+    def annotate(self, trade_id: int, **fields) -> Trade | None:
+        """Complète un trade après coup : setup, plan_ok, mood, capture (chemin local)."""
+        allowed = {k: v for k, v in fields.items()
+                   if k in ("setup", "plan_ok", "mood", "capture") and v is not None}  # fmt: skip
+        if not allowed or self.get(trade_id) is None:
+            return self.get(trade_id)
+        for key in ("setup", "mood"):
+            if key in allowed:
+                allowed[key] = str(allowed[key]).strip()
+        with self._lock:
+            self._db.execute(f"UPDATE trades SET {', '.join(f'{k} = ?' for k in allowed)}"
+                             " WHERE id = ?", (*allowed.values(), trade_id))  # fmt: skip
+            self._db.commit()
+            self.version += 1
+        return self.get(trade_id)
 
     def close_trade(self, trade_id: int, exit_price: float) -> Trade | None:
         trade = self.get(trade_id)
@@ -149,18 +184,10 @@ class TradeJournal:
         return Stats(len(results), open_count, wins, average, sum(results))
 
     def export_csv(self, path: Path) -> int:
-        """Tous les trades en CSV (point-virgule, pour Excel en français) ; renvoie leur nombre."""
-        import csv
+        """Tous les trades en CSV pour Excel (journal_export.py) ; renvoie leur nombre."""
+        from friday.trading.journal_export import export_csv
 
-        trades = list(reversed(self.all_trades()))
-        with open(path, "w", newline="", encoding="utf-8-sig") as file:
-            writer = csv.writer(file, delimiter=";")
-            writer.writerow(CSV_COLUMNS)
-            for t in trades:
-                writer.writerow([t.id, t.opened_at, t.pair, t.direction, t.entry, t.stop,
-                                 t.target, t.lots, t.reason, t.exit,
-                                 "" if t.result_r is None else round(t.result_r, 2)])  # fmt: skip
-        return len(trades)
+        return export_csv(list(reversed(self.all_trades())), path)
 
     def get(self, trade_id: int) -> Trade | None:
         rows = self._trades("WHERE id = ?", (trade_id,))
@@ -171,12 +198,17 @@ class TradeJournal:
 
     def _trades(self, where: str, params: tuple) -> list[Trade]:
         with self._lock:
-            rows = self._db.execute(
-                "SELECT id, opened_at, pair, direction, entry, stop, target, lots, reason, exit,"
-                f" result_r FROM trades {where}",
-                params,
-            ).fetchall()
-        return [Trade(*row) for row in rows]
+            rows = self._db.execute(f"SELECT {FIELDS} FROM trades {where}", params).fetchall()
+        trades = [Trade(*row) for row in rows]
+        for trade in trades:
+            trade.plan_ok = None if trade.plan_ok is None else bool(trade.plan_ok)
+        return trades
+
+    def review(self, now: datetime | None = None) -> str:
+        """Bilan ANONYME détaillé : semaine, statistiques par catégorie, constats."""
+        from friday.trading.journal_stats import review_text
+
+        return review_text(self.all_trades(), self.summary(), now or datetime.now())
 
     def summary(self) -> str:
         """Bilan anonyme : nombre de trades, réussite, moyenne et total en R (aucun montant)."""
@@ -187,23 +219,3 @@ class TradeJournal:
             f"{s.closed} trades clôturés ({s.open} en cours) : {s.win_rate:.0%} gagnants, "
             f"moyenne {s.average_r:+.2f} R, total {s.total_r:+.1f} R."
         )
-
-    def log_sent(self, question: str, content: str, images: list[bytes] = ()) -> int:
-        hashes = ",".join(hashlib.sha256(image).hexdigest() for image in images)
-        with self._lock:
-            cursor = self._db.execute(
-                "INSERT INTO sent (sent_at, question, content, chars, images)"
-                " VALUES (?, ?, ?, ?, ?)",
-                (_now(), question, content, len(content), hashes),
-            )
-            self._db.commit()
-        return cursor.lastrowid
-
-    def log_answer(self, sent_id: int, answer: str) -> None:
-        with self._lock:
-            self._db.execute("UPDATE sent SET answer = ? WHERE id = ?", (answer, sent_id))
-            self._db.commit()
-
-    def sent_count(self) -> int:
-        with self._lock:
-            return self._db.execute("SELECT COUNT(*) FROM sent").fetchone()[0]

@@ -1,12 +1,28 @@
 """Formulaire « Nouveau trade » du journal : vérifié avant d'écrire (instrument connu, stop et
-objectif du bon côté de l'entrée), pour que les résultats en R soient justes."""
+objectif du bon côté de l'entrée), pour que les résultats en R soient justes ; avec les notes
+qui font apprendre le journal (setup, plan, état d'esprit) et la capture d'entrée."""
+
+import logging
+from pathlib import Path
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QComboBox, QFrame, QGridLayout, QLabel, QLineEdit, QPushButton
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QComboBox,
+    QFrame,
+    QGridLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+)
 
 from friday.trading import risk_calc
 from friday.trading.instruments import parse_price
 from friday.trading.journal import TradeJournal
+from friday.trading.journal_export import save_capture
+from friday.ui.desktop.journal.notes import TradeNotes
+
+log = logging.getLogger(__name__)
 
 
 class FormError(ValueError):
@@ -47,9 +63,10 @@ def validate(instrument: str, direction: str, entry: str, stop: str, target: str
 class TradeForm(QFrame):
     added = Signal(int)  # numéro du trade
 
-    def __init__(self, journal: TradeJournal) -> None:
+    def __init__(self, journal: TradeJournal, snapshot=None, folder: Path | None = None) -> None:
+        """`snapshot(symbole)` : PNG du graphique TradingView s'il l'affiche, sinon None."""
         super().__init__(objectName="JournalForm")
-        self.journal = journal
+        self.journal, self.snapshot, self.folder = journal, snapshot, folder
         grid = QGridLayout(self)
         grid.setContentsMargins(14, 10, 14, 10)
         grid.addWidget(QLabel("Nouveau trade", objectName="SettingsLabel"), 0, 0, 1, 4)
@@ -68,9 +85,16 @@ class TradeForm(QFrame):
         grid.addWidget(self.target, 2, 0)
         grid.addWidget(self.lots, 2, 1)
         grid.addWidget(self.reason, 2, 2, 1, 2)
+        self.notes = TradeNotes(journal)
+        grid.addWidget(self.notes, 3, 0, 1, 3)
+        self.with_capture = QCheckBox("Capture du graphique")
+        self.with_capture.setToolTip("Gardée sur ce PC, si TradingView affiche l'instrument")
+        self.with_capture.setChecked(snapshot is not None)
+        self.with_capture.setEnabled(snapshot is not None and folder is not None)
+        grid.addWidget(self.with_capture, 3, 3)
         self.message = QLabel(objectName="Hint", wordWrap=True)
-        grid.addWidget(self.message, 3, 0, 1, 3)
-        grid.addWidget(add, 3, 3)
+        grid.addWidget(self.message, 4, 0, 1, 3)
+        grid.addWidget(add, 4, 3)
 
     def submit(self) -> None:
         try:
@@ -80,9 +104,26 @@ class TradeForm(QFrame):
         except FormError as error:
             self.message.setText(f"⚠️ {error}")
             return
-        trade = self.journal.open_trade(symbol, direction, entry, stop, target, lots,
-                                        self.reason.text().strip())  # fmt: skip
+        reason = self.reason.text().strip()
+        trade = self.journal.open_trade(symbol, direction, entry, stop, target, lots, reason,
+                                        **self.notes.values())  # fmt: skip
+        shot = self._capture(trade.id, symbol)
         for field in (self.entry, self.stop, self.target, self.lots, self.reason):
             field.clear()
-        self.message.setText(f"Trade n°{trade.id} ajouté.")
+        self.notes.clear()
+        self.notes.reload()
+        self.message.setText(f"Trade n°{trade.id} ajouté.{shot}")
         self.added.emit(trade.id)
+
+    def _capture(self, trade_id: int, symbol: str) -> str:
+        if not self.with_capture.isChecked() or self.snapshot is None or self.folder is None:
+            return ""
+        try:
+            image = self.snapshot(symbol)
+        except Exception as error:
+            log.info("Capture d'entrée impossible : %s", error)
+            image = None
+        if not image:
+            return " (pas de capture : TradingView n'affiche pas cet instrument)"
+        self.journal.annotate(trade_id, capture=save_capture(self.folder, trade_id, image))
+        return " Capture gardée."
