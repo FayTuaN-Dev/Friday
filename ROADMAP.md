@@ -131,5 +131,31 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 | D | Agenda et mails Google | Friday gère mon planning | ✅ |
 | E | Longues conversations : carnet de recherche, résumé glissant, mémoire de travail doublée (16 k) | Friday tient une longue recherche | ✅ |
 | F | Bibliothèque de documents (RAG local) | « Que dit mon livre sur… » | ✅ |
-| G | Mode trading : analyses par Claude isolé après aperçu, calculs de risque, journal local, capture ciblée du graphique TradingView (données OHLC : plus tard) | Friday m'accompagne en trading | ✅ |
-| H | Données pour les analyses : marché (bougies, indicateurs), cours ; calendrier économique, actualités, COT, séances ; bibliothèque de trading légale | Des analyses mieux informées, tout instrument | ✅ |
+| G | Mode trading : analyses par Claude isolé après aperçu, calculs de risque, journal local (écran + courbe en R), capture ciblée du graphique TradingView | Friday m'accompagne en trading | ✅ |
+| H | Données pour les analyses : marché (bougies, indicateurs), cours ; calendrier économique, actualités, COT, séances ; annonces du jour + résultats publiés (FRED) + heures de trading ; bibliothèque de trading légale | Des analyses mieux informées, tout instrument | ✅ |
+
+### Prochaines étapes — trading
+
+À attaquer une par une (une PR chacune), dans cet ordre :
+
+| # | Brique | Livrable | Statut |
+|---|---|---|---|
+| T1 | **Check-list avant trade** : les règles du plan vérifiées par le code (tendance / MM200, zone RSI, annonce forte dans les 30 min, risque ≤ 1 %, R/R ≥ 2) | « Je veux acheter l'or à 4 160, stop 4 140 » → feu vert / rouge, règle par règle, sans Claude | ⬜ |
+| T2 | **Backtest du plan** sur l'historique (Yahoo : 2 ans en 1 h, plus en journalier) | Nombre de trades, % gagnants, espérance en R, pire série ; comparer des variantes du plan | ⬜ |
+| T3 | **Alertes** : niveaux et conditions du plan surveillés en local, annoncés à la voix | « L'or touche la MM50 4 h avec RSI 44 : ton setup se forme » | ⬜ |
+| T4 | **Journal qui apprend** : setup utilisé, plan respecté ?, capture d'entrée, état d'esprit ; statistiques par setup / instrument / heure ; revue hebdomadaire (bilan anonyme) par Claude | Savoir ce qui marche et ce qui coûte | ⬜ |
+| T5 | **Briefing trading à 9 h** (rubrique du briefing) : annonces du jour, mouvement de la nuit, niveaux clés, règles du plan | Début de journée de trading préparé | ⬜ |
+| T6 | **Analyses plus rapides et mieux nourries** : données préparées en avance en mode trading (aperçu instantané), mémoire des analyses de Claude (et plus tard leur comparaison avec ce que le marché a fait), recherche dans la bibliothèque enrichie (instrument + sujet), données européennes (BCE : inflation, chômage, sans clé) | Moins d'attente, moins de quota, de meilleures sources | ⬜ |
+
+### Prochaines étapes — Friday
+
+| # | Brique | Livrable | Statut |
+|---|---|---|---|
+| F1 | **Fiabilité** : surveillance d'Ollama (vitesse effondrée → rechargement du modèle tout seul, constaté une fois), sauvegarde automatique de `data/` (mémoire, journal, notes, bibliothèque), page « Diagnostic » (Ollama, carte graphique, modèles, micro) | Friday ne se dégrade plus en silence, rien ne se perd | ⬜ |
+| F2 | **Mot d'activation dédié** (openWakeWord, petit modèle local) au lieu de Whisper en continu | Moins de faux déclenchements, moins de calcul | ⬜ |
+| F3 | **Notifications Windows** quand une tâche de fond finit (Claude, analyse, rappel) même fenêtre réduite | Rien ne passe inaperçu | ⬜ |
+| F4 | **Mails** : la vraie liste des catégories donnée au modèle (« quelles catégories ai-je ? » ne marchait que 5 fois sur 8) | Tri des mails fiable | ⬜ |
+| F5 | **Mémoire de la journée** : résumé des conversations du jour gardé (« de quoi on a parlé hier ? ») | Continuité d'un jour à l'autre | ⬜ |
+| F6 | **Friday sur le téléphone** (à étudier : accès privé depuis le réseau local, sans service payant) | Parler à Friday hors du bureau | ⬜ |
+| 9 | Finitions : icône près de l'horloge, démarrage avec Windows, `.exe` | Produit fini | ⬜ (reporté) |
+
