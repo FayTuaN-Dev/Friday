@@ -167,7 +167,7 @@ SKILLS = (
     Skill("trading", "mode trading : calculs de risque, journal de trading, analyses",
           ("position_size", "pip_value", "risk_reward", "log_trade", "annotate_trade", "close_trade",
            "trade_stats", "trading_analysis", "open_journal", "trade_check", "backtest_plan", "set_price_alert", "watch_setup",
-           "list_alerts", "cancel_alert"),
+           "list_alerts", "cancel_alert", "trading_briefing"),
           """- Mode trading actif. position_size, pip_value, risk_reward : calculs EXACTS faits
   sur le PC ; extrais les chiffres de la demande, n'en invente aucun (demande ceux qui
   manquent), puis répète le résultat tel quel. Jamais de calcul de tête.
@@ -179,6 +179,8 @@ SKILLS = (
 - set_price_alert (« préviens-moi si l'or passe 4 150 »), watch_setup (« surveille l'or » :
   le setup du plan), list_alerts, cancel_alert : les alertes, surveillées sur le PC et
   annoncées à la voix. Répète la phrase donnée telle quelle.
+- trading_briefing : le briefing trading (« briefing trading », « prépare ma journée de
+  trading ») ; à ne pas confondre avec le briefing du matin. Répète le texte tel quel.
 - log_trade (avec setup, plan respecté, état d'esprit s'il les dit), annotate_trade (les
   ajouter après coup), close_trade, trade_stats (bilan et ce que le journal apprend) : le journal.
   « Note ce trade » / « note le trade » : log_trade (le journal), jamais add_note de trading (local) ; open_journal :
@@ -188,6 +190,7 @@ SKILLS = (
           ("taille de position", "lots", "pip", "ratio", "risque rendement", "journal de trading",
            "mes trades", "trade", "stop", "check list", "checklist", "mon plan", "acheter", "backtest",
            "historique", "alerte", "previens moi", "surveille", "setup se forme",
+           "briefing trading", "journee de trading",
            "vendre"),
           ("calcule ma taille de position", "combien vaut un pip sur 0,5 lot",
            "note ce trade dans le journal", "quel est mon bilan de trading",

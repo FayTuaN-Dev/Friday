@@ -106,6 +106,11 @@ SECTIONS = (
         Field("TRADING_HOURS", "Mes heures de trading (Paris)", "text", "9-18",
               "Ex. « 9-18 » : Claude en tient compte (une annonce à 20 h ne bloque pas la "
               "journée)."),
+        Field("TRADING_BRIEFING", "Briefing trading au début de ma plage", "bool", "true",
+              "En semaine, à l'heure de début de vos heures de trading : annonces, nuit, "
+              "niveaux clés, tendance, règles du plan. Aussi à la voix : « briefing trading »."),
+        Field("TRADING_BRIEFING_INSTRUMENTS", "Instruments du briefing trading", "text", "",
+              "Ex. « or, EUR/USD ». Vide : ceux que vous surveillez (« surveille l'or »)."),
         Field("FRED_API_KEY", "Clé FRED (gratuite)", "text", "",
               "Résultats publiés des annonces américaines. Clé sur fredaccount.stlouisfed.org "
               "→ API Keys."),

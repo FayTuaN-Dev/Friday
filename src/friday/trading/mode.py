@@ -18,6 +18,8 @@ OFF = ("fin du mode trading", "fin mode trading", "quitte le mode trading", "sor
        "desactive le mode trading", "arrete le mode trading", "stop mode trading",
        "termine le mode trading", "mode trading off")  # fmt: skip
 PREFIXES = ("friday ", "ok ", "bon ", "allez ", "vas y ")
+# Briefing trading (calculé sur le PC) : lancé d'office par le code (prefetch)
+BRIEFING = ("briefing trading", "brief trading", "journee de trading", "prepare ma journee")
 LOCAL = (
     # calculs de risque (déterministes, sur ce PC)
     "taille de position", "combien de lots", "nombre de lots", "combien de lot", "valeur du pip",
@@ -37,6 +39,8 @@ LOCAL = (
     "et avec un objectif", "et avec un stop", "et avec une variante",
     # alertes (surveillées sur le PC) et leurs annonces
     "alerte", "previens moi", "surveille", "setup se forme",
+    # briefing trading (calculé sur le PC)
+    *BRIEFING,
 )  # fmt: skip
 # Une idée de trade chiffrée (« acheter l'or à 4 160, stop 4 140 ») : la check-list, en local.
 DIRECTIONS = ("acheter", "achete", "achat", "vendre", "vends", "vend", "vente", "long", "short",
@@ -67,6 +71,21 @@ def _command_words(text: str) -> str:
         if words.startswith(prefix):
             words = words[len(prefix) :]
     return words.strip()
+
+
+def briefing_request(text: str) -> str | None:
+    """« briefing trading (sur l'argent) » → le symbole demandé, « » pour ceux des réglages,
+    ou None. Choisi par le code : qwen passait toujours l'or, même pour l'argent (constaté).
+    Les annonces automatiques (« (Message automatique… ») ne relancent rien."""
+    if text.lstrip().startswith("(Message automatique"):
+        return None
+    padded = f" {normalize(text)} "
+    if not any(f" {word}" in padded for word in BRIEFING):
+        return None
+    from friday.trading.instruments import detect
+
+    found = detect(text)
+    return found.symbol if found else ""
 
 
 def is_review(text: str) -> bool:

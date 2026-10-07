@@ -1,6 +1,8 @@
 """Ce que Friday prépare d'office avant de répondre : les consignes par demande (hints) et
 l'outil lancé d'avance (prefetch) — bibliothèque, ou analyse en mode trading."""
 
+from friday.trading.mode import briefing_request
+
 TRADING_LOCAL = (
     "Mode trading : demande locale (calcul de risque, journal…) : utilise les outils du PC, "
     "rien ne part en ligne."
@@ -27,6 +29,8 @@ def prefetcher(library, trading, router):
 
     def prefetch(text: str) -> tuple[str, dict] | None:
         if trading and trading.mode.enabled:
+            if trading.briefing is not None and (wanted := briefing_request(text)) is not None:
+                return ("trading_briefing", {"instrument": wanted})  # le code choisit
             if trading.mode.route(text, choose) == "analysis":
                 return ("trading_analysis", {"question": text})
             return None
