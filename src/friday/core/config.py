@@ -26,6 +26,8 @@ class TradingSettings:
     model: str = ""  # vide : celui de Claude Code
     hours: tuple[int, int] = (9, 18)  # plage de trading de l'utilisateur (heure de Paris)
     fred_key: str = ""  # clé gratuite FRED : résultats publiés des annonces américaines
+    briefing: bool = True  # briefing trading automatique à l'ouverture de la plage de trading
+    briefing_instruments: tuple[str, ...] = ()  # vide : les instruments surveillés
 
 
 @dataclass(frozen=True)
@@ -158,6 +160,12 @@ def load_settings() -> Settings:
             capture_window=os.getenv("TRADING_CAPTURE_WINDOW", "TradingView"),
             model=os.getenv("TRADING_MODEL", ""),
             hours=_hours(os.getenv("TRADING_HOURS", "9-18")),
+            briefing=_bool("TRADING_BRIEFING", True),
+            briefing_instruments=tuple(
+                w.strip()
+                for w in os.getenv("TRADING_BRIEFING_INSTRUMENTS", "").split(",")
+                if w.strip()
+            ),
             fred_key=os.getenv("FRED_API_KEY", "").strip(),
         ),
     )

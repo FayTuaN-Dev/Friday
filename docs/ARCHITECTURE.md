@@ -98,6 +98,10 @@ src/friday/
 │   ├── backtest/          backtest du plan : series.py (EMA, RSI, ATR en série), engine.py
 │   │                      (règles rejouées bougie 1 h après bougie, sans voir le futur),
 │   │                      report.py (bilan en R, marge d'incertitude, variantes à une règle)
+│   ├── briefing.py        briefing trading : annonces fortes (en français, calendar_fr.py), nuit,
+│   │                      niveaux clés (hier rebâti avec les bougies 1 h), tendance, règles du plan
+│   ├── briefing_service.py quand le faire (début de la plage, en semaine, une fois par jour)
+│   ├── calendar_fr.py     noms français des annonces courantes (ForexFactory les donne en anglais)
 │   ├── alerts/            alertes : store.py (data/trading_alerts.json, écart futures/graphique),
 │   │                      setup.py (setup du plan sur la dernière bougie 1 h fermée, mêmes règles
 │   │                      que le backtest), watcher.py (surveillance en arrière-plan)
@@ -146,6 +150,7 @@ src/friday/
 │   ├── memory_keeper.py   MemoryKeeper : mémorisation automatique en arrière-plan
 │   ├── reminders.py       rappel échu → carillon + annonce par Friday
 │   ├── trading_alerts.py  alerte de trading déclenchée : carillon, puis annonce à la voix
+│   ├── trading_briefing.py briefing trading automatique : carillon, puis lecture
 │   ├── wake_control.py    WakeControl : règles du mot d'activation (réveil, relance, stop, écho)
 │   ├── hands_free_target.py  ce que l'écoute mains libres demande à l'assistant (« Oui ? »…)
 │   ├── extras.py          chargement du compte Google et du briefing
@@ -165,6 +170,7 @@ src/friday/
 │   ├── trade_check.py     check-list avant trade (« acheter l'or à 4 160, stop 4 140 »)
 │   ├── backtest.py        backtest_plan : le plan rejoué sur ~2,5 ans de bougies 1 h (Yahoo)
 │   ├── alerts.py          set_price_alert, watch_setup, list_alerts, cancel_alert
+│   ├── trading_briefing.py trading_briefing (lancé d'office par le code : prefetch)
 │   ├── markets.py         market_quote : le cours d'un instrument, à la source (tous les jours)
 │   ├── trading_analysis.py analyse par Claude : aperçu, refus sans validation, journal
 │   ├── research.py        carnet de recherche : derniers résultats et pages lues, avec leurs adresses

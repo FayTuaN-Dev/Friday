@@ -93,6 +93,10 @@ def default_toolbox(
             TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background,
                                 trading.instrument_for, trading.chart_shows),
         ]  # fmt: skip
+        if trading.briefing is not None:
+            from friday.tools.trading_briefing import TradingBriefingTool
+
+            tools.append(TradingBriefingTool(trading.briefing))
         if trading.alerts is not None:
             from friday.tools.alerts import (
                 CancelAlertTool,

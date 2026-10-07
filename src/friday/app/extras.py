@@ -86,6 +86,7 @@ def load_trading(settings: Settings, library):
         from friday.trading.alerts.store import AlertStore
         from friday.trading.alerts.watcher import AlertWatcher
         from friday.trading.analyst import isolated_job
+        from friday.trading.briefing_service import BriefingService
         from friday.trading.capture import ChartCapture
         from friday.trading.context_builder import ContextBuilder
         from friday.trading.context_sources import ContextSources
@@ -108,8 +109,12 @@ def load_trading(settings: Settings, library):
         rules = DATA_DIR / "trading_rules.json"
         alerts = AlertWatcher(AlertStore(DATA_DIR / "trading_alerts.json"), rules,
                               capture.window_title, hours=config.hours)  # fmt: skip
-        return Trading(TradingMode(), journal, builder, job, config.account_currency, capture,
-                       rules_path=rules, alerts=alerts)  # fmt: skip
+        trading = Trading(TradingMode(), journal, builder, job, config.account_currency, capture,
+                          rules_path=rules, alerts=alerts)  # fmt: skip
+        trading.briefing = BriefingService(trading, DATA_DIR / "trading_briefing.json",
+                                           config.hours, config.briefing_instruments,
+                                           config.briefing)  # fmt: skip
+        return trading
     except Exception:
         log.exception("Mode trading indisponible, Friday continue sans")
         return None
