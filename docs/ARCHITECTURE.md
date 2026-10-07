@@ -78,7 +78,8 @@ src/friday/
 │   │                      qui la recouvre), recadrée sur la zone de data/trading.json ; sinon rien
 │   ├── instruments.py     fiches : forex, or, argent, pétrole, indices, crypto, actions (symbole
 │   │                      Yahoo, pip/point, lot, devises) ; détection dans la phrase ou le titre
-│   ├── market.py          bougies OHLC (Yahoo) + indicateurs calculés sur le PC (MM, RSI, ATR, pivots)
+│   ├── market.py          bougies OHLC (Yahoo) + indicateurs calculés sur le PC (MM, EMA, RSI, ATR,
+│   │                      pivots)
 │   ├── reference_rates.py cours de référence officiels de la BCE (Frankfurter)
 │   ├── calendar.py        annonces du jour (ForexFactory), « il y a / dans », heure de Paris
 │   ├── fred.py            résultats publiés des annonces américaines (FRED, clé gratuite)
@@ -90,6 +91,10 @@ src/friday/
 │   │                      n'empêche pas les autres
 │   ├── cache.py           cache disque (data/cache) : sources gratuites ménagées, secours
 │   ├── risk_calc.py       valeur du pip/point, taille de position, R/R, R — tout instrument
+│   ├── plan_rules.py      règles chiffrées du plan (data/trading_rules.json), valeurs par défaut
+│   ├── checklist.py       check-list avant trade : idée, données, verdict (feu vert/orange/rouge)
+│   ├── plan_checks.py     les règles vérifiées une par une (tendance, repli, RSI, stop, R, risque,
+│   │                      annonce forte, trades ouverts) — sans modèle ni Claude
 │   └── journal.py         data/trading.db : trades + trace de chaque envoi (empreinte des images)
 ├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
 │   ├── chunker.py         découpe en passages (~900 caractères, chevauchement, n° de page)
@@ -143,6 +148,7 @@ src/friday/
 │   ├── web_page.py        lecture d'une page (trafilatura) : adresse ou numéro d'un résultat
 │   ├── library.py         search_library, list_library, update_library
 │   ├── trading.py         calculs de risque et journal (locaux, mode trading seulement)
+│   ├── trade_check.py     check-list avant trade (« acheter l'or à 4 160, stop 4 140 »)
 │   ├── markets.py         market_quote : le cours d'un instrument, à la source (tous les jours)
 │   ├── trading_analysis.py analyse par Claude : aperçu, refus sans validation, journal
 │   ├── research.py        carnet de recherche : derniers résultats et pages lues, avec leurs adresses
@@ -185,7 +191,8 @@ src/friday/
         ├── journal/       journal de trading : window.py (bilan en R, tableau, clôture,
         │                  suppression, export CSV), trade_form.py (nouveau trade vérifié)
         │                  equity_chart.py (courbe du total en R, survol)
-        ├── settings/      écran de réglages (zone_picker.py : tracer la zone du graphique)
+        ├── settings/      écran de réglages (zone_picker.py : tracer la zone du graphique ;
+        │                  trading_rules.py : règles de la check-list)
         │   ├── window.py      SettingsWindow : menu, pages, Enregistrer / Redémarrer
         │   ├── form_page.py   page construite depuis settings_schema (interrupteurs, listes…)
         │   ├── briefing_page.py  briefing : activé, heures, rubriques (appliqué tout de suite)
