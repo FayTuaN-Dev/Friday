@@ -181,6 +181,8 @@ src/friday/
         │   ├── palette.py     une couleur de base → toute la palette (fond, bulles, états…)
         │   ├── stylesheet.py  feuille de style Qt générée à partir de la palette
         │   └── __init__.py    current() / apply_theme() : changement de couleur à chaud
+        ├── journal/       journal de trading : window.py (bilan en R, tableau, clôture,
+        │                  suppression, export CSV), trade_form.py (nouveau trade vérifié)
         ├── settings/      écran de réglages (zone_picker.py : tracer la zone du graphique)
         │   ├── window.py      SettingsWindow : menu, pages, Enregistrer / Redémarrer
         │   ├── form_page.py   page construite depuis settings_schema (interrupteurs, listes…)

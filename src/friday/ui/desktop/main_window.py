@@ -60,6 +60,7 @@ class MainWindow(QMainWindow):
         self.input.setEnabled(False)
         self.popups = PopupManager(self)
         self.settings_window = None  # fenêtre des réglages (ouverte à la demande)
+        self.journal_window = None  # journal de trading (ouvert à la demande)
         self._build_layout()
 
         self._connect()
@@ -153,6 +154,8 @@ class MainWindow(QMainWindow):
     def _on_display(self, display) -> None:
         if display.kind == "settings":  # « ouvre les réglages »
             self.open_settings()
+        elif display.kind == "journal":  # « ouvre mon journal »
+            self.open_journal()
         elif display.kind == "trading_mode":  # badge du mode trading
             self.title_bar.set_trading(display.data.get("on", False))
         else:
@@ -175,6 +178,28 @@ class MainWindow(QMainWindow):
 
     def _forget_settings(self) -> None:
         self.settings_window = None
+
+    def open_journal(self) -> None:
+        """La fenêtre du journal de trading (une seule à la fois)."""
+        from friday.ui.desktop.journal.window import JournalWindow
+
+        trading = getattr(self.assistant.components, "trading", None)
+        if trading is None:
+            self.chat.add_notice("Le mode trading est désactivé (Réglages → Fonctions).")
+            return
+        if self.journal_window is not None and self.journal_window.isVisible():
+            self.journal_window.raise_()
+            self.journal_window.activateWindow()
+            return
+        self.journal_window = JournalWindow(trading.journal)
+        self.journal_window.destroyed.connect(self._forget_journal)
+        center = self.frameGeometry().center()
+        self.journal_window.move(center.x() - self.journal_window.width() // 2,
+                                 center.y() - self.journal_window.height() // 2)  # fmt: skip
+        self.journal_window.show_animated()
+
+    def _forget_journal(self) -> None:
+        self.journal_window = None
 
     def restart(self) -> None:
         """Relance Friday (réglages du .env pris en compte) : nouveau processus, puis fermeture."""
@@ -211,7 +236,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         self.popups.close_all()
-        if self.settings_window is not None:
-            self.settings_window.close()
+        for window in (self.settings_window, self.journal_window):
+            if window is not None:
+                window.close()
         self.assistant.shutdown()
         super().closeEvent(event)

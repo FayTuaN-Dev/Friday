@@ -54,6 +54,23 @@ class Trade:
     result_r: float | None
 
 
+@dataclass
+class Stats:
+    closed: int
+    open: int
+    wins: int
+    average_r: float | None
+    total_r: float
+
+    @property
+    def win_rate(self) -> float | None:
+        return self.wins / self.closed if self.closed else None
+
+
+CSV_COLUMNS = ("n°", "ouvert le", "instrument", "sens", "entrée", "stop", "objectif", "lots",
+               "raison", "sortie", "résultat (R)")  # fmt: skip
+
+
 def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
@@ -62,6 +79,7 @@ class TradeJournal:
     def __init__(self, path: Path | str) -> None:
         self._db = sqlite3.connect(str(path), check_same_thread=False)
         self._lock = threading.Lock()
+        self.version = 0  # augmente à chaque changement : l'écran du journal se rafraîchit
         with self._lock:
             self._db.executescript(SCHEMA)
             self._db.commit()
@@ -77,6 +95,7 @@ class TradeJournal:
                 (_now(), pair.upper(), direction, entry, stop, target, lots, reason),
             )
             self._db.commit()
+            self.version += 1
         return self.get(cursor.lastrowid)
 
     def close_trade(self, trade_id: int, exit_price: float) -> Trade | None:
@@ -90,7 +109,44 @@ class TradeJournal:
                 (exit_price, _now(), r, trade_id),
             )
             self._db.commit()
+            self.version += 1
         return self.get(trade_id)
+
+    def delete_trade(self, trade_id: int) -> bool:
+        with self._lock:
+            cursor = self._db.execute("DELETE FROM trades WHERE id = ?", (trade_id,))
+            self._db.commit()
+            self.version += 1
+        return cursor.rowcount > 0
+
+    def all_trades(self) -> list[Trade]:
+        """Tous les trades, les plus récents d'abord."""
+        return self._trades("ORDER BY id DESC", ())
+
+    def stats(self) -> Stats:
+        with self._lock:
+            results = [r for (r,) in self._db.execute(
+                "SELECT result_r FROM trades WHERE result_r IS NOT NULL").fetchall()]  # fmt: skip
+            open_count = self._db.execute(
+                "SELECT COUNT(*) FROM trades WHERE result_r IS NULL"
+            ).fetchone()[0]
+        wins = sum(1 for r in results if r > 0)
+        average = sum(results) / len(results) if results else None
+        return Stats(len(results), open_count, wins, average, sum(results))
+
+    def export_csv(self, path: Path) -> int:
+        """Tous les trades en CSV (point-virgule, pour Excel en français) ; renvoie leur nombre."""
+        import csv
+
+        trades = list(reversed(self.all_trades()))
+        with open(path, "w", newline="", encoding="utf-8-sig") as file:
+            writer = csv.writer(file, delimiter=";")
+            writer.writerow(CSV_COLUMNS)
+            for t in trades:
+                writer.writerow([t.id, t.opened_at, t.pair, t.direction, t.entry, t.stop,
+                                 t.target, t.lots, t.reason, t.exit,
+                                 "" if t.result_r is None else round(t.result_r, 2)])  # fmt: skip
+        return len(trades)
 
     def get(self, trade_id: int) -> Trade | None:
         rows = self._trades("WHERE id = ?", (trade_id,))
@@ -110,18 +166,12 @@ class TradeJournal:
 
     def summary(self) -> str:
         """Bilan anonyme : nombre de trades, réussite, moyenne et total en R (aucun montant)."""
-        with self._lock:
-            results = [r for (r,) in self._db.execute(
-                "SELECT result_r FROM trades WHERE result_r IS NOT NULL").fetchall()]  # fmt: skip
-            open_count = self._db.execute(
-                "SELECT COUNT(*) FROM trades WHERE result_r IS NULL"
-            ).fetchone()[0]
-        if not results:
-            return f"Aucun trade clôturé ({open_count} en cours)."
-        wins = sum(1 for r in results if r > 0)
+        s = self.stats()
+        if not s.closed:
+            return f"Aucun trade clôturé ({s.open} en cours)."
         return (
-            f"{len(results)} trades clôturés ({open_count} en cours) : {wins / len(results):.0%} "
-            f"gagnants, moyenne {sum(results) / len(results):+.2f} R, total {sum(results):+.1f} R."
+            f"{s.closed} trades clôturés ({s.open} en cours) : {s.win_rate:.0%} gagnants, "
+            f"moyenne {s.average_r:+.2f} R, total {s.total_r:+.1f} R."
         )
 
     def log_sent(self, question: str, content: str, images: list[bytes] = ()) -> int:

@@ -73,6 +73,7 @@ def default_toolbox(
         from friday.tools.trading import (
             CloseTradeTool,
             LogTradeTool,
+            OpenJournalTool,
             PipValueTool,
             PositionSizeTool,
             RiskRewardTool,
@@ -84,7 +85,7 @@ def default_toolbox(
         tools += [
             PositionSizeTool(account), PipValueTool(account), RiskRewardTool(),
             LogTradeTool(trading.journal), CloseTradeTool(trading.journal),
-            TradeStatsTool(trading.journal),
+            TradeStatsTool(trading.journal), OpenJournalTool(),
             TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background,
                                 trading.instrument_for, trading.chart_shows),
         ]  # fmt: skip
