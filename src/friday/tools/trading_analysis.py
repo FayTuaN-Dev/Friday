@@ -12,10 +12,11 @@ from friday.tools.claude_code import LLM_MAX_CHARS, ClaudeCodeJob, OnDone
 from friday.trading.analyst import WITH_IMAGE
 from friday.trading.context_builder import ContextBuilder, Packet
 from friday.trading.journal import TradeJournal
-from friday.trading.mode import is_trade_idea, mentions_chart
+from friday.trading.mode import is_review, is_trade_idea, mentions_chart
 
 log = logging.getLogger(__name__)
-JOURNAL_WORDS = ("mes trades", "mon journal", "mes resultats", "mes performances", "mon bilan")
+JOURNAL_WORDS = ("mes trades", "mon journal", "mes resultats", "mes résultats", "mes performances",
+                 "mon bilan")  # fmt: skip
 # Le modèle choisissait parfois l'analyse pour une idée chiffrée, en imitant l'échange précédent
 # (constaté) : elle est renvoyée vers la check-list, sans aperçu ni envoi.
 TO_CHECKLIST = (
@@ -56,13 +57,14 @@ class TradingAnalysisTool(Tool):
             self._pending = None
             return None  # rien à confirmer : run() renvoie vers la check-list
         words = question.lower()
-        instrument = self.instrument_for(question)
+        review = is_review(question)  # revue du journal : ni marché ni graphique
+        instrument = None if review else self.instrument_for(question)
         # Capture ciblée : si la question parle du graphique, ou si TradingView affiche
         # l'instrument dont elle parle (toujours visible et décochable dans l'aperçu)
-        chart = mentions_chart(question) or self.chart_shows(instrument)
+        chart = not review and (mentions_chart(question) or self.chart_shows(instrument))
         self._pending = self.builder.build(
             question,
-            with_journal=any(w in words for w in JOURNAL_WORDS),
+            with_journal=review or any(w in words for w in JOURNAL_WORDS),
             chart=chart,
             instrument=instrument,
         )

@@ -165,7 +165,7 @@ SKILLS = (
           ("que dit mon livre sur la gestion du risque", "cherche dans ma bibliothèque",
            "qu'y a-t-il dans mes documents sur le Forex", "d'après mes cours, c'est quoi un pip")),
     Skill("trading", "mode trading : calculs de risque, journal de trading, analyses",
-          ("position_size", "pip_value", "risk_reward", "log_trade", "close_trade",
+          ("position_size", "pip_value", "risk_reward", "log_trade", "annotate_trade", "close_trade",
            "trade_stats", "trading_analysis", "open_journal", "trade_check", "backtest_plan", "set_price_alert", "watch_setup",
            "list_alerts", "cancel_alert"),
           """- Mode trading actif. position_size, pip_value, risk_reward : calculs EXACTS faits
@@ -179,7 +179,9 @@ SKILLS = (
 - set_price_alert (« préviens-moi si l'or passe 4 150 »), watch_setup (« surveille l'or » :
   le setup du plan), list_alerts, cancel_alert : les alertes, surveillées sur le PC et
   annoncées à la voix. Répète la phrase donnée telle quelle.
-- log_trade, close_trade, trade_stats : le journal de trading (local) ; open_journal :
+- log_trade (avec setup, plan respecté, état d'esprit s'il les dit), annotate_trade (les
+  ajouter après coup), close_trade, trade_stats (bilan et ce que le journal apprend) : le journal.
+  « Note ce trade » / « note le trade » : log_trade (le journal), jamais add_note de trading (local) ; open_journal :
   l'ouvrir à l'écran (« ouvre mon journal »).
 - trading_analysis : faire analyser une question par Claude (l'utilisateur valide d'abord).
 - Tu ne donnes jamais d'ordre ni de signal ; tu ne passes jamais d'ordre.""",

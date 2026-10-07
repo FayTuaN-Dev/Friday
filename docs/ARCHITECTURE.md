@@ -101,7 +101,12 @@ src/friday/
 │   ├── alerts/            alertes : store.py (data/trading_alerts.json, écart futures/graphique),
 │   │                      setup.py (setup du plan sur la dernière bougie 1 h fermée, mêmes règles
 │   │                      que le backtest), watcher.py (surveillance en arrière-plan)
-│   └── journal.py         data/trading.db : trades + trace de chaque envoi (empreinte des images)
+│   ├── journal.py         data/trading.db : trades (avec setup, plan respecté, état d'esprit,
+│   │                      capture d'entrée) ; colonnes ajoutées aux anciens journaux à l'ouverture
+│   ├── sent_log.py        trace de chaque envoi à Claude (empreinte des images), même base
+│   ├── journal_export.py  export CSV pour Excel, captures d'entrée (data/journal_captures)
+│   └── journal_stats.py   ce que le journal apprend : groupes (setup, instrument, heure, jour,
+│                          plan, état d'esprit), constats, bilan anonyme de la revue hebdomadaire
 ├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
 │   ├── chunker.py         découpe en passages (~900 caractères, chevauchement, n° de page)
 │   ├── store.py           SQLite : documents, passages, vecteurs + index plein texte FTS5
@@ -154,7 +159,9 @@ src/friday/
 │   ├── web_search.py      recherche internet (DuckDuckGo)
 │   ├── web_page.py        lecture d'une page (trafilatura) : adresse ou numéro d'un résultat
 │   ├── library.py         search_library, list_library, update_library
-│   ├── trading.py         calculs de risque et journal (locaux, mode trading seulement)
+│   ├── trading.py         calculs de risque (locaux, mode trading seulement)
+│   ├── trading_journal.py journal : log_trade (+ capture), annotate_trade, close_trade,
+│   │                      trade_stats (bilan + constats), open_journal
 │   ├── trade_check.py     check-list avant trade (« acheter l'or à 4 160, stop 4 140 »)
 │   ├── backtest.py        backtest_plan : le plan rejoué sur ~2,5 ans de bougies 1 h (Yahoo)
 │   ├── alerts.py          set_price_alert, watch_setup, list_alerts, cancel_alert
@@ -197,9 +204,10 @@ src/friday/
         │   ├── palette.py     une couleur de base → toute la palette (fond, bulles, états…)
         │   ├── stylesheet.py  feuille de style Qt générée à partir de la palette
         │   └── __init__.py    current() / apply_theme() : changement de couleur à chaud
-        ├── journal/       journal de trading : window.py (bilan en R, tableau, clôture,
-        │                  suppression, export CSV), trade_form.py (nouveau trade vérifié)
-        │                  equity_chart.py (courbe du total en R, survol)
+        ├── journal/       journal de trading : window.py (bilan en R, tableau, compléter,
+        │                  capture, clôture, suppression, export CSV), trade_form.py (nouveau
+        │                  trade vérifié), notes.py (setup, plan, état d'esprit), insights.py
+        │                  (« ce que dit le journal »), equity_chart.py (courbe du total en R)
         ├── settings/      écran de réglages (zone_picker.py : tracer la zone du graphique ;
         │                  trading_rules.py : règles de la check-list)
         │   ├── window.py      SettingsWindow : menu, pages, Enregistrer / Redémarrer

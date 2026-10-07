@@ -191,7 +191,11 @@ class MainWindow(QMainWindow):
             self.journal_window.raise_()
             self.journal_window.activateWindow()
             return
-        self.journal_window = JournalWindow(trading.journal)
+        from friday.core.config import DATA_DIR
+
+        snapshot = getattr(trading, "entry_capture", None)  # capture d'entrée, si possible
+        self.journal_window = JournalWindow(trading.journal, snapshot,
+                                            DATA_DIR / "journal_captures")  # fmt: skip
         self.journal_window.destroyed.connect(self._forget_journal)
         center = self.frameGeometry().center()
         self.journal_window.move(center.x() - self.journal_window.width() // 2,

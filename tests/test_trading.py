@@ -14,8 +14,9 @@ from friday.brain.router import SkillRouter
 from friday.brain.skills import SKILLS
 from friday.library.store import Hit
 from friday.tools.base import ToolBox
-from friday.tools.trading import PositionSizeTool, RiskRewardTool, TradeStatsTool
+from friday.tools.trading import PositionSizeTool, RiskRewardTool
 from friday.tools.trading_analysis import TradingAnalysisTool
+from friday.tools.trading_journal import TradeStatsTool
 from friday.trading import Trading, risk_calc
 from friday.trading.analyst import ISOLATED, RULES, isolated_job
 from friday.trading.context_builder import ContextBuilder
@@ -336,7 +337,7 @@ def test_journal_logs_what_was_sent_with_image_hashes(tmp_path):
     journal.log_answer(sent, "réponse")
     row = journal._db.execute("SELECT content, images, answer FROM sent").fetchone()
     assert row == ("contenu exact", hashlib.sha256(b"png").hexdigest(), "réponse")
-    assert TradeStatsTool(journal).run().text.startswith("Aucun trade clôturé")
+    assert TradeStatsTool(journal).run().text.startswith("Dis EXACTEMENT : « Aucun trade clôturé")
 
 
 # --- assistant et aperçu ----------------------------------------------------------------------

@@ -92,8 +92,9 @@ class ContextBuilder:
             self._add_context(packet, instrument)
         budget = self.max_chars - len(packet.question) - sum(len(i.text) for i in packet.items)
         if with_journal and self.journal is not None:
-            packet.items.append(Item("bilan", "journal de trading (anonyme)",
-                                     self.journal.summary()))  # fmt: skip
+            review = mask_secrets(self.journal.review(), self.blocklist).text  # noms de setup…
+            packet.items.append(Item("bilan", "journal de trading (anonyme : en R, sans prix, "
+                                     "montant ni raison écrite)", review))  # fmt: skip
             budget -= len(packet.items[-1].text)
         for hit in self._hits(question):
             text = mask_secrets(hit.text[:PASSAGE_CHARS], self.blocklist)

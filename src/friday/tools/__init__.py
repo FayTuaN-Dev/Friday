@@ -70,23 +70,24 @@ def default_toolbox(
         if claude is not None:  # secours, avec confirmation
             tools.append(AskClaudeAboutScreenTool(claude, capture_screen))
     if trading is not None and on_background is not None:
+        from friday.core.config import DATA_DIR
         from friday.tools.backtest import BacktestTool
         from friday.tools.trade_check import TradeCheckTool
-        from friday.tools.trading import (
+        from friday.tools.trading import PipValueTool, PositionSizeTool, RiskRewardTool
+        from friday.tools.trading_analysis import TradingAnalysisTool
+        from friday.tools.trading_journal import (
+            AnnotateTradeTool,
             CloseTradeTool,
             LogTradeTool,
             OpenJournalTool,
-            PipValueTool,
-            PositionSizeTool,
-            RiskRewardTool,
             TradeStatsTool,
         )
-        from friday.tools.trading_analysis import TradingAnalysisTool
 
         account = trading.account_currency
         tools += [
             PositionSizeTool(account), PipValueTool(account), RiskRewardTool(),
-            LogTradeTool(trading.journal), CloseTradeTool(trading.journal),
+            LogTradeTool(trading.journal, trading.entry_capture, DATA_DIR / "journal_captures"),
+            AnnotateTradeTool(trading.journal), CloseTradeTool(trading.journal),
             TradeStatsTool(trading.journal), OpenJournalTool(), TradeCheckTool(trading),
             BacktestTool(trading),
             TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background,
