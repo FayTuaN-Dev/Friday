@@ -82,7 +82,7 @@ def load_trading(settings: Settings, library):
     if not settings.trading.enabled or not settings.claude_enabled:
         return None
     try:
-        from friday.trading import Trading
+        from friday.trading import Trading, news, related
         from friday.trading.alerts.store import AlertStore
         from friday.trading.alerts.watcher import AlertWatcher
         from friday.trading.analyst import isolated_job
@@ -94,16 +94,21 @@ def load_trading(settings: Settings, library):
         from friday.trading.journal import TradeJournal
         from friday.trading.market import snapshot
         from friday.trading.mode import TradingMode
+        from friday.trading.warm import Warm
 
         config = settings.trading
         DATA_DIR.mkdir(exist_ok=True)
         journal = TradeJournal(DATA_DIR / "trading.db")
         capture = ChartCapture(config.capture_window, DATA_DIR / "trading.json")
         result = FredResults(config.fred_key, DATA_DIR / "cache") if config.fred_key else None
+        warm = Warm()  # données publiques préparées en avance (trading/warm.py)
         context = ContextSources(DATA_DIR / "trading_plan.txt", DATA_DIR / "cache",
-                                 hours=config.hours, result=result)  # fmt: skip
+                                 hours=config.hours, result=result,
+                                 headlines=warm.wrap("actualites", news.fetch_headlines),
+                                 quote=warm.wrap("cours", related.yahoo_quote))  # fmt: skip
+        market = warm.wrap("marche", snapshot)
         builder = ContextBuilder(library, journal, config.passages, config.max_chars,
-                                 config.blocklist, capture, snapshot, context)  # fmt: skip
+                                 config.blocklist, capture, market, context)  # fmt: skip
         job = isolated_job(DATA_DIR / "trading_claude", config.model or settings.claude_model,
                            settings.claude_timeout)  # fmt: skip
         rules = DATA_DIR / "trading_rules.json"
@@ -114,6 +119,7 @@ def load_trading(settings: Settings, library):
         trading.briefing = BriefingService(trading, DATA_DIR / "trading_briefing.json",
                                            config.hours, config.briefing_instruments,
                                            config.briefing)  # fmt: skip
+        trading.prepare = lambda instrument: (market(instrument), context.blocks(instrument))
         return trading
     except Exception:
         log.exception("Mode trading indisponible, Friday continue sans")

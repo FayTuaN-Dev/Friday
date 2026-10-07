@@ -98,7 +98,8 @@ class TradingAnalysisTool(Tool):
             return ToolResult("Claude analyse déjà une question. Propose d'attendre.")
         image = self._drop_image(packet)
         content = packet.render(image.name if image else None)
-        sent_id = self.journal.log_sent(packet.question, content, packet.images)
+        sent_id = self.journal.log_sent(packet.question, content, packet.images,
+                                        packet.instrument, packet.price)  # fmt: skip
         self.job.task = packet.question
         threading.Thread(target=self._work, args=(packet.question, content, sent_id, image),
                          daemon=True, name="trading-claude").start()  # fmt: skip

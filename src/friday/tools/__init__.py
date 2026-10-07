@@ -93,6 +93,10 @@ def default_toolbox(
             TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background,
                                 trading.instrument_for, trading.chart_shows),
         ]  # fmt: skip
+        from friday.tools.analyses import PastAnalysesTool
+        from friday.trading.alerts.watcher import yahoo_price
+
+        tools.append(PastAnalysesTool(trading.journal, yahoo_price))
         if trading.briefing is not None:
             from friday.tools.trading_briefing import TradingBriefingTool
 

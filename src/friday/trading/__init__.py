@@ -23,6 +23,7 @@ class Trading:
     rules_path: Path | None = None  # règles chiffrées de la check-list (plan_rules.py)
     alerts: object = None  # AlertWatcher (alerts/watcher.py), ou None
     briefing: object = None  # BriefingService (briefing_service.py), ou None
+    prepare: object = None  # instrument → prépare ses données publiques (warm.py), ou None
 
     def chart_shows(self, instrument: Instrument | None) -> bool:
         """Le graphique TradingView affiché est-il celui de cet instrument ?"""

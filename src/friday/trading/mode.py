@@ -41,6 +41,8 @@ LOCAL = (
     "alerte", "previens moi", "surveille", "setup se forme",
     # briefing trading (calculé sur le PC)
     *BRIEFING,
+    # mémoire des analyses (locale)
+    "mes analyses", "dernieres analyses", "tes analyses", "analyses passees",
 )  # fmt: skip
 # Une idée de trade chiffrée (« acheter l'or à 4 160, stop 4 140 ») : la check-list, en local.
 DIRECTIONS = ("acheter", "achete", "achat", "vendre", "vends", "vend", "vente", "long", "short",
