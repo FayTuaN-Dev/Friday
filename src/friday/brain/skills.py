@@ -166,7 +166,8 @@ SKILLS = (
            "qu'y a-t-il dans mes documents sur le Forex", "d'après mes cours, c'est quoi un pip")),
     Skill("trading", "mode trading : calculs de risque, journal de trading, analyses",
           ("position_size", "pip_value", "risk_reward", "log_trade", "close_trade",
-           "trade_stats", "trading_analysis", "open_journal", "trade_check", "backtest_plan"),
+           "trade_stats", "trading_analysis", "open_journal", "trade_check", "backtest_plan", "set_price_alert", "watch_setup",
+           "list_alerts", "cancel_alert"),
           """- Mode trading actif. position_size, pip_value, risk_reward : calculs EXACTS faits
   sur le PC ; extrais les chiffres de la demande, n'en invente aucun (demande ceux qui
   manquent), puis répète le résultat tel quel. Jamais de calcul de tête.
@@ -175,13 +176,16 @@ SKILLS = (
   plan : sens, entrée, stop (et objectif, risque, lots s'il les donne). Répète le feu tel quel.
 - backtest_plan : rejouer le plan sur l'historique (« teste mon plan sur l'or », « et avec
   un objectif à 3 R ? »). Répète la phrase donnée telle quelle.
+- set_price_alert (« préviens-moi si l'or passe 4 150 »), watch_setup (« surveille l'or » :
+  le setup du plan), list_alerts, cancel_alert : les alertes, surveillées sur le PC et
+  annoncées à la voix. Répète la phrase donnée telle quelle.
 - log_trade, close_trade, trade_stats : le journal de trading (local) ; open_journal :
   l'ouvrir à l'écran (« ouvre mon journal »).
 - trading_analysis : faire analyser une question par Claude (l'utilisateur valide d'abord).
 - Tu ne donnes jamais d'ordre ni de signal ; tu ne passes jamais d'ordre.""",
           ("taille de position", "lots", "pip", "ratio", "risque rendement", "journal de trading",
            "mes trades", "trade", "stop", "check list", "checklist", "mon plan", "acheter", "backtest",
-           "historique",
+           "historique", "alerte", "previens moi", "surveille", "setup se forme",
            "vendre"),
           ("calcule ma taille de position", "combien vaut un pip sur 0,5 lot",
            "note ce trade dans le journal", "quel est mon bilan de trading",

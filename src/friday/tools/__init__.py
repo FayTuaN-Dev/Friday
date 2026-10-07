@@ -92,6 +92,16 @@ def default_toolbox(
             TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background,
                                 trading.instrument_for, trading.chart_shows),
         ]  # fmt: skip
+        if trading.alerts is not None:
+            from friday.tools.alerts import (
+                CancelAlertTool,
+                ListAlertsTool,
+                PriceAlertTool,
+                WatchSetupTool,
+            )
+
+            tools += [PriceAlertTool(trading.alerts), WatchSetupTool(trading.alerts),
+                      ListAlertsTool(trading.alerts), CancelAlertTool(trading.alerts)]  # fmt: skip
     if library is not None:
         from friday.tools.library import ListLibraryTool, SearchLibraryTool, UpdateLibraryTool
 

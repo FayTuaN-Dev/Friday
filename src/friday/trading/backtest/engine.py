@@ -61,13 +61,13 @@ def simulate(hourly: list[Candle], daily: list[Candle], rules: PlanRules,
                 continue
             sides = ("achat",) if bar.close > line else ("vente",)
         for side in sides:
-            if _setup(side, i, bar.close, pull, rsi, atr[i], rules):
-                current = _open(side, i, hourly, atr[i], rules)
+            if setup_ok(side, i, bar.close, pull, rsi, atr[i], rules):
+                current = open_trade(side, i, hourly, atr[i], rules)
                 break
     return trades
 
 
-def _setup(side: str, i: int, close: float, pull, rsi, width: float, rules: PlanRules) -> bool:
+def setup_ok(side: str, i: int, close: float, pull, rsi, width: float, rules: PlanRules) -> bool:
     if pull is not None and (pull[i] is None or abs(close - pull[i]) > rules.pullback_atr * width):
         return False
     buy = side == "achat"
@@ -78,7 +78,7 @@ def _setup(side: str, i: int, close: float, pull, rsi, width: float, rules: Plan
     return not rules.rsi_turning or (rsi[i] > rsi[i - 1] if buy else rsi[i] < rsi[i - 1])
 
 
-def _open(side: str, i: int, hourly: list[Candle], width: float, rules: PlanRules) -> Trade:
+def open_trade(side: str, i: int, hourly: list[Candle], width: float, rules: PlanRules) -> Trade:
     bar, recent = hourly[i], hourly[max(0, i - SWING + 1) : i + 1]
     floor = rules.stop_atr * width
     if side == "achat":
