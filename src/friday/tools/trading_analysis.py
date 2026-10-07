@@ -12,10 +12,16 @@ from friday.tools.claude_code import LLM_MAX_CHARS, ClaudeCodeJob, OnDone
 from friday.trading.analyst import WITH_IMAGE
 from friday.trading.context_builder import ContextBuilder, Packet
 from friday.trading.journal import TradeJournal
-from friday.trading.mode import mentions_chart
+from friday.trading.mode import is_trade_idea, mentions_chart
 
 log = logging.getLogger(__name__)
 JOURNAL_WORDS = ("mes trades", "mon journal", "mes resultats", "mes performances", "mon bilan")
+# Le modèle choisissait parfois l'analyse pour une idée chiffrée, en imitant l'échange précédent
+# (constaté) : elle est renvoyée vers la check-list, sans aperçu ni envoi.
+TO_CHECKLIST = (
+    "Rien n'a été envoyé à Claude : c'est une idée de trade chiffrée. Appelle maintenant "
+    "trade_check avec le sens, l'entrée, le stop (et l'objectif s'il est donné)."
+)
 
 
 class TradingAnalysisTool(Tool):
@@ -40,10 +46,15 @@ class TradingAnalysisTool(Tool):
         self._pending: Packet | None = None
 
     def label(self, args: dict) -> str:
+        if is_trade_idea(str(args.get("question", ""))):
+            return "🚦 Vers la check-list"
         return "📈 Analyse par Claude (après aperçu)"
 
-    def confirmation(self, args: dict) -> str:
+    def confirmation(self, args: dict) -> str | None:
         question = str(args.get("question", ""))
+        if is_trade_idea(question):
+            self._pending = None
+            return None  # rien à confirmer : run() renvoie vers la check-list
         words = question.lower()
         instrument = self.instrument_for(question)
         # Capture ciblée : si la question parle du graphique, ou si TradingView affiche
@@ -74,6 +85,9 @@ class TradingAnalysisTool(Tool):
         return self._pending
 
     def run(self, question: str) -> ToolResult:
+        if is_trade_idea(question):
+            self._pending = None
+            return ToolResult(TO_CHECKLIST)
         packet, self._pending = self._pending, None
         if packet is None or not packet.approved:  # garde-fou : jamais sans validation
             log.warning("Analyse de trading NON envoyée : pas de validation")

@@ -192,6 +192,22 @@ def test_a_priced_trade_idea_stays_local_in_trading_mode():
     assert mode.route("est-ce que ce trade respecte mon plan ?") == "local"
     assert mode.route("fais-moi la check-list") == "local"
     assert mode.route("faut-il acheter l'or en ce moment ?") == "analysis"
+    assert mode.route("je vend l'or a 4108 stop a 4132 tp & 4020") == "local"  # constaté
+    assert mode.route("sell gold 4108 sl 4132") == "local"
+    # demander explicitement l'avis de Claude reste possible
+    assert mode.route("analyse mon achat de l'or à 4108 stop 4060") == "analysis"
+
+
+def test_analysis_tool_sends_a_priced_idea_back_to_the_checklist(tmp_path):
+    from test_trading import make_tool
+
+    tool, journal, _ = make_tool(tmp_path)
+    args = {"question": "j'achete l'or a 4108 stop loss a 4060 et tp a 4170"}
+    assert tool.confirmation(args) is None and tool.preview(args) is None
+    result = tool.run(**args)
+    assert "Rien n'a été envoyé" in result.text and "trade_check" in result.text
+    assert journal.sent_count() == 0
+    assert tool.confirmation({"question": "que penses-tu de l'or ?"})  # le reste : aperçu
 
 
 def test_rules_editor_saves_the_figures(tmp_path):
