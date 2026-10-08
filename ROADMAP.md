@@ -147,6 +147,7 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 | T5 | **Briefing trading à 9 h** (rubrique du briefing) : annonces du jour, mouvement de la nuit, niveaux clés, règles du plan | Début de journée de trading préparé | ✅ |
 | T6 | **Analyses plus rapides et mieux nourries** : données préparées en avance en mode trading (aperçu instantané), mémoire des analyses de Claude (et plus tard leur comparaison avec ce que le marché a fait), recherche dans la bibliothèque enrichie (instrument + sujet), données européennes (BCE : inflation, chômage, sans clé) | Moins d'attente, moins de quota, de meilleures sources | ✅ |
 | T7 | **Bibliothèque de stratégies** : d'autres familles que le plan actuel (cassure de range, croisement de moyennes, retour à la moyenne, cassure d'ouverture de séance…), chacune backtestée sur chaque instrument et comparée aux autres avec sa marge d'incertitude ; on ne garde que celles qui ont fonctionné sur le passé, et la stratégie choisie devient celle de la check-list et des alertes | Trader une stratégie qui a marché sur l'historique, pas une intuition | ✅ |
+| T7b | **Ton plan écrit devient la stratégie** : traduit en règles par Claude (après aperçu), vérifiées et redites en français par le code ; backtest, comparaison, alertes, check-list et briefing l'utilisent ; « Ma stratégie » dans les réglages (plan écrit ou stratégie de base) | Trader et tester SA stratégie, écrite librement | ✅ |
 
 ### Prochaines étapes — Friday
 

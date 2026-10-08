@@ -95,7 +95,8 @@ def test_setup_is_announced_when_it_appears_with_indicative_levels(tmp_path):
     watcher.store.add_setup("XAUUSD")
     watcher.check()
     (text,) = said
-    assert text.startswith("Alerte setup sur l'or : achat dans le sens de l'EMA200 journalière")
+    assert text.startswith("Alerte setup « le repli sur moyenne (modèle) » sur l'or : achat dans "
+                           "le sens de l'EMA200 journalière")  # fmt: skip
     assert "bougie 1 h fermée à 13:00 à 4 284,00" in text and "RSI 48 qui remonte" in text
     assert "stop indicatif 4 269,00, objectif 2 R 4 314,00" in text
     watcher._read.clear()

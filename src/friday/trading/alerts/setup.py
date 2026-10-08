@@ -55,7 +55,7 @@ def announcement(instrument: Instrument, setup: Setup, rules: PlanRules, shift: 
     p = lambda x: f"{x - shift:,.{digits}f}".replace(",", " ").replace(".", ",")  # noqa: E731
     hour = french(setup.bar.time + timedelta(hours=1), with_day=False)[-5:]
     strategy = setup.strategy or PlanStrategy()
-    named = "" if strategy.name == "plan" else f" « {strategy.label} »"
+    named = "" if strategy.name == "mon_plan" else f" « {strategy.label} »"
     parts = [f"Alerte setup{named} sur {instrument.name} : {setup.side}"]
     if rules.trend_ema and strategy.trend_filter:
         parts[0] += f" dans le sens de l'EMA{rules.trend_ema} journalière"

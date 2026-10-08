@@ -92,7 +92,7 @@ def _instrument(i: Instrument, hourly: list[Candle], daily: list[Candle], rules:
         parts[0] += (f", {change:+.2f} %".replace(".", ",") + f" depuis hier {since:%H} h "
                      f"(nuit entre {p(min(c.low for c in night))} et "
                      f"{p(max(c.high for c in night))})")  # fmt: skip
-    mine = strategy is not None and strategy.name != "plan"
+    mine = strategy is not None and strategy.name != "mon_plan"
     if mine:
         parts.append(f"Ta stratégie : {strategy.label} ({strategy.summary})")
     who = "ta stratégie" if mine else "ton plan"

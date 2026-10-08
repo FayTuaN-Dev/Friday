@@ -24,6 +24,7 @@ from friday.ui.desktop.settings.library_page import LibraryPage
 from friday.ui.desktop.settings.other_pages import AccountsPage, AppearancePage
 from friday.ui.desktop.settings.trading_plan import TradingPlanRow
 from friday.ui.desktop.settings.trading_rules import TradingRulesRow
+from friday.ui.desktop.settings.trading_strategy import StrategyRow
 from friday.ui.desktop.settings.zone_picker import chart_zone_widget
 
 SIZE = (840, 620)
@@ -78,9 +79,20 @@ class SettingsWindow(Popup):
         form.add_extra(journal)
         form.add_extra(chart_zone_widget(getattr(trading, "capture", None)))
         context = getattr(getattr(trading, "builder", None), "context", None)
-        form.add_extra(TradingPlanRow(getattr(context, "plan_path", None)))
+        choice = getattr(trading, "choice", None)
+        form.add_extra(StrategyRow(choice))
+        translate = self._translate_plan if getattr(trading, "translator", None) else None
+        form.add_extra(TradingPlanRow(getattr(context, "plan_path", None), choice, translate))
         form.add_extra(TradingRulesRow(getattr(trading, "rules_path", None)))
         return form
+
+    def _translate_plan(self) -> None:
+        """« Traduire en règles » : comme le dire (passe d'abord en mode trading s'il le faut)."""
+        assistant = self.main_window.assistant
+        trading = getattr(assistant.components, "trading", None)
+        if trading is not None and not trading.mode.enabled:
+            assistant.submit_text("mode trading")
+        assistant.submit_text("traduis mon plan")
 
     def _footer(self) -> QHBoxLayout:
         self.banner = QLabel(objectName="Hint", wordWrap=True)

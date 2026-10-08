@@ -20,7 +20,8 @@ WORDS = (("londres", ("londres", "ouverture", "session asiatique")),
          ("croisement", ("croisement", "moyennes croisees")),
          ("retour", ("retour a la moyenne", "bollinger", "retour")),
          ("cassure", ("cassure", "range", "donchian")),
-         ("plan", ("plan",)))  # fmt: skip
+         ("repli", ("repli", "modele")),
+         ("mon_plan", ("mon plan", "ton plan", "plan ecrit", "plan")))  # fmt: skip
 
 
 def strategy_named(text: str) -> str | None:

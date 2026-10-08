@@ -168,7 +168,7 @@ SKILLS = (
           ("position_size", "pip_value", "risk_reward", "log_trade", "annotate_trade", "close_trade",
            "trade_stats", "trading_analysis", "open_journal", "trade_check", "backtest_plan", "set_price_alert", "watch_setup",
            "list_alerts", "cancel_alert", "trading_briefing", "past_analyses", "compare_strategies",
-           "choose_strategy"),
+           "choose_strategy", "translate_plan"),
           """- Mode trading actif. position_size, pip_value, risk_reward : calculs EXACTS faits
   sur le PC ; extrais les chiffres de la demande, n'en invente aucun (demande ceux qui
   manquent), puis répète le résultat tel quel. Jamais de calcul de tête.
@@ -182,6 +182,7 @@ SKILLS = (
   annoncées à la voix. Répète la phrase donnée telle quelle.
 - compare_strategies (« compare les stratégies sur l'or ») et choose_strategy (« choisis la
   cassure de range pour l'or ») : la bibliothèque de stratégies. Répète la phrase telle quelle.
+- translate_plan : traduire son plan écrit en règles (« traduis mon plan »), après aperçu.
 - past_analyses : les dernières analyses de Claude et le cours depuis (« mes dernières
   analyses »). Répète la phrase donnée telle quelle.
 - trading_briefing : le briefing trading (« briefing trading », « prépare ma journée de
