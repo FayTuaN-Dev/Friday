@@ -94,6 +94,12 @@ class MainWindow(QMainWindow):
         centered.addStretch(1)
         centered.addWidget(content, 100)
         centered.addStretch(1)
+        from friday.ui.desktop.widgets.claude_limits import ClaudeLimits
+
+        self.limits = ClaudeLimits()  # session et semaine Claude : seulement fenêtre agrandie
+        self.limits.setVisible(False)
+        centered.addWidget(self.limits, 0, Qt.AlignTop)
+        centered.addSpacing(18)
         outer = QVBoxLayout(shell)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
@@ -244,6 +250,7 @@ class MainWindow(QMainWindow):
     def changeEvent(self, event) -> None:
         if event.type() == QEvent.WindowStateChange:  # plein écran : plus de marge ni de poignée
             self.frame.set_maximized(self.isMaximized())
+            self.limits.setVisible(self.isMaximized() or self.isFullScreen())
         super().changeEvent(event)
 
     def closeEvent(self, event) -> None:

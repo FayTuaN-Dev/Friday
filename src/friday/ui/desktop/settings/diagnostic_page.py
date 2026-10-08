@@ -26,7 +26,8 @@ class DiagnosticPage(QFrame):
         layout.addLayout(self.grid)
         buttons = QHBoxLayout()
         for text, action in (("Actualiser", self.refresh), ("Sauvegarder maintenant", self._backup),
-                             ("Recharger le modèle", self._reload)):  # fmt: skip
+                             ("Recharger le modèle", self._reload),
+                             ("Brancher Claude Code", self._plug)):  # fmt: skip
             button = QPushButton(text, objectName="SettingsSmall")
             button.clicked.connect(action)
             buttons.addWidget(button)
@@ -58,6 +59,16 @@ class DiagnosticPage(QFrame):
         self.message.setText(f"Sauvegarde faite : {done.name}." if done
                              else "Sauvegarde impossible (voir logs/friday.log).")  # fmt: skip
         self.refresh()
+
+    def _plug(self) -> None:
+        """Les limites Claude à l'écran : le relais branché sur la ligne d'état de Claude Code
+        (copie de sécurité de ses réglages d'abord)."""
+        from friday.claude_status import install
+
+        try:
+            self.message.setText(install())
+        except (OSError, ValueError) as error:
+            self.message.setText(f"Branchement impossible : {error}")
 
     def _reload(self) -> None:
         brain = getattr(self.components(), "brain", None)

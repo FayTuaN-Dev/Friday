@@ -89,6 +89,10 @@ Pour comparer les voix disponibles : `uv run python -m friday.voice.audition`, p
 
 Quand une analyse de Claude, une alerte de trading, un rappel, le briefing trading ou la traduction d'un plan arrive et que Friday n'est pas au premier plan (réduite, derrière TradingView…), une bulle Windows le dit en une phrase ; un clic dessus (ou sur l'icône de Friday près de l'horloge) la ramène devant. Désactivable : *Réglages → Fonctions → Notifications Windows*.
 
+### Limites Claude à l'écran
+
+Fenêtre agrandie, un panneau montre ce qu'il te reste de ta **session Claude** (5 h) et de ta **semaine**, avec l'heure de remise à zéro (vert, orange sous 50 %, rouge sous 20 %). Les chiffres viennent de Claude Code lui-même : *Réglages → Diagnostic → Brancher Claude Code* ajoute à sa ligne d'état un petit relais (copie de sécurité de ses réglages d'abord : `~/.claude/settings.json.avant-friday`), qui les note dans `data/claude_limits.json` et les affiche aussi sous sa zone de saisie. Ils se mettent à jour quand tu utilises Claude Code ; sinon Friday montre les derniers connus, avec leur âge, et remet une fenêtre à 100 % une fois son heure de remise à zéro passée.
+
 ### Fiabilité
 
 - **Ollama surveillé** : si sa vitesse s'effondre deux réponses de suite (modèle à moitié sorti de la carte graphique), Friday recharge le modèle tout seul.
