@@ -78,21 +78,21 @@ class SettingsWindow(Popup):
         journal.clicked.connect(self.main_window.open_journal)
         form.add_extra(journal)
         form.add_extra(chart_zone_widget(getattr(trading, "capture", None)))
-        context = getattr(getattr(trading, "builder", None), "context", None)
         choice = getattr(trading, "choice", None)
         form.add_extra(StrategyRow(choice))
         translate = self._translate_plan if getattr(trading, "translator", None) else None
-        form.add_extra(TradingPlanRow(getattr(context, "plan_path", None), choice, translate))
+        if choice is not None:
+            form.add_extra(TradingPlanRow(choice.book, translate))
         form.add_extra(TradingRulesRow(getattr(trading, "rules_path", None)))
         return form
 
-    def _translate_plan(self) -> None:
+    def _translate_plan(self, name: str) -> None:
         """« Traduire en règles » : comme le dire (passe d'abord en mode trading s'il le faut)."""
         assistant = self.main_window.assistant
         trading = getattr(assistant.components, "trading", None)
         if trading is not None and not trading.mode.enabled:
             assistant.submit_text("mode trading")
-        assistant.submit_text("traduis mon plan")
+        assistant.submit_text(f"traduis le plan {name}")
 
     def _footer(self) -> QHBoxLayout:
         self.banner = QLabel(objectName="Hint", wordWrap=True)

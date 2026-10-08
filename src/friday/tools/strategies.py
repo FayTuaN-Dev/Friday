@@ -11,6 +11,7 @@ from friday.trading import risk_calc
 from friday.trading.backtest.compare import FAILED, ICONS, PROMISING, WORKED, Result, compare
 from friday.trading.backtest.report import r_text
 from friday.trading.instruments import Instrument, by_symbol
+from friday.trading.plan_book import PREFIX
 from friday.trading.plan_rules import load_rules
 from friday.trading.strategies import BY_NAME, STRATEGIES, strategy_named
 
@@ -142,6 +143,7 @@ class ChooseStrategyTool(Tool):
     parameters = {
         "strategy": {"type": "string", "description": "La stratégie nommée"},
         "instrument": {"type": "string", "description": "Seulement s'il en nomme un"},
+        "request": {"type": "string", "description": "La phrase de l'utilisateur"},
     }
     required = ("strategy",)
     timeout = 120
@@ -149,14 +151,25 @@ class ChooseStrategyTool(Tool):
     def __init__(self, lab: StrategyLab, choice) -> None:
         self.lab, self.choice = lab, choice
 
-    def run(self, strategy: str, instrument: str = "") -> ToolResult:
+    def run(self, strategy: str, instrument: str = "", request: str = "") -> ToolResult:
         from friday.trading.market import MarketUnavailable
 
         name = strategy_named(strategy)
-        if name == "mon_plan" and self.choice.custom() is None:
-            return ToolResult("Dis EXACTEMENT : « Ton plan écrit n'est pas encore traduit en "
-                              "règles : dis « traduis mon plan », ou utilise le bouton dans "
-                              "Réglages → Trading. »")  # fmt: skip
+        if name == "mon_plan":  # lequel de tes plans ? (nommé dans la phrase, sinon le premier)
+            plan = self.choice.book.find(request or strategy)
+            if plan is None:
+                first = self.choice.first_plan()
+                name = first.name if first else None
+            elif plan["spec"]:
+                name = PREFIX + plan["id"]
+            else:
+                return ToolResult(f"Dis EXACTEMENT : « Le plan « {plan['nom']} » n'est pas "
+                                  "encore traduit en règles : dis « traduis le plan "
+                                  f"{plan['nom']} ». »")  # fmt: skip
+            if name is None:
+                return ToolResult("Dis EXACTEMENT : « Aucun de tes plans écrits n'est encore "
+                                  "traduit en règles : dis « traduis mon plan », ou utilise le "
+                                  "bouton dans Réglages → Trading. »")  # fmt: skip
         if name is None:
             known = ", ".join(s.label for s in BY_NAME.values())
             return ToolResult(f"Dis EXACTEMENT : « Je ne connais pas cette stratégie. Celles de "
@@ -168,7 +181,7 @@ class ChooseStrategyTool(Tool):
             return ToolResult(f"Choix impossible : {error} Dis-le simplement.")
         found = next(r for r in results if r.strategy.name == name)
         label = found.strategy.label
-        if found.verdict == FAILED and name != "mon_plan":
+        if found.verdict == FAILED and not name.startswith(PREFIX):
             spoken = (f"Je ne la mets pas : {label} n'a pas fonctionné sur {item.name} "
                       f"({_figures(found)}). Choisis une stratégie qui a fonctionné ou qui est "
                       "prometteuse, ou améliore ton plan écrit.")  # fmt: skip

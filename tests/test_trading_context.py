@@ -159,19 +159,11 @@ def test_one_source_down_does_not_block_the_others(tmp_path):
     assert packet.notes == notes
 
 
-def test_plan_storage_and_editor(tmp_path):
-    from PySide6.QtWidgets import QApplication
-
-    from friday.ui.desktop.settings.trading_plan import TradingPlanRow
-
-    QApplication.instance() or QApplication([])
+def test_plan_storage(tmp_path):
     path = tmp_path / "plan.txt"
     assert load_plan(path) == ""
-    row = TradingPlanRow(path)
-    row.editor.setPlainText("Swing 4 h, 1 % de risque.")
-    row.save()
-    assert load_plan(path) == "Swing 4 h, 1 % de risque." and "enregistré" in row.status.text()
-    assert not TradingPlanRow(None).editor.isEnabled()
+    save_plan(path, "Swing 4 h, 1 % de risque.")
+    assert load_plan(path) == "Swing 4 h, 1 % de risque."  # (éditeur : test_plan_book.py)
 
 
 def test_claude_is_asked_for_scenarios_and_to_respect_the_plan():

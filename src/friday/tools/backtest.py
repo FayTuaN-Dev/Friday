@@ -51,6 +51,7 @@ class BacktestTool(Tool):
             "type": "number",
             "description": "Stop minimal en ATR à essayer, s'il est demandé",
         },
+        "plan": {"type": "string", "description": "Le plan écrit nommé, s'il en nomme un"},
     }
     timeout = 120
 
@@ -62,7 +63,7 @@ class BacktestTool(Tool):
         return f"🧪 Backtest du plan : {args.get('instrument', '')}".strip(" :")
 
     def run(self, instrument: str = "", objectif: float | None = None,
-            stop: float | None = None) -> ToolResult:  # fmt: skip
+            stop: float | None = None, plan: str = "") -> ToolResult:  # fmt: skip
         """`objectif` (en R) et `stop` (en ATR) : la variante demandée (« et avec 3 R ? »)."""
         try:
             item = risk_calc.resolve(instrument) if instrument else self.trading.instrument_for("")
@@ -77,6 +78,12 @@ class BacktestTool(Tool):
         rules = load_rules(self.trading.rules_path)
         choice = getattr(self.trading, "choice", None)
         strategy = choice.get(item.symbol) if choice is not None else None
+        if plan and choice is not None:  # « teste le plan Cassure Londres »
+            found = choice.book.get(plan) or choice.book.find(plan)
+            if found is None or not found["spec"]:
+                return ToolResult("Dis EXACTEMENT : « Ce plan n'existe pas ou n'est pas encore "
+                                  "traduit en règles. »")  # fmt: skip
+            strategy = choice.book.strategy(found)
         if strategy is None or strategy.name == "repli":
             runs = variants(rules)  # le modèle : chaque règle d'entrée se fait varier
             if strategy is not None:

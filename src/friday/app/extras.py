@@ -94,6 +94,7 @@ def load_trading(settings: Settings, library):
         from friday.trading.journal import TradeJournal
         from friday.trading.market import snapshot
         from friday.trading.mode import TradingMode
+        from friday.trading.plan_book import PlanBook
         from friday.trading.plan_translate import translator
         from friday.trading.strategy_choice import StrategyChoice
         from friday.trading.warm import Warm
@@ -104,8 +105,15 @@ def load_trading(settings: Settings, library):
         capture = ChartCapture(config.capture_window, DATA_DIR / "trading.json")
         result = FredResults(config.fred_key, DATA_DIR / "cache") if config.fred_key else None
         warm = Warm()  # données publiques préparées en avance (trading/warm.py)
+        book = PlanBook(
+            DATA_DIR / "trading_plans.json",
+            DATA_DIR / "trading_plan.txt",
+            DATA_DIR / "trading_plan_rules.json",
+        )  # reprend le plan unique d'avant
+        choice = StrategyChoice(DATA_DIR / "trading_strategies.json", book)
         context = ContextSources(DATA_DIR / "trading_plan.txt", DATA_DIR / "cache",
                                  hours=config.hours, result=result,
+                                 plan_for=lambda instrument: choice.plan_text(instrument.symbol),
                                  headlines=warm.wrap("actualites", news.fetch_headlines),
                                  quote=warm.wrap("cours", related.yahoo_quote))  # fmt: skip
         market = warm.wrap("marche", snapshot)
@@ -122,8 +130,7 @@ def load_trading(settings: Settings, library):
                                            config.hours, config.briefing_instruments,
                                            config.briefing)  # fmt: skip
         trading.prepare = lambda instrument: (market(instrument), context.blocks(instrument))
-        trading.choice = StrategyChoice(DATA_DIR / "trading_strategies.json",
-                                        DATA_DIR / "trading_plan_rules.json")  # fmt: skip
+        trading.choice = choice
         trading.translator = translator(DATA_DIR / "trading_claude",
                                         config.model or settings.claude_model,
                                         settings.claude_timeout)  # fmt: skip
