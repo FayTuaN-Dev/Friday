@@ -57,6 +57,7 @@ src/friday/
 │   ├── wake.py            repérage de « Friday » en début de phrase, ordres d'arrêt, écho
 │   ├── cuda.py            DLL CUDA pour Whisper sur GPU (Windows)
 │   ├── audition.py        outil : écouter les voix disponibles
+│   ├── notification.py    titre et phrase de la bulle Windows d'une tâche de fond finie
 │   ├── diagnostic.py      outil : chercher l'origine de grésillements (voix sous charge)
 │   └── sounds.py          sons synthétisés (carillon des rappels)
 ├── memory/                mémoire long terme (data/memory.db)
@@ -222,6 +223,7 @@ src/friday/
     ├── terminal.py        interface terminal
     └── desktop/           interface de bureau (PySide6)
         ├── app.py         lancement de l'application Qt
+        ├── notifier.py    bulles Windows (icône près de l'horloge), si Friday n'est pas devant
         ├── main_window.py fenêtre principale sans bordure (assemble les widgets, applique la couleur)
         ├── bridge.py      QtBridge : événements de l'assistant → signaux Qt (thread-safe)
         ├── icons.py       icônes fines au trait (SVG), colorées par le thème

@@ -232,6 +232,6 @@ def test_assistant_confirms_by_voice_then_announces_completion():
     assistant.shutdown()
 
     assert [u[0] for u in listener.of("user")] == ["Demande à Claude d'écrire a.py"]
-    assert listener.of("display") == [("claude",)]
+    assert listener.of("display") == [("notification",), ("claude",)]  # bulle + résultat
     chunks = "".join(c[0] for c in listener.of("chunk"))
     assert "C'est lancé." in chunks and "Claude a fini a.py." in chunks
