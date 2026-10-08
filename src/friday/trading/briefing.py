@@ -30,7 +30,8 @@ class TradingBriefing:
 def build(instruments: list[Instrument], history: History, events: list[Event] | None,
           rules: PlanRules, now: datetime, hours: tuple[int, int] = (9, 18),
           offsets: dict[str, float] | None = None, open_trades: int = 0,
-          alerts: int = 0) -> TradingBriefing:  # fmt: skip
+          alerts: int = 0, strategy_of=None) -> TradingBriefing:  # fmt: skip
+    """`strategy_of(symbole)` : la stratégie choisie pour l'instrument (le plan sinon)."""
     local = now.astimezone(PARIS)
     title = f"Briefing trading du {DAYS[local.weekday()]} {local:%d/%m}."
     briefing = TradingBriefing([("Briefing trading", title)])
@@ -41,7 +42,8 @@ def build(instruments: list[Instrument], history: History, events: list[Event] |
         try:
             hourly, daily = history(instrument)
             shift = (offsets or {}).get(instrument.symbol, 0.0)
-            text = _instrument(instrument, hourly, daily, rules, now, since, shift)
+            strategy = strategy_of(instrument.symbol) if strategy_of else None
+            text = _instrument(instrument, hourly, daily, rules, now, since, shift, strategy)
         except MarketUnavailable:
             text = f"{_name(instrument)} : cours indisponibles ce matin."
         briefing.parts.append((instrument.name, text))
@@ -78,7 +80,7 @@ def _yesterday_close(now: datetime, end_hour: int) -> datetime:
 
 
 def _instrument(i: Instrument, hourly: list[Candle], daily: list[Candle], rules: PlanRules,
-                now: datetime, since: datetime, shift: float) -> str:  # fmt: skip
+                now: datetime, since: datetime, shift: float, strategy=None) -> str:  # fmt: skip
     digits = _digits(i)
     p = lambda x: f"{x - shift:,.{digits}f}".replace(",", " ").replace(".", ",")  # noqa: E731
     price = hourly[-1].close
@@ -90,15 +92,21 @@ def _instrument(i: Instrument, hourly: list[Candle], daily: list[Candle], rules:
         parts[0] += (f", {change:+.2f} %".replace(".", ",") + f" depuis hier {since:%H} h "
                      f"(nuit entre {p(min(c.low for c in night))} et "
                      f"{p(max(c.high for c in night))})")  # fmt: skip
+    mine = strategy is not None and strategy.name != "plan"
+    if mine:
+        parts.append(f"Ta stratégie : {strategy.label} ({strategy.summary})")
+    who = "ta stratégie" if mine else "ton plan"
+    follows = strategy is None or strategy.trend_filter
     finished = [d for d in daily if d.time + timedelta(days=1) <= now]  # tendance : séances finies
     if rules.trend_ema and finished:
         line = ema_series([d.close for d in finished], rules.trend_ema)[-1]
         if line is not None:
             up = price > line
+            allowed = (f", {who} n'autorise que des {'achats' if up else 'ventes'} aujourd'hui"
+                       if follows else "")  # fmt: skip
             parts.append(f"Tendance {'haussière' if up else 'baissière'} : "
                          f"{'au-dessus' if up else 'en dessous'} de l'EMA{rules.trend_ema} "
-                         f"journalière ({p(line)}), ton plan n'autorise que des "
-                         f"{'achats' if up else 'ventes'} aujourd'hui")  # fmt: skip
+                         f"journalière ({p(line)}){allowed}")  # fmt: skip
     levels = []
     if (y := _previous_day(hourly, since)) is not None:
         pv = pivots(y)

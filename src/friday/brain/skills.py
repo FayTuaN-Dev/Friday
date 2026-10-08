@@ -167,7 +167,8 @@ SKILLS = (
     Skill("trading", "mode trading : calculs de risque, journal de trading, analyses",
           ("position_size", "pip_value", "risk_reward", "log_trade", "annotate_trade", "close_trade",
            "trade_stats", "trading_analysis", "open_journal", "trade_check", "backtest_plan", "set_price_alert", "watch_setup",
-           "list_alerts", "cancel_alert", "trading_briefing", "past_analyses"),
+           "list_alerts", "cancel_alert", "trading_briefing", "past_analyses", "compare_strategies",
+           "choose_strategy"),
           """- Mode trading actif. position_size, pip_value, risk_reward : calculs EXACTS faits
   sur le PC ; extrais les chiffres de la demande, n'en invente aucun (demande ceux qui
   manquent), puis répète le résultat tel quel. Jamais de calcul de tête.
@@ -179,6 +180,8 @@ SKILLS = (
 - set_price_alert (« préviens-moi si l'or passe 4 150 »), watch_setup (« surveille l'or » :
   le setup du plan), list_alerts, cancel_alert : les alertes, surveillées sur le PC et
   annoncées à la voix. Répète la phrase donnée telle quelle.
+- compare_strategies (« compare les stratégies sur l'or ») et choose_strategy (« choisis la
+  cassure de range pour l'or ») : la bibliothèque de stratégies. Répète la phrase telle quelle.
 - past_analyses : les dernières analyses de Claude et le cours depuis (« mes dernières
   analyses »). Répète la phrase donnée telle quelle.
 - trading_briefing : le briefing trading (« briefing trading », « prépare ma journée de
@@ -193,7 +196,7 @@ SKILLS = (
            "mes trades", "trade", "stop", "check list", "checklist", "mon plan", "acheter", "backtest",
            "historique", "alerte", "previens moi", "surveille", "setup se forme",
            "briefing trading", "journee de trading",
-           "mes analyses", "dernieres analyses", "tes analyses",
+           "mes analyses", "dernieres analyses", "tes analyses", "strategie", "strategies",
            "vendre"),
           ("calcule ma taille de position", "combien vaut un pip sur 0,5 lot",
            "note ce trade dans le journal", "quel est mon bilan de trading",

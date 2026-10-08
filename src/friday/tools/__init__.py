@@ -97,6 +97,16 @@ def default_toolbox(
         from friday.trading.alerts.watcher import yahoo_price
 
         tools.append(PastAnalysesTool(trading.journal, yahoo_price))
+        if trading.choice is not None:
+            from friday.tools.strategies import (
+                ChooseStrategyTool,
+                CompareStrategiesTool,
+                StrategyLab,
+            )
+
+            lab = StrategyLab(trading)
+            tools += [CompareStrategiesTool(lab, trading.choice),
+                      ChooseStrategyTool(lab, trading.choice)]  # fmt: skip
         if trading.briefing is not None:
             from friday.tools.trading_briefing import TradingBriefingTool
 

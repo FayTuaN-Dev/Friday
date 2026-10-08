@@ -94,6 +94,7 @@ def load_trading(settings: Settings, library):
         from friday.trading.journal import TradeJournal
         from friday.trading.market import snapshot
         from friday.trading.mode import TradingMode
+        from friday.trading.strategy_choice import StrategyChoice
         from friday.trading.warm import Warm
 
         config = settings.trading
@@ -120,6 +121,8 @@ def load_trading(settings: Settings, library):
                                            config.hours, config.briefing_instruments,
                                            config.briefing)  # fmt: skip
         trading.prepare = lambda instrument: (market(instrument), context.blocks(instrument))
+        trading.choice = StrategyChoice(DATA_DIR / "trading_strategies.json")
+        alerts.choice = trading.choice  # les alertes suivent la stratégie choisie
         return trading
     except Exception:
         log.exception("Mode trading indisponible, Friday continue sans")

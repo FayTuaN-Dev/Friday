@@ -79,9 +79,11 @@ class WatchSetupTool(_AlertTool):
             return ToolResult(f"Surveillance impossible : {error}")
         self.watcher.store.add_setup(item.symbol)
         start, end = self.watcher.hours
-        spoken = (f"Je surveille {item.name} : je te préviens quand le setup de ton plan se "
-                  f"forme, à la clôture des bougies 1 h, entre {start} h et {end} h en "
-                  "semaine.")  # fmt: skip
+        choice = getattr(self.watcher, "choice", None)
+        strategy = choice.get(item.symbol).label if choice is not None else "ton plan"
+        spoken = (f"Je surveille {item.name} : je te préviens quand le setup de ta stratégie "
+                  f"({strategy}) se forme, à la clôture des bougies 1 h, entre {start} h et "
+                  f"{end} h en semaine.")  # fmt: skip
         return ToolResult(f"Dis EXACTEMENT : « {spoken} »")
 
 

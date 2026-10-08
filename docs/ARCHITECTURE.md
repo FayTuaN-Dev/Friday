@@ -95,9 +95,15 @@ src/friday/
 │   ├── checklist.py       check-list avant trade : idée, données, verdict (feu vert/orange/rouge)
 │   ├── plan_checks.py     les règles vérifiées une par une (tendance, repli, RSI, stop, R, risque,
 │   │                      annonce forte, trades ouverts) — sans modèle ni Claude
-│   ├── backtest/          backtest du plan : series.py (EMA, RSI, ATR en série), engine.py
-│   │                      (règles rejouées bougie 1 h après bougie, sans voir le futur),
-│   │                      report.py (bilan en R, marge d'incertitude, variantes à une règle)
+│   ├── backtest/          backtest : series.py (EMA, RSI, ATR en série), engine.py (une
+│   │                      stratégie rejouée bougie 1 h après bougie, sans voir le futur),
+│   │                      report.py (bilan en R, marge d'incertitude, variantes à une règle),
+│   │                      compare.py (toutes les stratégies, verdict ✅ / 🟡 / ❌, deux moitiés)
+│   ├── strategies/        bibliothèque de stratégies : base.py (règle d'entrée + risque commun),
+│   │                      plan.py, trend.py (croisement, cassure de range), reversion.py
+│   │                      (retour à la moyenne), session.py (cassure de l'ouverture de Londres)
+│   ├── strategy_choice.py la stratégie de chaque instrument (data/trading_strategies.json)
+│   ├── strategy_checks.py check-list d'une autre stratégie que le plan : son signal récent
 │   ├── briefing.py        briefing trading : annonces fortes (en français, calendar_fr.py), nuit,
 │   │                      niveaux clés (hier rebâti avec les bougies 1 h), tendance, règles du plan
 │   ├── briefing_service.py quand le faire (début de la plage, en semaine, une fois par jour)
@@ -177,6 +183,7 @@ src/friday/
 │   ├── alerts.py          set_price_alert, watch_setup, list_alerts, cancel_alert
 │   ├── trading_briefing.py trading_briefing (lancé d'office par le code : prefetch)
 │   ├── analyses.py        past_analyses : dernières analyses de Claude et le cours depuis
+│   ├── strategies.py      compare_strategies, choose_strategy (lancés d'office par le code)
 │   ├── markets.py         market_quote : le cours d'un instrument, à la source (tous les jours)
 │   ├── trading_analysis.py analyse par Claude : aperçu, refus sans validation, journal
 │   ├── research.py        carnet de recherche : derniers résultats et pages lues, avec leurs adresses

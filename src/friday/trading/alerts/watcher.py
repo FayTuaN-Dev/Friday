@@ -46,6 +46,7 @@ class AlertWatcher:
         self.quote, self.history, self.now = quote, history, now
         self.hours, self.interval = hours, interval
         self.on_alert: Callable[[str], None] = lambda text: None  # branché au démarrage
+        self.choice = None  # StrategyChoice : la stratégie de chaque instrument (le plan sinon)
         self._announced: dict[str, datetime] = {}  # symbole → dernière bougie examinée
         self._read: dict[str, datetime] = {}  # symbole → dernière lecture des bougies
         self._stop = threading.Event()
@@ -99,11 +100,12 @@ class AlertWatcher:
         if not hourly or self._announced.get(instrument.symbol) == hourly[-1].time:
             return
         rules = load_rules(self.rules_path)
-        found = setups.detect(hourly, daily, rules)
+        strategy = self.choice.get(instrument.symbol) if self.choice is not None else None
+        found = setups.detect(hourly, daily, rules, strategy)
         self._announced[instrument.symbol] = hourly[-1].time
         if found is None:
             return
-        before = setups.detect(hourly[:-1], daily, rules)
+        before = setups.detect(hourly[:-1], daily, rules, strategy)
         if before is not None and before.side == found.side:
             return  # le setup dure depuis la bougie d'avant : déjà annoncé (ou en cours)
         shift = self.store.offsets.get(instrument.symbol, 0.0)

@@ -48,6 +48,7 @@ class BriefingService:
             alerts.store.offsets if alerts is not None else {},
             sum(1 for t in self.trading.journal.all_trades() if t.exit is None),
             len(alerts.store.all()) if alerts is not None else 0,
+            getattr(getattr(self.trading, "choice", None), "get", None),
         )  # fmt: skip
 
     def due(self) -> bool:
