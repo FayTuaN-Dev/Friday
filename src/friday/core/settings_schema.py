@@ -70,6 +70,9 @@ SECTIONS = (
     )),
     Section("Écoute", "mic", (
         Field("HANDS_FREE", "Mains libres (dire « Friday, … »)", "bool", "true"),
+        Field("WAKE_THRESHOLD", "Exigence du mot d'activation (0,05 à 0,95)", "text", "0.5",
+              "Avec le modèle « Friday » (data/models/friday.onnx) : plus haut = moins de faux "
+              "réveils mais il faut parler plus nettement. Voir docs/mot-activation.md."),
         Field("MIC_DEVICE", "Micro", "choice", options=lambda: audio_devices(True)),
         Field("OUTPUT_DEVICE", "Sortie audio de Friday", "choice",
               options=lambda: audio_devices(False)),

@@ -54,6 +54,8 @@ src/friday/
 │   ├── ptt.py             PushToTalk : touche globale maintenue pour parler
 │   ├── hands_free.py      HandsFreeListener : écoute continue → phrases → texte
 │   ├── vad.py             StreamingVAD (Silero) + SpeechSegmenter : découpe le flux en phrases
+│   ├── wakeword.py       mot d'activation dédié (openWakeWord, data/models/friday.onnx) : Whisper
+│   │                      ne transcrit que les phrases attendues
 │   ├── wake.py            repérage de « Friday » en début de phrase, ordres d'arrêt, écho
 │   ├── cuda.py            DLL CUDA pour Whisper sur GPU (Windows)
 │   ├── audition.py        outil : écouter les voix disponibles

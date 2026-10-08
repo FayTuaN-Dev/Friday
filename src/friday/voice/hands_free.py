@@ -23,7 +23,10 @@ class HandsFreeListener:
         device: int | str | None = None,
         silence_ms: int = 700,
         heard_log=None,  # HeardLog : diagnostic, garde l'audio des phrases entendues
+        detector=None,  # WakeWordDetector : le mot d'activation dédié, ou None
+        gate=None,  # (début de la phrase) → la transcrire ? None : toutes
     ) -> None:
+        self.detector, self.gate = detector, gate
         self._transcribe = transcribe
         self._heard_log = heard_log
         self._on_heard = on_heard
@@ -68,7 +71,10 @@ class HandsFreeListener:
         if self._paused.is_set():
             return
         try:
-            self.segmenter.feed(resample(data[:, 0], self.sample_rate, WHISPER_RATE))
+            audio = resample(data[:, 0], self.sample_rate, WHISPER_RATE)
+            self.segmenter.feed(audio)
+            if self.detector is not None:
+                self.detector.feed(audio)
         except Exception:
             log.exception("Erreur de détection de parole")
 
@@ -78,6 +84,9 @@ class HandsFreeListener:
     def _transcribe_loop(self) -> None:
         while (item := self._segments.get()) is not None:
             segment, started_at = item
+            if self.gate is not None and not self.gate(started_at):
+                log.debug("Phrase ignorée : pas de mot d'activation")
+                continue
             try:
                 text = self._transcribe(segment)
                 if self._heard_log:

@@ -69,6 +69,17 @@ def _voice(components, settings) -> list[Line]:
     ]  # fmt: skip
 
 
+def _wake(data_dir: Path, components, settings) -> list[Line]:
+    if not (data_dir / "models" / "friday.onnx").is_file():
+        return [("Mot d'activation", WARN, "pas de modèle « Friday » : Whisper écoute tout "
+                                           "(voir docs/mot-activation.md)")]  # fmt: skip
+    active = getattr(components, "wake_detector", None) is not None
+    text = f"modèle « Friday » installé, exigence {settings.wake_threshold:g}".replace(".", ",")
+    if not active:
+        text += " ; mains libres désactivées ou pas encore démarrées"
+    return [("Mot d'activation", OK if active else WARN, text)]
+
+
 def _backup(data_dir: Path, copy_to: str) -> list[Line]:
     last = last_backup(data_dir)
     if last is None:
@@ -90,5 +101,6 @@ def collect(components, settings, data_dir: Path, run: Callable = subprocess.run
     lines += _speed(getattr(brain, "speed", None))
     lines += gpu(run)
     lines += _voice(components, settings)
+    lines += _wake(data_dir, components, settings)
     lines += _backup(data_dir, settings.backup_dir)
     return lines

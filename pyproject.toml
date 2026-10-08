@@ -17,6 +17,7 @@ dependencies = [
     "nvidia-cublas-cu12>=12.9.2.10 ; sys_platform == 'win32'",
     "nvidia-cudnn-cu12>=9,<10 ; sys_platform == 'win32'",
     "ollama>=0.6.3",
+    "openwakeword>=0.6",
     "pillow>=12.3.0",
     "piper-tts>=1.8.0",
     "psutil>=7.2.2",
@@ -35,6 +36,11 @@ friday = "friday:main"
 [build-system]
 requires = ["uv_build>=0.12.22,<0.13.0"]
 build-backend = "uv_build"
+
+[tool.uv]
+# Friday ne tourne que sous Windows (PySide6, API Windows ; CI windows-latest) : le verrou
+# n'est calculé que pour Windows (openWakeWord dépend sous Linux d'un paquet sans Python 3.12)
+environments = ["sys_platform == 'win32'"]
 
 [tool.ruff]
 line-length = 100

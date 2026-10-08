@@ -74,6 +74,7 @@ class Settings:
     log_level: str
     interface_color: str = "Or"  # couleur de base de l'interface (palette ou #rrggbb)
     backup_dir: str = ""  # copie des sauvegardes quotidiennes (clé USB, OneDrive…), facultatif
+    wake_threshold: float = 0.5  # sensibilité du mot d'activation dédié (data/models/friday.onnx)
     trading: TradingSettings = TradingSettings()
 
 
@@ -151,6 +152,7 @@ def load_settings() -> Settings:
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         interface_color=os.getenv("FRIDAY_COLOR", "Or"),
         backup_dir=os.getenv("BACKUP_DIR", "").strip(),
+        wake_threshold=min(0.95, max(0.05, float(os.getenv("WAKE_THRESHOLD", "0.5")))),
         trading=TradingSettings(
             enabled=_bool("TRADING_ENABLED", True),
             passages=max(1, min(15, int(os.getenv("TRADING_PASSAGES", "10")))),

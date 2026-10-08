@@ -36,6 +36,7 @@ class Components:
     library: object | None = None  # Library (bibliothèque de documents)
     trading: object | None = None  # Trading (mode trading)
     backup: object | None = None  # DailyBackup (sauvegarde quotidienne de data/)
+    wake_detector: object | None = None  # WakeWordDetector (modèle « Friday »), ou None
 
 
 def load_components(

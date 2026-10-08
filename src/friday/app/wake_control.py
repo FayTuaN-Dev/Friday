@@ -58,6 +58,12 @@ class WakeControl:
         # Au démarrage, aucune fenêtre récente : rien n'est signalé.
         self._follow_up_until = float("-inf")
 
+    def expects_speech(self, at: float) -> bool:
+        """Une phrase sans le nom est-elle attendue (relance, « oui / non », « stop » pendant
+        que Friday parle) ? Avec le mot d'activation dédié, les autres ne sont pas transcrites."""
+        return (at <= self._follow_up_until or self.target.awaiting_confirmation
+                or self.target.spoke_recently(at))  # fmt: skip
+
     def open_follow_up(self) -> None:
         self._follow_up_until = self._clock() + self.follow_up_seconds
 

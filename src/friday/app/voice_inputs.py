@@ -20,6 +20,7 @@ HEAD_SECONDS = (1.3,)  # mesuré : 120/120 réveils ; plus long, Whisper repasse
 
 class VoiceInputs:
     def __init__(self, settings: Settings, assistant: "Assistant") -> None:
+        self.detector = None  # WakeWordDetector, si le modèle « Friday » est installé
         self.settings = settings
         self.assistant = assistant
         target = HandsFreeTarget(assistant)
@@ -49,17 +50,42 @@ class VoiceInputs:
                     from friday.voice.heard_log import HeardLog
 
                     heard_log = HeardLog(LOGS_DIR / "heard")
+                detector, gate = self._wake_word()
                 self.hands_free = HandsFreeListener(
                     self._with_wake_rescue(stt),
                     self.wake.on_heard,
                     self.settings.mic_device,
                     self.settings.vad_silence_ms,
                     heard_log,
+                    detector,
+                    gate,
                 )
                 self.hands_free.start()
             except Exception:
                 log.exception("Écoute mains libres indisponible")
                 self.hands_free = None
+
+    def _wake_word(self):
+        """(détecteur, porte) si le modèle « Friday » est installé ; sinon (None, None) :
+        Whisper écoute tout, comme avant."""
+        from friday.core.config import MODELS_DIR
+
+        path = MODELS_DIR / "friday.onnx"
+        if not path.is_file():
+            return None, None
+        try:
+            from friday.voice.wakeword import WakeWordDetector, load_model
+
+            detector = WakeWordDetector(load_model(path), self.settings.wake_threshold)
+        except Exception:
+            log.exception("Mot d'activation dédié indisponible : Whisper écoute tout")
+            return None, None
+        log.info("Mot d'activation dédié actif (%s)", path.name)
+        self.detector = detector
+        components = getattr(self.assistant, "components", None)
+        if components is not None:
+            components.wake_detector = detector  # (page Diagnostic)
+        return detector, lambda at: detector.heard_since(at - 1.5) or self.wake.expects_speech(at)
 
     def _with_wake_rescue(self, stt):
         """Si le nom manque au début de la phrase, on retranscrit ce début dans la langue du

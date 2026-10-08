@@ -85,6 +85,10 @@ Choisir la sortie audio : `OUTPUT_DEVICE` (même principe). En cas de grésillem
 
 Pour comparer les voix disponibles : `uv run python -m friday.voice.audition`, puis régler `TTS_VOICE` dans `.env`.
 
+### Mot d'activation dédié
+
+Avec un petit modèle « Friday » (entraîné une fois, gratuitement : [docs/mot-activation.md](docs/mot-activation.md)) déposé dans `data/models/friday.onnx`, Friday écoute son nom en continu sur le processeur et Whisper ne transcrit plus que les phrases qui commencent par « Friday » (ou une relance juste après une réponse, un « oui / non » attendu, un « stop » pendant qu'elle parle) : beaucoup moins de faux réveils, carte graphique au repos. Exigence réglable dans *Réglages → Écoute*. Sans le fichier, l'écoute reste celle d'avant.
+
 ### Fiabilité
 
 - **Ollama surveillé** : si sa vitesse s'effondre deux réponses de suite (modèle à moitié sorti de la carte graphique), Friday recharge le modèle tout seul.
