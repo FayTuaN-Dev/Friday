@@ -63,6 +63,8 @@ def test_the_bars_show_what_is_left(tmp_path):
     assert empty.note.text() == HOW
     relay(FEED, target, now=NOW)
     panel = ClaudeLimits(target, clock=lambda: NOW)
-    (title, bar, detail), _ = panel.rows
-    assert title.text() == "Session Claude : 15 % restants" and bar.value() == 15
-    assert detail.text() == "remise à zéro dans 2 h 40" and "#e5636b" in bar.styleSheet()
+    session, week = panel.rows
+    assert (session.name.text(), session.value.text()) == ("SESSION", "15 %")
+    assert session.bar.value() == 15 and week.name.text() == "SEMAINE"
+    assert session.detail.text() == "restants · remise à zéro dans 2 h 40"
+    assert session.value.property("low") is True  # sous 20 % : couleur d'alerte
