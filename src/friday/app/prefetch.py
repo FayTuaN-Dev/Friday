@@ -22,6 +22,26 @@ def hints(library, trading) -> dict:
     return found
 
 
+def plan_request(text: str, book) -> tuple[str, dict] | None:
+    """Les demandes sur les stratégies et les plans écrits, reconnues par le code ; avec le
+    plan nommé dans la phrase (« teste le plan Cassure Londres sur l'or »)."""
+    from friday.trading.instruments import detect
+    from friday.voice.wake import normalize
+
+    asked = strategy_request(text)
+    if asked is not None:
+        tool, args = asked
+        if tool in ("translate_plan", "choose_strategy"):
+            args = {**args, "request": text}
+        return tool, args
+    plan = book.find(text)
+    words = f" {normalize(text)} "
+    if plan and any(f" {w}" in words for w in ("teste", "tester", "backtest", "back test")):
+        found = detect(text.replace(plan["nom"], ""))
+        return ("backtest_plan", {"instrument": found.symbol if found else "", "plan": plan["id"]})
+    return None
+
+
 def prefetcher(library, trading, router):
     """Outil lancé d'office avant de répondre. Mode trading : une question d'analyse part dans
     le paquet pour Claude (après aperçu). Sinon : la bibliothèque, si elle connaît le sujet."""
@@ -30,8 +50,8 @@ def prefetcher(library, trading, router):
     def prefetch(text: str) -> tuple[str, dict] | None:
         if trading and trading.mode.enabled:
             if getattr(trading, "choice", None) is not None and (
-                    asked := strategy_request(text)):  # fmt: skip
-                return asked  # le code choisit l'outil, l'instrument et la stratégie
+                    asked := plan_request(text, trading.choice.book)):  # fmt: skip
+                return asked  # le code choisit l'outil, l'instrument, la stratégie, le plan
             if trading.briefing is not None and (wanted := briefing_request(text)) is not None:
                 return ("trading_briefing", {"instrument": wanted})  # le code choisit
             if trading.mode.route(text, choose) == "analysis":

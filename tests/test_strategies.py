@@ -173,7 +173,7 @@ def test_a_strategy_that_failed_is_refused_and_a_promising_one_comes_with_a_warn
     assert "suivent maintenant la cassure de l'ouverture de Londres" in accepted
     assert "seulement prometteuse (trop peu de trades (3))" in accepted
     assert choice.get("XAUUSD").name == "londres"
-    assert "pas encore traduit" in tool.run("mon plan", "or").text
+    assert "n'est encore traduit" in tool.run("mon plan", "or").text
     assert "Je ne connais pas cette stratégie" in tool.run("martingale", "or").text
 
 

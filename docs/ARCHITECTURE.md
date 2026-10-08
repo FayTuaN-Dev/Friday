@@ -105,8 +105,10 @@ src/friday/
 │   │                      spec.py (format des règles d'un plan écrit : vérifié, redit en français),
 │   │                      custom.py (« ton plan écrit » : exécute ces règles)
 │   ├── plan_translate.py  traduction du plan écrit en règles par Claude isolé (JSON vérifié)
-│   ├── strategy_choice.py la stratégie suivie : par instrument, par défaut, ton plan écrit traduit
-│   │                      (data/trading_strategies.json, data/trading_plan_rules.json)
+│   ├── plan_book.py       carnet de plans écrits (data/trading_plans.json) : nommés, traduits,
+│   │                      chacun une stratégie « plan:<id> » ; reprend le plan unique d'avant
+│   ├── strategy_choice.py la stratégie suivie : par instrument, par défaut, premier plan traduit,
+│   │                      modèle « repli » ; plan_text() : le plan joint aux analyses
 │   ├── strategy_checks.py check-list d'une autre stratégie que le plan : son signal récent
 │   ├── briefing.py        briefing trading : annonces fortes (en français, calendar_fr.py), nuit,
 │   │                      niveaux clés (hier rebâti avec les bougies 1 h), tendance, règles du plan
@@ -234,8 +236,8 @@ src/friday/
         │                  (« ce que dit le journal »), equity_chart.py (courbe du total en R)
         ├── settings/      écran de réglages (zone_picker.py : tracer la zone du graphique ;
         │                  trading_rules.py : gestion du risque et modèle « repli » ;
-        │                  trading_strategy.py : « Ma stratégie » ; trading_plan.py : plan écrit
-        │                  et « Traduire en règles »)
+        │                  trading_strategy.py : « Ma stratégie » ; trading_plan.py : carnet de
+        │                  plans (nouveau, dupliquer, supprimer, traduire))
         │   ├── window.py      SettingsWindow : menu, pages, Enregistrer / Redémarrer
         │   ├── form_page.py   page construite depuis settings_schema (interrupteurs, listes…)
         │   ├── briefing_page.py  briefing : activé, heures, rubriques (appliqué tout de suite)

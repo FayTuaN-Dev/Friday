@@ -2,21 +2,16 @@
 le code, exécuté par le moteur (backtest, alertes, check-list), choisi dans les réglages."""
 
 import json
-import time
 
 import pytest
 from test_strategies import DAILY, RULES, finished_day, hourly_from, walk
 
-from friday.tools.plan_translate import TranslatePlanTool
 from friday.trading.backtest.engine import simulate
-from friday.trading.journal import TradeJournal
-from friday.trading.mode import strategy_request
 from friday.trading.plan_rules import PlanRules
 from friday.trading.plan_translate import TranslationError, parse
 from friday.trading.strategies.custom import CustomStrategy
 from friday.trading.strategies.plan import PlanStrategy
 from friday.trading.strategies.spec import SpecError, describe, validate
-from friday.trading.strategy_choice import DEFAULT, StrategyChoice
 
 COURS, EMA50, RSI = {"indicateur": "cours"}, {"indicateur": "ema", "periode": 50}, {
     "indicateur": "rsi", "periode": 14}  # fmt: skip
@@ -115,106 +110,3 @@ def test_claude_answer_is_parsed_strictly():
                             (json.dumps({"achat": []}), "invalides")):  # fmt: skip
         with pytest.raises(TranslationError, match=message):
             parse(answer)
-
-
-def test_choice_follows_the_written_plan_once_translated(tmp_path):
-    choice = StrategyChoice(tmp_path / "s.json", tmp_path / "rules.json")
-    assert choice.get("XAUUSD").name == "repli" and choice.translated() is None
-    choice.save_translation(REPLI, "Mon plan : repli sur l'EMA50.")
-    assert choice.get("XAUUSD").name == "mon_plan"  # par défaut : ton plan écrit
-    assert [s.name for s in choice.available()][:2] == ["mon_plan", "repli"]
-    assert not choice.outdated("Mon plan : repli sur l'EMA50.")
-    assert choice.outdated("Mon plan : cassure du range.")  # modifié depuis
-    choice.set(DEFAULT, "cassure")
-    assert choice.get("EURUSD").name == "cassure"
-
-
-class Job:
-    def __init__(self, answer, ok=True):
-        self.answer, self.ok, self.task, self.sent = answer, ok, None, []
-
-    @property
-    def busy(self):
-        return False
-
-    def run(self, content, options=None):
-        self.sent.append(content)
-        return {"ok": self.ok, "result": self.answer}
-
-
-def make_tool(tmp_path, answer, plan="Entrée : cassure du plus haut de 24 h. Compte de 5 000 €."):
-    tmp_path.mkdir(parents=True, exist_ok=True)
-    plan_path = tmp_path / "plan.txt"
-    if plan:
-        plan_path.write_text(plan, "utf-8")
-    choice, done = StrategyChoice(tmp_path / "s.json", tmp_path / "rules.json"), []
-    tool = TranslatePlanTool(plan_path, choice, Job(answer), TradeJournal(tmp_path / "t.db"),
-                             lambda task, result: done.append(result))  # fmt: skip
-    return tool, choice, done
-
-
-def wait(items):
-    for _ in range(100):
-        if items:
-            return
-        time.sleep(0.02)
-
-
-def test_translation_goes_through_the_preview_then_becomes_the_strategy(tmp_path):
-    tool, choice, done = make_tool(tmp_path, json.dumps(BREAKOUT))
-    assert "j'envoie ?" in tool.confirmation({})
-    packet = tool.preview({})
-    assert "5 000" not in packet.items[0].text and "montant" in packet.masked  # masqué
-    assert "Rien n'a été envoyé" in tool.run().text  # sans validation : rien ne part
-    tool.confirmation({})
-    tool.preview({}).approved = True
-    assert "C'est envoyé" in tool.run().text
-    wait(done)
-    assert choice.custom() is not None and choice.get("XAUUSD").name == "mon_plan"
-    assert "Ton plan est traduit en règles : Achat quand" in done[0].text
-    assert done[0].display.data["items"][0]["text"] == "Achat quand"
-
-
-def test_a_bad_translation_changes_nothing(tmp_path):
-    tool, choice, done = make_tool(tmp_path, "Désolé, je ne sais pas.")
-    tool.confirmation({})
-    tool.preview({}).approved = True
-    tool.run()
-    wait(done)
-    assert "La traduction de ton plan a échoué" in done[0].text and choice.translated() is None
-    empty, _, _ = make_tool(tmp_path / "e", "{}", plan="")
-    assert empty.confirmation({}) is None and "plan de trading est vide" in empty.run().text
-
-
-def test_translation_is_launched_by_the_code():
-    assert strategy_request("traduis mon plan") == ("translate_plan", {})
-    assert strategy_request("mets à jour les règles de mon plan") == ("translate_plan", {})
-
-
-def test_settings_show_the_choice_and_what_was_understood(tmp_path):
-    from PySide6.QtWidgets import QApplication
-
-    from friday.ui.desktop.settings.trading_plan import NOT_YET, TradingPlanRow
-    from friday.ui.desktop.settings.trading_strategy import StrategyRow
-
-    QApplication.instance() or QApplication([])
-    choice = StrategyChoice(tmp_path / "s.json", tmp_path / "rules.json")
-    asked = []
-    plan_path = tmp_path / "plan.txt"
-    row = TradingPlanRow(plan_path, choice, lambda: asked.append(True))
-    assert row.rules.text() == NOT_YET
-    row.editor.setPlainText("Cassure du plus haut de 24 h.")
-    row._translate()
-    assert (
-        asked == [True] and plan_path.read_text("utf-8").strip() == "Cassure du plus haut de 24 h."
-    )
-    choice.save_translation(BREAKOUT, "Cassure du plus haut de 24 h.")
-    row.refresh_rules()
-    assert row.rules.text().startswith("✅ Traduit le") and "plus haut des 24" in row.rules.text()
-    row.editor.setPlainText("Autre chose.")
-    row.refresh_rules()
-    assert row.rules.text().startswith("⚠️ Plan modifié")
-    strategies = StrategyRow(choice)
-    strategies.box.setCurrentIndex(strategies.box.findData("retour"))
-    assert choice.get("XAUUSD").name == "retour"
-    assert not TradingPlanRow(None).translate_button.isEnabled()

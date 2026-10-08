@@ -1,12 +1,20 @@
-"""Réglages → Trading : « Mon plan de trading », écrit librement. Traduit en règles (par
-Claude, après aperçu), il devient TA stratégie : backtest, alertes, check-list, briefing.
-Gardé sur le PC (data/trading_plan.txt) ; joint à une analyse seulement via l'aperçu, masqué
-comme une question (montants, comptes…)."""
+"""Réglages → Trading : « Mes plans de trading », écrits librement — autant que tu veux. Chacun,
+traduit en règles (par Claude, après aperçu), devient une stratégie : comparée aux autres,
+choisie, suivie par le backtest, les alertes, la check-list et le briefing. Gardés sur le PC
+(data/trading_plans.json) ; le plan suivi est joint aux analyses via l'aperçu, masqué."""
 
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton, QVBoxLayout
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPlainTextEdit,
+    QPushButton,
+    QVBoxLayout,
+)
 
-from friday.trading.context_sources import PLAN_CHARS, load_plan, save_plan
 from friday.trading.strategies.spec import describe
 
 PLACEHOLDER = (
@@ -15,68 +23,132 @@ PLACEHOLDER = (
     "le dernier creux ; objectif à 2 R.\n- Risque : 1 % par trade, 2 trades ouverts au plus.\n"
     "- Pas de trade 30 min avant une annonce à fort impact."
 )
-NOT_YET = ("Pas encore traduit en règles : tant qu'il ne l'est pas, Friday utilise le modèle "
-           "« repli sur moyenne ».")  # fmt: skip
+NOT_YET = ("Pas encore traduit en règles : « Traduire en règles » le fait comprendre par Claude "
+           "(après aperçu).")  # fmt: skip
 
 
 class TradingPlanRow(QFrame):
-    def __init__(self, plan_path, choice=None, translate=None) -> None:
-        """`choice` : StrategyChoice (règles traduites) ; `translate()` : demande la traduction
-        (comme « traduis mon plan », donc avec l'aperçu habituel)."""
+    def __init__(self, book, translate=None) -> None:
+        """`book` : PlanBook ; `translate(nom)` : demande la traduction de ce plan (comme
+        « traduis le plan … », donc avec l'aperçu habituel)."""
         super().__init__(objectName="SettingsRow")
-        self.plan_path, self.choice, self.translate = plan_path, choice, translate
+        self.book, self.translate = book, translate
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 10, 14, 10)
-        layout.addWidget(QLabel("Mon plan de trading", objectName="SettingsLabel"))
+        layout.addWidget(QLabel("Mes plans de trading", objectName="SettingsLabel"))
         layout.addWidget(QLabel(
-            "Votre stratégie, écrite librement. « Traduire en règles » la fait comprendre par "
-            "Claude (après aperçu) : elle sert alors au backtest, aux alertes, à la check-list "
-            "et au briefing. Reste sur ce PC ; jointe à une analyse via l'aperçu, masquée.",
+            "Écris autant de stratégies que tu veux. « Traduire en règles » en fait une stratégie "
+            "que Friday sait tester (« teste le plan … sur l'or »), comparer, suivre. Restent sur "
+            "ce PC ; le plan suivi est joint aux analyses via l'aperçu, masqué.",
             objectName="Hint", wordWrap=True))  # fmt: skip
+        top = QHBoxLayout()
+        self.picker = QComboBox()
+        self.picker.currentIndexChanged.connect(self._show)
+        top.addWidget(self.picker, 1)
+        self.delete_button = QPushButton("Supprimer", objectName="SettingsSmall")
+        for text, action in (("Nouveau", self._new), ("Dupliquer", self._duplicate)):
+            button = QPushButton(text, objectName="SettingsSmall")
+            button.clicked.connect(action)
+            top.addWidget(button)
+        self.delete_button.clicked.connect(self._delete)
+        top.addWidget(self.delete_button)
+        layout.addLayout(top)
+        self.name = QLineEdit(placeholderText="Nom du plan (ex. Cassure Londres)")
+        layout.addWidget(self.name)
         self.editor = QPlainTextEdit(placeholderText=PLACEHOLDER)
         self.editor.setMinimumHeight(150)
-        self.editor.setEnabled(plan_path is not None)
-        if plan_path is not None:
-            self.editor.setPlainText(load_plan(plan_path))
         layout.addWidget(self.editor)
         line = QHBoxLayout()
-        self.status = QLabel(objectName="Hint")
+        self.status = QLabel(objectName="Hint", wordWrap=True)
         line.addWidget(self.status, 1)
-        save = QPushButton("Enregistrer le plan", objectName="SettingsSmall")
-        save.setEnabled(plan_path is not None)
+        save = QPushButton("Enregistrer", objectName="SettingsSmall")
         save.clicked.connect(self.save)
         line.addWidget(save)
         self.translate_button = QPushButton("Traduire en règles", objectName="SettingsSmall")
-        self.translate_button.setEnabled(plan_path is not None and translate is not None)
         self.translate_button.clicked.connect(self._translate)
+        self.translate_button.setEnabled(translate is not None)
         line.addWidget(self.translate_button)
         layout.addLayout(line)
         self.rules = QLabel(objectName="Hint", wordWrap=True)
         layout.addWidget(self.rules)
-        self.refresh_rules()
+        self._confirm_delete = False
+        self.reload()
         self._watch = QTimer(self, interval=2000)  # la traduction arrive en arrière-plan
         self._watch.timeout.connect(self.refresh_rules)
         self._watch.start()
 
+    def current(self) -> dict | None:
+        return self.book.get(self.picker.currentData()) if self.picker.count() else None
+
+    def reload(self, select: str | None = None) -> None:
+        keep = select or self.picker.currentData()
+        self.picker.blockSignals(True)
+        self.picker.clear()
+        for plan in self.book.plans():
+            self.picker.addItem(plan["nom"] + (" ✅" if plan["spec"] else ""), plan["id"])
+        self.picker.setCurrentIndex(max(0, self.picker.findData(keep)))
+        self.picker.blockSignals(False)
+        self._show()
+
     def save(self) -> None:
-        text = self.editor.toPlainText()
-        save_plan(self.plan_path, text[:PLAN_CHARS])
-        cut = " (coupé à 1 500 caractères)" if len(text) > PLAN_CHARS else ""
-        self.status.setText(f"Plan enregistré{cut}.")
+        plan = self.current()
+        if plan is None:
+            plan = self.book.add(self.name.text() or "Mon plan")
+        self.book.update(plan["id"], nom=self.name.text(), texte=self.editor.toPlainText())
+        self.reload(plan["id"])
+        self.status.setText("Plan enregistré.")
 
     def refresh_rules(self) -> None:
-        found = self.choice.translated() if self.choice is not None else None
-        if found is None:
+        plan = self.current()
+        if plan is None:
+            self.rules.setText("Aucun plan : « Nouveau » pour en écrire un.")
+            return
+        if not plan["spec"]:
             self.rules.setText(NOT_YET)
             return
-        if self.choice.outdated(self.editor.toPlainText()):
-            head = f"⚠️ Plan modifié depuis la traduction du {found['traduit_le']} : retraduisez-le."
+        edited = {**plan, "texte": self.editor.toPlainText()}
+        if self.book.outdated(edited):
+            head = f"⚠️ Plan modifié depuis la traduction du {plan['traduit_le']} : retraduisez-le."
         else:
-            head = f"✅ Traduit le {found['traduit_le']}. Ce que Friday a compris :"
-        lines = [f"• {line}" for line in describe(found["spec"])]
-        self.rules.setText("\n".join([head, *lines]))
+            head = f"✅ Traduit le {plan['traduit_le']}. Ce que Friday a compris :"
+        self.rules.setText("\n".join([head, *(f"• {line}" for line in describe(plan["spec"]))]))
+
+    def _show(self) -> None:
+        plan = self.current()
+        self.name.setText(plan["nom"] if plan else "")
+        self.editor.setPlainText(plan["texte"] if plan else "")
+        self._confirm_delete = False
+        self.delete_button.setText("Supprimer")
+        self.delete_button.setEnabled(plan is not None)
+        self.refresh_rules()
+
+    def _new(self) -> None:
+        plan = self.book.add("Nouveau plan")
+        self.reload(plan["id"])
+        self.status.setText("Nouveau plan : donne-lui un nom, écris-le, puis « Enregistrer ».")
+
+    def _duplicate(self) -> None:
+        plan = self.current()
+        if plan is not None:
+            copy = self.book.duplicate(plan["id"])
+            self.reload(copy["id"])
+            self.status.setText("Copie créée : modifie-la pour tester une variante.")
+
+    def _delete(self) -> None:
+        plan = self.current()
+        if plan is None:
+            return
+        if not self._confirm_delete:  # deux clics : on ne supprime pas par mégarde
+            self._confirm_delete = True
+            self.delete_button.setText("Confirmer ?")
+            return
+        self.book.delete(plan["id"])
+        self.reload()
+        self.status.setText(f"Plan « {plan['nom']} » supprimé.")
 
     def _translate(self) -> None:
         self.save()
-        self.translate()
-        self.status.setText("Traduction demandée : vérifiez l'aperçu de l'envoi à Claude.")
+        plan = self.current()
+        if plan is not None:
+            self.translate(plan["nom"])
+            self.status.setText("Traduction demandée : vérifie l'aperçu de l'envoi à Claude.")
