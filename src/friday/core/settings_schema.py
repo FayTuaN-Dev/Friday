@@ -86,6 +86,9 @@ SECTIONS = (
         Field("FILES_ACCESS", "Fichiers et presse-papier", "bool", "true"),
         Field("VISION_ENABLED", "Voir l'écran", "bool", "true"),
         Field("AGENDA_ENABLED", "Rappels, minuteurs, notes et listes", "bool", "true"),
+        Field("BACKUP_DIR", "Copie des sauvegardes (dossier)", "text", "",
+              "Facultatif : un dossier OneDrive ou une clé USB. Les sauvegardes quotidiennes "
+              "restent aussi dans data/sauvegardes (les 7 dernières)."),
         Field("GOOGLE_ENABLED", "Agenda et mails Google", "bool", "true"),
         Field("CLAUDE_ENABLED", "Délégation à Claude Code", "bool", "true"),
         Field("MEMORY_ENABLED", "Mémoire à long terme", "bool", "true"),

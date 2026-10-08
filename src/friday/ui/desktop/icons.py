@@ -34,6 +34,7 @@ PATHS = {
     "cloud": '<path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>',
     "trending": '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>'
     '<polyline points="16 7 22 7 22 13"/>',
+    "pulse": '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
     "book": '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5'
     'a1 1 0 0 1 0-5H20"/>',
 }

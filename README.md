@@ -85,6 +85,12 @@ Choisir la sortie audio : `OUTPUT_DEVICE` (même principe). En cas de grésillem
 
 Pour comparer les voix disponibles : `uv run python -m friday.voice.audition`, puis régler `TTS_VOICE` dans `.env`.
 
+### Fiabilité
+
+- **Ollama surveillé** : si sa vitesse s'effondre deux réponses de suite (modèle à moitié sorti de la carte graphique), Friday recharge le modèle tout seul.
+- **Sauvegarde quotidienne** de `data/` (journal de trading, plans et stratégies, mémoire, agenda, notes, réglages) dans `data/sauvegardes` : au démarrage si la dernière a plus de 24 h, puis chaque jour ; les 7 dernières sont gardées. *Réglages → Fonctions → Copie des sauvegardes* : un dossier OneDrive ou une clé USB en plus. Pas les caches, les modèles, la bibliothèque (tes PDF restent ailleurs) ni les clés de connexion Google. Pour restaurer : dézipper l'archive dans `data/`, Friday fermée.
+- **Réglages → Diagnostic** : Ollama, modèles, part du modèle dans la carte graphique, vitesse, carte graphique (mémoire, température), voix et micro, dernière sauvegarde ; boutons *Sauvegarder maintenant* et *Recharger le modèle*.
+
 ## Développement
 
 Une branche par brique, une PR vers `main`, merge quand la CI est verte.
