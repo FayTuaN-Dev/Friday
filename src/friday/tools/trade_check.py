@@ -70,7 +70,10 @@ class TradeCheckTool(Tool):
             idea.check_sides()
         except ValueError as error:
             return ToolResult(f"Vérification impossible : {error} Dis-le simplement.")
-        verdict = evaluate(idea, self._market(item), self._context(item, entry), self._rules())
+        choice = getattr(self.trading, "choice", None)
+        strategy = choice.get(item.symbol) if choice is not None else None
+        verdict = evaluate(idea, self._market(item), self._context(item, entry), self._rules(),
+                           strategy)  # fmt: skip
         title = f"{direction.capitalize()} {item.name} à {entry:g}, stop {stop:g}"
         items = [{"text": verdict.text().split("\n")[0], "meta": "Calculé sur le PC, sans Claude"}]
         items += [{"text": f"{ICONS[c.status]} {c.rule}", "meta": c.detail} for c in verdict.checks]

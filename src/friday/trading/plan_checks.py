@@ -13,12 +13,19 @@ from friday.trading.plan_rules import PlanRules
 from friday.trading.sessions import french
 
 
-def evaluate(idea: Idea, market: Market | None, context: Context, rules: PlanRules) -> Verdict:
+def evaluate(idea: Idea, market: Market | None, context: Context, rules: PlanRules,
+             strategy=None) -> Verdict:  # fmt: skip
+    """`strategy` : celle choisie pour l'instrument ; autre que le plan, son signal remplace
+    les règles d'entrée du plan (tendance, repli, RSI)."""
     idea.check_sides()
     p = _formatter(idea.instrument)
     if market is None:
         found = [Check("Données de marché", UNKNOWN, "cours indisponibles : tendance, RSI, EMA "
                        "et ATR non vérifiés")]  # fmt: skip
+    elif strategy is not None and strategy.name != "plan":
+        from friday.trading.strategy_checks import signal
+
+        found = [signal(idea, market, context.now, rules, strategy), _stop(idea, market, rules, p)]
     else:
         found = [_trend(idea, market, rules, p), _pullback(idea, market, rules, p),
                  _rsi(idea, market, rules), _stop(idea, market, rules, p)]  # fmt: skip

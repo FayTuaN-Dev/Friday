@@ -41,6 +41,8 @@ LOCAL = (
     "alerte", "previens moi", "surveille", "setup se forme",
     # briefing trading (calculé sur le PC)
     *BRIEFING,
+    # bibliothèque de stratégies (locale)
+    "strategie", "strategies",
     # mémoire des analyses (locale)
     "mes analyses", "dernieres analyses", "tes analyses", "analyses passees",
 )  # fmt: skip
@@ -88,6 +90,34 @@ def briefing_request(text: str) -> str | None:
 
     found = detect(text)
     return found.symbol if found else ""
+
+
+COMPARE = ("compare les strategies", "compare mes strategies", "quelle strategie",
+           "quelles strategies", "meilleure strategie", "bibliotheque de strategies",
+           "strategies qui marchent", "strategie qui marche")  # fmt: skip
+CHOOSE = ("choisis", "prends", "adopte", "utilise", "passe a", "passe sur", "reviens a",
+          "garde")  # fmt: skip
+
+
+def strategy_request(text: str) -> tuple[str, dict] | None:
+    """(outil, arguments) d'une demande sur les stratégies, choisis par le code ; ou None."""
+    from friday.trading.instruments import detect
+    from friday.trading.strategies import strategy_named
+
+    if text.lstrip().startswith("(Message automatique"):
+        return None
+    padded = f" {normalize(text)} "
+    found = detect(text)
+    instrument = found.symbol if found else ""
+    if any(f" {w}" in padded for w in COMPARE):
+        everything = any(f" {w} " in padded for w in ("tous", "toutes", "chaque"))
+        return ("compare_strategies", {"instrument": "" if everything else instrument,
+                                       "everything": everything and not found})  # fmt: skip
+    name = strategy_named(text)
+    plan = " mon plan" in padded or " ton plan" in padded or "strategie" in padded
+    if name and any(f" {w} " in padded for w in CHOOSE) and (plan or name != "plan"):
+        return ("choose_strategy", {"strategy": name, "instrument": instrument})
+    return None
 
 
 def is_review(text: str) -> bool:
