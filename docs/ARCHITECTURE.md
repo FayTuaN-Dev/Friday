@@ -57,6 +57,7 @@ src/friday/
 │   ├── wake.py            repérage de « Friday » en début de phrase, ordres d'arrêt, écho
 │   ├── cuda.py            DLL CUDA pour Whisper sur GPU (Windows)
 │   ├── audition.py        outil : écouter les voix disponibles
+│   ├── claude_limits.py   limites Claude lues (data/claude_limits.json) : restant, remise à zéro
 │   ├── notification.py    titre et phrase de la bulle Windows d'une tâche de fond finie
 │   ├── diagnostic.py      outil : chercher l'origine de grésillements (voix sous charge)
 │   └── sounds.py          sons synthétisés (carillon des rappels)

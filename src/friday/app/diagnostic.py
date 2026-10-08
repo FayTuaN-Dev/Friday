@@ -69,6 +69,18 @@ def _voice(components, settings) -> list[Line]:
     ]  # fmt: skip
 
 
+def _claude_limits(data_dir: Path) -> list[Line]:
+    from friday.app.claude_limits import read
+
+    limits = read(data_dir / "claude_limits.json")
+    if limits is None:
+        how = "pas encore branchées : « Brancher Claude Code » ci-dessous, puis utilisez-le"
+        return [("Limites Claude", WARN, how)]
+    text = " ; ".join(f"{w.label.split()[0].lower()} {w.left:.0f} % restants"
+                      for w in limits.windows)  # fmt: skip
+    return [("Limites Claude", OK, text + " (affichées quand la fenêtre est agrandie)")]
+
+
 def _backup(data_dir: Path, copy_to: str) -> list[Line]:
     last = last_backup(data_dir)
     if last is None:
@@ -90,5 +102,6 @@ def collect(components, settings, data_dir: Path, run: Callable = subprocess.run
     lines += _speed(getattr(brain, "speed", None))
     lines += gpu(run)
     lines += _voice(components, settings)
+    lines += _claude_limits(data_dir)
     lines += _backup(data_dir, settings.backup_dir)
     return lines
