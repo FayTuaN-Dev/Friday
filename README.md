@@ -85,6 +85,10 @@ Choisir la sortie audio : `OUTPUT_DEVICE` (même principe). En cas de grésillem
 
 Pour comparer les voix disponibles : `uv run python -m friday.voice.audition`, puis régler `TTS_VOICE` dans `.env`.
 
+### Notifications Windows
+
+Quand une analyse de Claude, une alerte de trading, un rappel, le briefing trading ou la traduction d'un plan arrive et que Friday n'est pas au premier plan (réduite, derrière TradingView…), une bulle Windows le dit en une phrase ; un clic dessus (ou sur l'icône de Friday près de l'horloge) la ramène devant. Désactivable : *Réglages → Fonctions → Notifications Windows*.
+
 ### Fiabilité
 
 - **Ollama surveillé** : si sa vitesse s'effondre deux réponses de suite (modèle à moitié sorti de la carte graphique), Friday recharge le modèle tout seul.

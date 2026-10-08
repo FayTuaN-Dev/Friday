@@ -60,6 +60,11 @@ class MainWindow(QMainWindow):
         self.input = InputBar(settings.ptt_key)
         self.input.setEnabled(False)
         self.popups = PopupManager(self)
+        from friday.ui.desktop.icons import icon
+        from friday.ui.desktop.notifier import Notifier
+
+        # bulles Windows des tâches de fond, quand Friday n'est pas au premier plan
+        self.notifier = Notifier(self, icon("pulse", theme.current().accent, 32))
         self.settings_window = None  # fenêtre des réglages (ouverte à la demande)
         self.journal_window = None  # journal de trading (ouvert à la demande)
         self._build_layout()
@@ -157,6 +162,8 @@ class MainWindow(QMainWindow):
             self.open_settings()
         elif display.kind == "journal":  # « ouvre mon journal »
             self.open_journal()
+        elif display.kind == "notification":  # tâche de fond finie : bulle Windows
+            self.notifier.notify(display)
         elif display.kind == "trading_mode":  # badge du mode trading
             self.title_bar.set_trading(display.data.get("on", False))
         else:

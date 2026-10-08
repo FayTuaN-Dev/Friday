@@ -209,7 +209,12 @@ class Assistant:
         return True
 
     def _announce(self, task: str, result: ToolResult) -> None:
-        """Une tâche de fond est finie : Friday l'annonce de lui-même (`result.text` le guide)."""
+        """Une tâche de fond est finie : Friday l'annonce de lui-même (`result.text` le guide),
+        et une notification Windows s'affiche si sa fenêtre n'est pas au premier plan."""
+        if self.settings.notifications:
+            from friday.app.notification import notification
+
+            self.listener.on_display(notification(task, result))
         if result.display:
             self.listener.on_display(result.display)
         self._respond(f"(Message automatique, pas de l'utilisateur.) {result.text}")
