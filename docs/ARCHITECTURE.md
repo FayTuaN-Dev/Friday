@@ -31,6 +31,7 @@ src/friday/
 │   ├── config.py          réglages lus dans .env (Settings) + chemins (data/, logs/)
 │   └── logging.py         logs console + logs/friday.log
 ├── brain/
+│   ├── speed_watch.py     vitesse d'Ollama surveillée : effondrée deux fois → modèle rechargé
 │   ├── llm.py             Brain : discussion avec Ollama (streaming, boucle d'appel d'outils)
 │   ├── events.py          ToolStarted / ToolFinished : événements émis pendant une réponse
 │   ├── prompts.py         personnalité de Friday (prompt système)
@@ -234,7 +235,8 @@ src/friday/
         │                  capture, clôture, suppression, export CSV), trade_form.py (nouveau
         │                  trade vérifié), notes.py (setup, plan, état d'esprit), insights.py
         │                  (« ce que dit le journal »), equity_chart.py (courbe du total en R)
-        ├── settings/      écran de réglages (zone_picker.py : tracer la zone du graphique ;
+        ├── settings/      écran de réglages (diagnostic_page.py : page Diagnostic ;
+        │                  zone_picker.py : tracer la zone du graphique ;
         │                  trading_rules.py : gestion du risque et modèle « repli » ;
         │                  trading_strategy.py : « Ma stratégie » ; trading_plan.py : carnet de
         │                  plans (nouveau, dupliquer, supprimer, traduire))

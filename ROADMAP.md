@@ -154,7 +154,7 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 
 | # | Brique | Livrable | Statut |
 |---|---|---|---|
-| F1 | **Fiabilité** : surveillance d'Ollama (vitesse effondrée → rechargement du modèle tout seul, constaté une fois), sauvegarde automatique de `data/` (mémoire, journal, notes, bibliothèque), page « Diagnostic » (Ollama, carte graphique, modèles, micro) | Friday ne se dégrade plus en silence, rien ne se perd | ⬜ |
+| F1 | **Fiabilité** : surveillance d'Ollama (vitesse effondrée → rechargement du modèle tout seul, constaté une fois), sauvegarde automatique de `data/` (mémoire, journal, notes, bibliothèque), page « Diagnostic » (Ollama, carte graphique, modèles, micro) | Friday ne se dégrade plus en silence, rien ne se perd | ✅ |
 | F2 | **Mot d'activation dédié** (openWakeWord, petit modèle local) au lieu de Whisper en continu | Moins de faux déclenchements, moins de calcul | ⬜ |
 | F3 | **Notifications Windows** quand une tâche de fond finit (Claude, analyse, rappel) même fenêtre réduite | Rien ne passe inaperçu | ⬜ |
 | F4 | **Mails** : la vraie liste des catégories donnée au modèle (« quelles catégories ai-je ? » ne marchait que 5 fois sur 8) | Tri des mails fiable | ⬜ |

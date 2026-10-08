@@ -32,6 +32,7 @@ class MainWindow(QMainWindow):
     def __init__(self, settings: Settings, assistant: Assistant | None = None,
                  preferences_path: Path = preferences.PATH) -> None:  # fmt: skip
         super().__init__()
+        self.settings = settings  # (page Diagnostic des réglages)
         self.setWindowTitle("F.R.I.D.A.Y.")
         self.setWindowFlags(Qt.Window | Qt.FramelessWindowHint)
         # Coins arrondis : par Windows 11 si possible (fenêtre opaque, ne clignote pas au

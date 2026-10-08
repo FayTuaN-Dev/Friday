@@ -19,6 +19,7 @@ from friday.ui.desktop import theme
 from friday.ui.desktop.icons import icon
 from friday.ui.desktop.popups.base import Popup
 from friday.ui.desktop.settings.briefing_page import BriefingPage
+from friday.ui.desktop.settings.diagnostic_page import DiagnosticPage
 from friday.ui.desktop.settings.form_page import FormPage
 from friday.ui.desktop.settings.library_page import LibraryPage
 from friday.ui.desktop.settings.other_pages import AccountsPage, AppearancePage
@@ -50,6 +51,7 @@ class SettingsWindow(Popup):
             ("Fonctions", "sliders", by_name["Fonctions"]),
             ("Trading", "trending", self._trading_page(by_name["Trading"], components)),
             ("Comptes", "cloud", AccountsPage(getattr(components, "google", None))),
+            ("Diagnostic", "pulse", DiagnosticPage(main_window.assistant, main_window.settings)),
         ]
         self.nav = QListWidget(objectName="SettingsNav")
         self.nav.setIconSize(QSize(18, 18))

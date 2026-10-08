@@ -20,6 +20,7 @@ from friday.brain.events import (
 from friday.brain.prompts import build_system_prompt
 from friday.brain.router import SkillRouter
 from friday.brain.second_chance import forget_nudges, second_chance
+from friday.brain.speed_watch import SpeedWatch
 from friday.brain.summary import Summarizer
 from friday.brain.thinking import needs_thinking
 from friday.brain.toolset import LOAD_SKILL, Toolset
@@ -80,9 +81,15 @@ class Brain:
         self.toolset = Toolset(self.toolbox, router, skill_contexts, skill_hints, skill_gates)
         # prefetch(demande) → (outil, arguments) à lancer d'office avant de répondre, ou None
         self.prefetch = prefetch
+        self.speed = SpeedWatch(self.reload_model)  # vitesse effondrée → rechargement
         self._tainted = False  # un contenu externe (mail, page, fichier…) a été lu
         self._think = False  # réflexion pour cette demande (calcul, « réfléchis »)
         self._nudged = False  # relancé pour un « je note » sans outil
+
+    def reload_model(self) -> None:
+        """Décharge le modèle de la mémoire vidéo puis le recharge (vitesse effondrée)."""
+        self.client.chat(model=self.settings.ollama_model, messages=[], keep_alive=0)
+        self.warmup()
 
     def warmup(self) -> None:
         """Charge le modèle en mémoire vidéo dès le démarrage (sans générer de texte)."""
@@ -133,6 +140,7 @@ class Brain:
                     if getattr(chunk, "done", False):
                         used = (chunk.prompt_eval_count or 0) + (chunk.eval_count or 0)
                         self._prompt_tokens = used
+                        self.speed.record(chunk)
 
                 said = "".join(parts)
                 if not calls:

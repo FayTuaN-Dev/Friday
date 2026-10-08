@@ -3,6 +3,7 @@
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import ollama
@@ -34,6 +35,7 @@ class Components:
     google: object | None = None  # GoogleAccount (agenda et mails)
     library: object | None = None  # Library (bibliothèque de documents)
     trading: object | None = None  # Trading (mode trading)
+    backup: object | None = None  # DailyBackup (sauvegarde quotidienne de data/)
 
 
 def load_components(
@@ -134,6 +136,11 @@ def load_components(
         from friday.app.trading_alerts import start_alerts
 
         start_alerts(trading.alerts, lambda: components.speaker, on_background)
+    from friday.app.backup import DailyBackup
+
+    components.backup = DailyBackup(DATA_DIR, Path(settings.backup_dir) if settings.backup_dir
+                                    else None)  # fmt: skip
+    components.backup.start()  # au démarrage si la dernière a plus de 24 h, puis chaque jour
     if trading is not None and trading.prepare is not None:
         from friday.trading.warm import start_warming
 
