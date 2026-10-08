@@ -12,7 +12,7 @@ from friday.trading.backtest.compare import FAILED, ICONS, PROMISING, WORKED, Re
 from friday.trading.backtest.report import r_text
 from friday.trading.instruments import Instrument, by_symbol
 from friday.trading.plan_rules import load_rules
-from friday.trading.strategies import BY_NAME, strategy_named
+from friday.trading.strategies import BY_NAME, STRATEGIES, strategy_named
 
 KEEP_SECONDS = 3600
 DEFAULT = ("XAUUSD", "XAGUSD", "EURUSD", "GBPUSD", "USDJPY")  # « tous mes instruments »
@@ -32,7 +32,9 @@ class StrategyLab:
             return period, found
         hourly, daily = self.history(instrument)
         rules = load_rules(self.trading.rules_path)
-        found = compare(hourly, daily, rules, spread_of(instrument, hourly[-1].close))
+        choice = getattr(self.trading, "choice", None)
+        strategies = choice.available() if choice is not None else STRATEGIES
+        found = compare(hourly, daily, rules, spread_of(instrument, hourly[-1].close), strategies)
         period = f"du {hourly[0].time:%d/%m/%Y} au {hourly[-1].time:%d/%m/%Y}"
         self._results[instrument.symbol] = (time.monotonic(), period, found)
         return period, found
@@ -151,6 +153,10 @@ class ChooseStrategyTool(Tool):
         from friday.trading.market import MarketUnavailable
 
         name = strategy_named(strategy)
+        if name == "mon_plan" and self.choice.custom() is None:
+            return ToolResult("Dis EXACTEMENT : « Ton plan écrit n'est pas encore traduit en "
+                              "règles : dis « traduis mon plan », ou utilise le bouton dans "
+                              "Réglages → Trading. »")  # fmt: skip
         if name is None:
             known = ", ".join(s.label for s in BY_NAME.values())
             return ToolResult(f"Dis EXACTEMENT : « Je ne connais pas cette stratégie. Celles de "
@@ -162,10 +168,10 @@ class ChooseStrategyTool(Tool):
             return ToolResult(f"Choix impossible : {error} Dis-le simplement.")
         found = next(r for r in results if r.strategy.name == name)
         label = found.strategy.label
-        if found.verdict == FAILED and name != "plan":
+        if found.verdict == FAILED and name != "mon_plan":
             spoken = (f"Je ne la mets pas : {label} n'a pas fonctionné sur {item.name} "
-                      f"({_figures(found)}). Garde ton plan, ou choisis une stratégie qui a "
-                      "fonctionné ou qui est prometteuse.")  # fmt: skip
+                      f"({_figures(found)}). Choisis une stratégie qui a fonctionné ou qui est "
+                      "prometteuse, ou améliore ton plan écrit.")  # fmt: skip
             return ToolResult(f"Dis EXACTEMENT : « {spoken} »")
         self.choice.set(item.symbol, name)
         spoken = (f"C'est noté : sur {item.name}, les alertes, la check-list et le briefing "
@@ -174,5 +180,6 @@ class ChooseStrategyTool(Tool):
             spoken += (f" Attention : elle est seulement prometteuse ({found.why()}) ; "
                        "teste-la d'abord en compte démo.")  # fmt: skip
         elif found.verdict == FAILED:
-            spoken += f" Rappel : ton plan n'a pas fonctionné sur l'historique ({_figures(found)})."
+            spoken += (f" Attention : ton plan n'a pas fonctionné sur l'historique "
+                       f"({_figures(found)}) ; à améliorer avant le réel.")  # fmt: skip
         return ToolResult(f"Dis EXACTEMENT : « {spoken} »")

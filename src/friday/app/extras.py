@@ -94,6 +94,7 @@ def load_trading(settings: Settings, library):
         from friday.trading.journal import TradeJournal
         from friday.trading.market import snapshot
         from friday.trading.mode import TradingMode
+        from friday.trading.plan_translate import translator
         from friday.trading.strategy_choice import StrategyChoice
         from friday.trading.warm import Warm
 
@@ -121,7 +122,11 @@ def load_trading(settings: Settings, library):
                                            config.hours, config.briefing_instruments,
                                            config.briefing)  # fmt: skip
         trading.prepare = lambda instrument: (market(instrument), context.blocks(instrument))
-        trading.choice = StrategyChoice(DATA_DIR / "trading_strategies.json")
+        trading.choice = StrategyChoice(DATA_DIR / "trading_strategies.json",
+                                        DATA_DIR / "trading_plan_rules.json")  # fmt: skip
+        trading.translator = translator(DATA_DIR / "trading_claude",
+                                        config.model or settings.claude_model,
+                                        settings.claude_timeout)  # fmt: skip
         alerts.choice = trading.choice  # les alertes suivent la stratégie choisie
         return trading
     except Exception:

@@ -100,9 +100,13 @@ src/friday/
 │   │                      report.py (bilan en R, marge d'incertitude, variantes à une règle),
 │   │                      compare.py (toutes les stratégies, verdict ✅ / 🟡 / ❌, deux moitiés)
 │   ├── strategies/        bibliothèque de stratégies : base.py (règle d'entrée + risque commun),
-│   │                      plan.py, trend.py (croisement, cassure de range), reversion.py
-│   │                      (retour à la moyenne), session.py (cassure de l'ouverture de Londres)
-│   ├── strategy_choice.py la stratégie de chaque instrument (data/trading_strategies.json)
+│   │                      plan.py (modèle « repli »), trend.py (croisement, cassure de range),
+│   │                      reversion.py (retour à la moyenne), session.py (ouverture de Londres),
+│   │                      spec.py (format des règles d'un plan écrit : vérifié, redit en français),
+│   │                      custom.py (« ton plan écrit » : exécute ces règles)
+│   ├── plan_translate.py  traduction du plan écrit en règles par Claude isolé (JSON vérifié)
+│   ├── strategy_choice.py la stratégie suivie : par instrument, par défaut, ton plan écrit traduit
+│   │                      (data/trading_strategies.json, data/trading_plan_rules.json)
 │   ├── strategy_checks.py check-list d'une autre stratégie que le plan : son signal récent
 │   ├── briefing.py        briefing trading : annonces fortes (en français, calendar_fr.py), nuit,
 │   │                      niveaux clés (hier rebâti avec les bougies 1 h), tendance, règles du plan
@@ -184,6 +188,7 @@ src/friday/
 │   ├── trading_briefing.py trading_briefing (lancé d'office par le code : prefetch)
 │   ├── analyses.py        past_analyses : dernières analyses de Claude et le cours depuis
 │   ├── strategies.py      compare_strategies, choose_strategy (lancés d'office par le code)
+│   ├── plan_translate.py  translate_plan : « traduis mon plan » (après aperçu)
 │   ├── markets.py         market_quote : le cours d'un instrument, à la source (tous les jours)
 │   ├── trading_analysis.py analyse par Claude : aperçu, refus sans validation, journal
 │   ├── research.py        carnet de recherche : derniers résultats et pages lues, avec leurs adresses
@@ -228,7 +233,9 @@ src/friday/
         │                  trade vérifié), notes.py (setup, plan, état d'esprit), insights.py
         │                  (« ce que dit le journal »), equity_chart.py (courbe du total en R)
         ├── settings/      écran de réglages (zone_picker.py : tracer la zone du graphique ;
-        │                  trading_rules.py : règles de la check-list)
+        │                  trading_rules.py : gestion du risque et modèle « repli » ;
+        │                  trading_strategy.py : « Ma stratégie » ; trading_plan.py : plan écrit
+        │                  et « Traduire en règles »)
         │   ├── window.py      SettingsWindow : menu, pages, Enregistrer / Redémarrer
         │   ├── form_page.py   page construite depuis settings_schema (interrupteurs, listes…)
         │   ├── briefing_page.py  briefing : activé, heures, rubriques (appliqué tout de suite)

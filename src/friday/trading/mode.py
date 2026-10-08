@@ -18,6 +18,9 @@ OFF = ("fin du mode trading", "fin mode trading", "quitte le mode trading", "sor
        "desactive le mode trading", "arrete le mode trading", "stop mode trading",
        "termine le mode trading", "mode trading off")  # fmt: skip
 PREFIXES = ("friday ", "ok ", "bon ", "allez ", "vas y ")
+# Traduire le plan écrit en règles (Claude, après aperçu) : lancé d'office par le code
+TRANSLATE = ("traduis mon plan", "traduire mon plan", "traduis le plan", "convertis mon plan",
+             "regles de mon plan", "mets a jour mon plan")  # fmt: skip
 # Briefing trading (calculé sur le PC) : lancé d'office par le code (prefetch)
 BRIEFING = ("briefing trading", "brief trading", "journee de trading", "prepare ma journee")
 LOCAL = (
@@ -42,7 +45,7 @@ LOCAL = (
     # briefing trading (calculé sur le PC)
     *BRIEFING,
     # bibliothèque de stratégies (locale)
-    "strategie", "strategies",
+    "strategie", "strategies", *TRANSLATE,
     # mémoire des analyses (locale)
     "mes analyses", "dernieres analyses", "tes analyses", "analyses passees",
 )  # fmt: skip
@@ -107,6 +110,8 @@ def strategy_request(text: str) -> tuple[str, dict] | None:
     if text.lstrip().startswith("(Message automatique"):
         return None
     padded = f" {normalize(text)} "
+    if any(f" {w}" in padded for w in TRANSLATE):
+        return ("translate_plan", {})
     found = detect(text)
     instrument = found.symbol if found else ""
     if any(f" {w}" in padded for w in COMPARE):
@@ -115,7 +120,7 @@ def strategy_request(text: str) -> tuple[str, dict] | None:
                                        "everything": everything and not found})  # fmt: skip
     name = strategy_named(text)
     plan = " mon plan" in padded or " ton plan" in padded or "strategie" in padded
-    if name and any(f" {w} " in padded for w in CHOOSE) and (plan or name != "plan"):
+    if name and any(f" {w} " in padded for w in CHOOSE) and (plan or name != "mon_plan"):
         return ("choose_strategy", {"strategy": name, "instrument": instrument})
     return None
 

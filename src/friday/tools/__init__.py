@@ -107,6 +107,12 @@ def default_toolbox(
             lab = StrategyLab(trading)
             tools += [CompareStrategiesTool(lab, trading.choice),
                       ChooseStrategyTool(lab, trading.choice)]  # fmt: skip
+        if trading.translator is not None and trading.choice is not None:
+            from friday.tools.plan_translate import TranslatePlanTool
+
+            tools.append(TranslatePlanTool(
+                trading.builder.context.plan_path, trading.choice, trading.translator,
+                trading.journal, on_background, settings.trading.blocklist))  # fmt: skip
         if trading.briefing is not None:
             from friday.tools.trading_briefing import TradingBriefingTool
 

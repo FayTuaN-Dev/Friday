@@ -75,12 +75,20 @@ class BacktestTool(Tool):
         except MarketUnavailable as error:
             return ToolResult(f"Backtest impossible : {error} Dis-le simplement.")
         rules = load_rules(self.trading.rules_path)
-        runs = variants(rules)
+        choice = getattr(self.trading, "choice", None)
+        strategy = choice.get(item.symbol) if choice is not None else None
+        if strategy is None or strategy.name == "repli":
+            runs = variants(rules)  # le modèle : chaque règle d'entrée se fait varier
+            if strategy is not None:
+                runs[0] = (strategy.label[0].upper() + strategy.label[1:], rules)
+        else:  # ton plan écrit, ou une autre stratégie : elle seule (« compare » pour le reste)
+            runs = [(strategy.label[0].upper() + strategy.label[1:], rules)]
         if objectif or stop:
             mine = replace(rules, min_rr=objectif or rules.min_rr, stop_atr=stop or rules.stop_atr)
             runs.insert(1, (_variant_label(objectif, stop), mine))
         spread = spread_of(item, hourly[-1].close)
-        reports = [Report(label, simulate(hourly, daily, r, spread)) for label, r in runs]
+        reports = [Report(label, simulate(hourly, daily, r, spread, strategy))
+                   for label, r in runs]  # fmt: skip
         return self._result(item, hourly, reports)
 
     def _load(self, item: Instrument):
@@ -103,7 +111,7 @@ class BacktestTool(Tool):
             verb = "fait mieux" if best.expectancy > 0 else "perd moins"
             spoken += (f". La variante « {best.label} » {verb}, au-delà du hasard : "
                        f"{r_text(best.expectancy)} par trade en moyenne")  # fmt: skip
-        elif plan.count >= FEW:
+        elif plan.count >= FEW and len(reports) > 1:
             spoken += ". Aucune variante ne fait nettement mieux : les écarts restent dans la marge"
             spoken += " du hasard"
         mine = next((r for r in reports if r.label.startswith("Ta variante")), None)

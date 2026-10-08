@@ -1,6 +1,7 @@
-"""« Ton plan » : repli vers l'EMA 1 h, RSI dans la zone et qui repart, dans le sens de l'EMA
-journalière ; stop sous le dernier creux (au moins N ATR). Les chiffres viennent des règles
-de la check-list (Réglages → Trading)."""
+"""« Le repli sur moyenne (modèle) » : repli vers l'EMA 1 h, RSI dans la zone et qui repart,
+dans le sens de l'EMA journalière ; stop sous le dernier creux (au moins N ATR). C'était le
+plan de départ ; ses chiffres se règlent dans Réglages → Trading (modèle « repli »). Le plan
+écrit de l'utilisateur, lui, est une autre stratégie (custom.py)."""
 
 from friday.trading.backtest.series import ema_series
 from friday.trading.plan_rules import PlanRules
@@ -21,8 +22,8 @@ def setup_ok(side: str, i: int, close: float, pull, rsi, width: float, rules: Pl
 
 
 class PlanStrategy(Strategy):
-    name = "plan"
-    label = "ton plan"
+    name = "repli"
+    label = "le repli sur moyenne (modèle)"
     summary = "repli vers l'EMA 1 h avec un RSI qui repart, dans le sens de la tendance"
 
     def add_series(self, state: State) -> None:

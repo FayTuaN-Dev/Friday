@@ -22,7 +22,7 @@ def evaluate(idea: Idea, market: Market | None, context: Context, rules: PlanRul
     if market is None:
         found = [Check("Données de marché", UNKNOWN, "cours indisponibles : tendance, RSI, EMA "
                        "et ATR non vérifiés")]  # fmt: skip
-    elif strategy is not None and strategy.name != "plan":
+    elif strategy is not None and strategy.name != "repli":
         from friday.trading.strategy_checks import signal
 
         found = [signal(idea, market, context.now, rules, strategy), _stop(idea, market, rules, p)]

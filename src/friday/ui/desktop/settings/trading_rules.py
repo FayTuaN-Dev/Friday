@@ -1,5 +1,7 @@
-"""Réglages → Trading : « Règles vérifiées par le code » (check-list avant trade). Les chiffres
-du plan, gardés sur le PC (data/trading_rules.json) ; pris en compte dès l'enregistrement."""
+"""Réglages → Trading : « Gestion du risque et modèle « repli » ». La gestion du risque (stop
+minimal, objectif, risque, trades ouverts, annonces, capital) vaut pour TOUTES les stratégies ;
+tendance, repli et RSI ne règlent que le modèle « repli sur moyenne ». Gardés sur le PC
+(data/trading_rules.json) ; pris en compte dès l'enregistrement."""
 
 from dataclasses import fields
 
@@ -19,17 +21,17 @@ from friday.trading.plan_rules import PlanRules, load_rules, save_rules
 
 # champ : (libellé, minimum, maximum, pas) ; 0 désactive la règle quand c'est permis
 FIELDS = {
-    "trend_ema": ("Tendance : EMA journalière (0 = sans)", 0, 400, 10),
-    "pullback_ema": ("Entrée près de l'EMA 1 h (0 = sans)", 0, 400, 10),
-    "pullback_atr": ("… à moins de (× ATR 1 h)", 0.1, 10, 0.1),
-    "rsi_low": ("RSI 14 (1 h) à l'achat : de", 0, 100, 1),
-    "rsi_high": ("… à (la vente : zone miroir)", 0, 100, 1),
     "stop_atr": ("Stop d'au moins (× ATR 1 h, 0 = sans)", 0, 10, 0.1),
     "min_rr": ("Objectif d'au moins (R, 0 = sans)", 0, 20, 0.5),
     "max_risk": ("Risque au plus (% du capital, 0 = sans)", 0, 100, 0.1),
     "max_open": ("Trades ouverts au plus (0 = sans)", 0, 50, 1),
     "news_minutes": ("Pas d'entrée si annonce forte dans (min, 0 = sans)", 0, 240, 5),
     "capital": ("Capital du compte (facultatif, reste sur ce PC)", 0, 1e9, 100),
+    "trend_ema": ("Modèle « repli » : EMA de tendance journalière (0 = sans)", 0, 400, 10),
+    "pullback_ema": ("Modèle « repli » : entrée près de l'EMA 1 h (0 = sans)", 0, 400, 10),
+    "pullback_atr": ("… à moins de (× ATR 1 h)", 0.1, 10, 0.1),
+    "rsi_low": ("Modèle « repli » : RSI 14 (1 h) à l'achat, de", 0, 100, 1),
+    "rsi_high": ("… à (la vente : zone miroir)", 0, 100, 1),
 }
 
 
@@ -40,10 +42,12 @@ class TradingRulesRow(QFrame):
         rules = load_rules(rules_path)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 10, 14, 10)
-        layout.addWidget(QLabel("Règles vérifiées par le code", objectName="SettingsLabel"))
+        layout.addWidget(QLabel("Gestion du risque et modèle « repli »",
+                                objectName="SettingsLabel"))  # fmt: skip
         layout.addWidget(QLabel(
-            "La check-list avant trade (« je veux acheter l'or à 4 160, stop 4 140 ») vérifie ces "
-            "chiffres sur le PC, sans Claude : feu vert, orange ou rouge, règle par règle.",
+            "La gestion du risque vaut pour toutes les stratégies (check-list, backtest, "
+            "alertes). Les lignes « Modèle « repli » » ne règlent que la stratégie de base du "
+            "même nom.",
             objectName="Hint", wordWrap=True))  # fmt: skip
         form = QFormLayout()
         self.inputs = {}

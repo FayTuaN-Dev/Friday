@@ -98,7 +98,7 @@ def test_verdicts_are_honest():
     noisy = Result(BY_NAME["cassure"], report([2, -1, -1] * 20 + [2]),
                    (report([2, -1]), report([2, -1])))  # fmt: skip
     assert noisy.verdict == PROMISING and noisy.why() == "gain dans la marge du hasard"
-    assert Result(BY_NAME["plan"], report([-1, 2, -1, -1]), (report([]), report([]))).verdict \
+    assert Result(BY_NAME["repli"], report([-1, 2, -1, -1]), (report([]), report([]))).verdict \
         == FAILED  # fmt: skip
 
 
@@ -114,14 +114,15 @@ def test_compare_runs_every_strategy_on_the_same_data():
 
 def test_choice_is_kept_per_instrument(tmp_path):
     choice = StrategyChoice(tmp_path / "s.json")
-    assert choice.get("XAUUSD").name == "plan"
+    assert choice.get("XAUUSD").name == "repli"  # plan écrit pas encore traduit : le modèle
     choice.set("XAUUSD", "londres")
     choice.set("EURUSD", "cassure")
-    choice.set("EURUSD", "plan")  # retour au plan : la ligne disparaît
+    choice.set("_defaut", "retour")
     again = StrategyChoice(tmp_path / "s.json")
-    assert again.get("XAUUSD").name == "londres" and again.chosen() == {"XAUUSD": "londres"}
+    assert again.get("XAUUSD").name == "londres" and again.get("EURUSD").name == "cassure"
+    assert again.get("GBPUSD").name == "retour"  # sans choix propre : celui par défaut
     (tmp_path / "s.json").write_text("{abîmé", "utf-8")
-    assert StrategyChoice(tmp_path / "s.json").get("XAUUSD").name == "plan"
+    assert StrategyChoice(tmp_path / "s.json").get("XAUUSD").name == "repli"
 
 
 def test_strategies_are_recognized_by_the_code():
@@ -135,7 +136,7 @@ def test_strategies_are_recognized_by_the_code():
         "compare_strategies", {"instrument": "", "everything": True})  # fmt: skip
     assert strategy_request("choisis la cassure de range pour l'or") == (
         "choose_strategy", {"strategy": "cassure", "instrument": "XAUUSD"})  # fmt: skip
-    assert strategy_request("reviens à mon plan sur l'EUR/USD")[1]["strategy"] == "plan"
+    assert strategy_request("reviens à mon plan sur l'EUR/USD")[1]["strategy"] == "mon_plan"
     assert strategy_request("que penses-tu de l'or ?") is None
     assert TradingMode().route("compare les stratégies sur l'or") == "local"
 
@@ -155,24 +156,24 @@ def lab_with(tmp_path, verdicts):
 
 
 def test_compare_tool_says_what_worked_and_what_did_not(tmp_path):
-    lab, choice = lab_with(tmp_path, {"cassure": WORKED, "londres": PROMISING, "plan": FAILED})
+    lab, choice = lab_with(tmp_path, {"cassure": WORKED, "londres": PROMISING, "repli": FAILED})
     text = CompareStrategiesTool(lab, choice).run("or").text
     assert "a fonctionné : la cassure de range (+0,80 R par trade sur 40 trades" in text
     assert "prometteuses mais pas prouvées : la cassure de l'ouverture de Londres" in text
-    assert "n'ont pas fonctionné : ton plan" in text
-    assert "ta stratégie actuelle : ton plan (n'a pas fonctionné)" in text
+    assert "n'ont pas fonctionné : le repli sur moyenne (modèle)" in text
+    assert "ta stratégie actuelle : le repli sur moyenne (modèle) (n'a pas fonctionné)" in text
 
 
 def test_a_strategy_that_failed_is_refused_and_a_promising_one_comes_with_a_warning(tmp_path):
-    lab, choice = lab_with(tmp_path, {"cassure": FAILED, "londres": PROMISING, "plan": FAILED})
+    lab, choice = lab_with(tmp_path, {"cassure": FAILED, "londres": PROMISING, "repli": FAILED})
     tool = ChooseStrategyTool(lab, choice)
     assert "Je ne la mets pas" in tool.run("cassure", "or").text
-    assert choice.get("XAUUSD").name == "plan"
+    assert choice.get("XAUUSD").name == "repli"
     accepted = tool.run("londres", "or").text
     assert "suivent maintenant la cassure de l'ouverture de Londres" in accepted
     assert "seulement prometteuse (trop peu de trades (3))" in accepted
     assert choice.get("XAUUSD").name == "londres"
-    assert "Rappel : ton plan n'a pas fonctionné" in tool.run("plan", "or").text  # toujours permis
+    assert "pas encore traduit" in tool.run("mon plan", "or").text
     assert "Je ne connais pas cette stratégie" in tool.run("martingale", "or").text
 
 
