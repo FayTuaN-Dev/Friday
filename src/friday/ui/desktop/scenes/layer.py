@@ -55,14 +55,15 @@ class SceneLayer(QFrame):
         """)  # fmt: skip
 
     def scene_for(self, kind: str, data: dict, title: str) -> QWidget | None:
-        """Display → scène : « weather » (ciel animé) ou « place » (carte 3D réutilisée)."""
+        """Display → scène : « weather » (ciel animé), « place » (carte 3D réutilisée) ou
+        « world » (globe de la veille monde, même carte)."""
         if kind == "weather":
             from friday.ui.desktop.scenes.weather_scene import WeatherScene
 
             return WeatherScene(data, title)
-        if kind == "place":
+        if kind in ("place", "world"):  # la même carte : lieu en 3D, ou globe (J9b)
             self.warm_map()
-            self.map.go(data)
+            self.map.go(data) if kind == "place" else self.map.world(data)
             return self.map
         return None
 

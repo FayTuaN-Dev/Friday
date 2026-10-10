@@ -137,8 +137,10 @@ src/friday/
 ├── world/                 veille monde (J9) : titres Le Monde / France 24, catastrophes GDACS
 │   ├── sources.py         lecture des flux (gratuits, sans clé), une source en panne tolérée
 │   ├── themes.py          grille fixe : thèmes (Moyen-Orient, Fed…) → instruments touchés
-│   └── digest.py          World : cache 15 min, phrases construites par le code (point sur le
-│                          monde, ce qui peut bouger les marchés, bloc des analyses, briefing)
+│   ├── digest.py          World : cache 15 min, phrases construites par le code (point sur le
+│   │                      monde, ce qui peut bouger les marchés, bloc des analyses, briefing)
+│   └── globe.py           points du globe (J9b) : thèmes sur leur région, catastrophes ; la
+│                          scène carte (ui/desktop/scenes/map_scene.py) passe en globe
 ├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
 │   ├── chunker.py         découpe en passages (~900 caractères, chevauchement, n° de page)
 │   ├── store.py           SQLite : documents, passages, vecteurs + index plein texte FTS5

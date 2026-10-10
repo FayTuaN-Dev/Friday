@@ -49,6 +49,12 @@ THEMES = (
           ("XAUUSD",), ("USD",), "le dollar et l'or"),
 )  # fmt: skip
 BY_NAME = {t.name: t for t in THEMES}
+# Où placer chaque thème sur le globe (J9b) : (latitude, longitude)
+CENTERS = {"Moyen-Orient": (29.5, 47.5), "pétrole et OPEP": (24.5, 54.0),
+           "Russie et Ukraine": (49.0, 33.0), "Chine et Taïwan": (28.0, 116.0),
+           "Fed et dollar": (40.7, -74.0), "BCE et zone euro": (50.1, 8.7),
+           "commerce mondial": (46.2, 6.1), "Japon": (35.7, 139.7),
+           "Royaume-Uni": (51.5, -0.1), "politique américaine": (38.9, -77.0)}  # fmt: skip
 # Catastrophes (pays GDACS, en anglais) → le thème qu'elles touchent
 DISASTER_THEMES = {"Japan": "Japon", "Iran": "Moyen-Orient", "Saudi Arabia": "Moyen-Orient",
                    "Iraq": "Moyen-Orient", "United Arab Emirates": "Moyen-Orient",

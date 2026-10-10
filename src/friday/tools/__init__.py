@@ -207,9 +207,17 @@ def default_toolbox(
 
         tools.append(RecallDayTool(day_log))
     if world is not None:  # veille monde (J9) ; les marchés : briefing trading, alertes
-        from friday.tools.world import MarketMoversTool, WorldNewsTool, my_instruments
+        from friday.tools.world import (
+            MarketMoversTool,
+            ShowWorldTool,
+            WorldNewsTool,
+            my_instruments,
+        )
 
-        tools += [WorldNewsTool(world), MarketMoversTool(world, lambda: my_instruments(trading))]
+        def mine():
+            return my_instruments(trading)
+
+        tools += [WorldNewsTool(world), MarketMoversTool(world, mine), ShowWorldTool(world, mine)]
     if google is not None:
         from friday.tools.google_tools import google_tools
 
