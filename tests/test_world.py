@@ -223,7 +223,10 @@ def test_the_globe_shows_themes_and_disasters():
     result = ShowWorldTool(world(), lambda: [by_symbol("EURUSD")]).run()
     assert result.display.kind == "world" and result.display.data == data
     assert world_script(data).startswith("window.fridayWorld && window.fridayWorld([{")
-    assert "maplibre-gl@5" in page() and 'type: "globe"' in page()  # MapLibre 5 : le globe
+    html = page("#f0a83c")
+    assert "maplibre-gl@5" in html and 'type: "globe"' in html  # MapLibre 5 : le globe
+    assert "__" not in html.replace("__proto__", "")  # tout est remplacé
+    assert "setCallouts(points)" in html and "spinGlobe()" in html  # étiquettes, rotation
     assert world_request("montre-moi ce qui se passe dans le monde") == ("show_world", {})
     empty = World(lambda: [], lambda: [], now=lambda: NOW)
     assert "Rien de marquant" in globe(empty, [])[0]
