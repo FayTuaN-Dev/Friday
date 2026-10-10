@@ -29,6 +29,22 @@ class MemoryKeeper:
         `context` : ce que Friday venait de dire (pour comprendre une réponse courte)."""
         self._queue.put((user_text, context))
 
+    def sort_unthemed(self, client, model: str) -> None:
+        """Les souvenirs d'avant la mémoire vivante reçoivent un thème (une fois, en fond)."""
+
+        def run() -> None:
+            from friday.memory.extractor import categorize
+
+            unthemed = [m for m in self.memory.all() if not m.category]
+            try:
+                for memory_id, category in categorize(client, model, unthemed).items():
+                    self.memory.set_category(memory_id, category)
+            except Exception:
+                log.exception("Thèmes des anciens souvenirs non attribués")
+
+        if any(not m.category for m in self.memory.all()):
+            threading.Thread(target=run, daemon=True, name="memory-themes").start()
+
     def wait_idle(self) -> None:
         """Pour les tests : attend la fin du travail en cours."""
         self._queue.join()
@@ -38,7 +54,8 @@ class MemoryKeeper:
             text, context = self._queue.get()
             try:
                 for fact in self.extractor.extract(text, self.memory.relevant(text), context):
-                    memory = self.memory.remember(fact.text, "auto", fact.replaces)
+                    memory = self.memory.remember(fact.text, "auto", fact.replaces,
+                                                  fact.category, said=text)  # fmt: skip
                     self.on_saved(memory.text)
             except Exception:
                 log.exception("Échec de la mémorisation automatique")

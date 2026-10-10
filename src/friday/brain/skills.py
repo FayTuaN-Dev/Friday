@@ -22,12 +22,13 @@ class Skill:
 # Toujours présents : petits et utiles partout.
 CORE_TOOLS = (
     "close_popups", "open_settings", "remember", "forget_memory", "list_memories", "load_skill",
-    "recall_day",
+    "recall_day", "memory_origin",
 )  # fmt: skip
 CORE_GUIDE = """- close_popups : fermer les fenêtres que tu as affichées (résultats, fichiers, météo…).
   Jamais close_app pour elles.
 - open_settings : ouvrir la fenêtre des réglages (« ouvre les réglages », « les paramètres »).
-- recall_day : nos échanges d'un jour passé (« de quoi on a parlé hier ? »)."""
+- recall_day : nos échanges d'un jour passé (« de quoi on a parlé hier ? »).
+- memory_origin : d'où vient un souvenir (« d'où tu sais que… ? »)."""
 
 SKILLS = (
     Skill("web", "internet : météo, recherche, actualité, pages web, images",

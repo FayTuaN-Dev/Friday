@@ -163,3 +163,20 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 | F7 | **Limites Claude à l'écran** : fenêtre agrandie, une barre pour ce qu'il reste de la session (5 h) et de la semaine, avec la remise à zéro ; chiffres relayés par la ligne d'état de Claude Code | Savoir d'un coup d'œil ce qu'il reste avant d'envoyer une analyse | ✅ |
 | 9 | Finitions : icône près de l'horloge, démarrage avec Windows, `.exe` | Produit fini | ⬜ (reporté) |
 
+### Prochaines étapes — idées reprises de jarvis-OS
+
+Idées tirées de [jarvis-OS](https://github.com/Grominet95/jarvis-OS) (AGPL-3.0) : **réécrites
+à la façon de Friday** (local, qwen3:8b, Qt), pas copiées.
+
+| # | Brique | Livrable | Statut |
+|---|---|---|---|
+| J1 | **Mémoire vivante** : un fait redit est renforcé (confirmations, confiance), un fait corrigé est remplacé mais gardé dans l'historique, chaque fait a un thème et sa source ; fiche lisible `data/memoire.md` ; « d'où tu sais que… ? » | Une mémoire qui ne se contredit plus et s'explique | ✅ |
+| J2 | **Rêve nocturne** : la nuit, Friday relit les échanges de la journée (F5) pour en tirer les faits manqués, et prépare un rapport de ménage (souvenirs contradictoires, erreurs répétées) qu'elle propose sans rien appliquer seule | Une mémoire qui s'entretient | ⬜ |
+| J3 | **Double clap** pour réveiller Friday (sensibilité réglable) | Un réveil sans mot d'activation | ⬜ |
+| J4 | **Sphère de particules** qui réagit à la voix, séquence de démarrage (auto-test qui défile), widget « En écoute » (Spotify, YouTube… via Windows) | L'effet Jarvis | ⬜ |
+| J5 | **Routines planifiées** (« tous les jours à 7 h… », « le lundi… »), rattrapées si le PC était éteint | Friday agit seule à heure fixe | ⬜ |
+| J6 | **Friday sur le téléphone** : bot Telegram réservé à l'utilisateur, ou Tailscale (privé) — remplace F6 | Parler à Friday hors du bureau | ⬜ |
+| J7 | **Scènes plein écran** : météo animée, carte 3D d'un lieu (« montre-moi la tour Eiffel »), retour à la sphère | Des réponses qui se voient | ⬜ |
+| J8 | **Atelier de compétences** : Claude écrit une nouvelle compétence, Friday la teste, l'inspecte (droits demandés) et l'installe après validation de l'utilisateur | Friday apprend de nouveaux outils | ⬜ |
+| J9 | **Globe géopolitique** (World Monitor) : à analyser avant de décider | Voir ce qui bouge les marchés | ⬜ |
+

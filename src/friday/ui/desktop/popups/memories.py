@@ -16,6 +16,12 @@ def memory_item(memory: dict) -> QFrame:
     layout.addWidget(QLabel(memory["text"], wordWrap=True))
     source = SOURCES.get(memory["source"], memory["source"])
     meta = f"n°{memory['id']} · {source} · {memory['date']}"
+    if memory.get("category"):
+        meta += f" · {memory['category']}"
+    if memory.get("confirmations", 1) > 1:
+        meta += f" · confirmé {memory['confirmations']} fois"
+    for old in memory.get("before", [])[:2]:
+        layout.addWidget(QLabel(f"avant : {old}", objectName="MemoryMeta", wordWrap=True))
     layout.addWidget(QLabel(meta, objectName="MemoryMeta"))
     return item
 

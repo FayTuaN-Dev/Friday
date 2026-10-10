@@ -147,8 +147,10 @@ def default_toolbox(
         ]  # fmt: skip
     if memory is not None:
         from friday.tools.memory import ForgetTool, ListMemoriesTool, RememberTool
+        from friday.tools.memory_origin import MemoryOriginTool
 
-        tools += [RememberTool(memory), ForgetTool(memory), ListMemoriesTool(memory)]
+        tools += [RememberTool(memory), ForgetTool(memory), ListMemoriesTool(memory),
+                  MemoryOriginTool(memory)]  # fmt: skip
     if day_log is not None:
         from friday.tools.day_memory import RecallDayTool
 

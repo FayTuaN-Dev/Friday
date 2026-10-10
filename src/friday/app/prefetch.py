@@ -42,12 +42,19 @@ def plan_request(text: str, book) -> tuple[str, dict] | None:
     return None
 
 
-def prefetcher(library, trading, router, mail: bool = False, days: bool = False):
+def prefetcher(
+    library, trading, router, mail: bool = False, days: bool = False, memory: bool = False
+):
     """Outil lancé d'office avant de répondre. Mode trading : une question d'analyse part dans
     le paquet pour Claude (après aperçu). Sinon : la bibliothèque, si elle connaît le sujet."""
     choose = router.choose if router else None
 
     def prefetch(text: str) -> tuple[str, dict] | None:
+        if memory:
+            from friday.tools.memory_origin import asked_origin
+
+            if about := asked_origin(text):  # « d'où tu sais que… » : trouvé par le code
+                return ("memory_origin", {"about": about})
         if days:
             from friday.memory.day_log import asks_day
 

@@ -61,7 +61,7 @@ src/friday/
 │   ├── notification.py    titre et phrase de la bulle Windows d'une tâche de fond finie
 │   ├── diagnostic.py      outil : chercher l'origine de grésillements (voix sous charge)
 │   └── sounds.py          sons synthétisés (carillon des rappels)
-├── memory/                mémoire long terme (data/memory.db) ; day_log.py : mémoire de la journée (data/journee.db, 90 jours)
+├── memory/                mémoire long terme vivante (data/memory.db : renforcement, historique, thèmes ; fiche data/memoire.md) ; day_log.py : mémoire de la journée (data/journee.db, 90 jours)
 │   ├── store.py           MemoryStore : souvenirs dans SQLite (texte + vecteur de sens)
 │   ├── embedder.py        Embedder : texte → vecteur (embeddinggemma via Ollama, sur CPU)
 │   ├── service.py         MemoryService : retenir (sans doublon), oublier, souvenirs utiles

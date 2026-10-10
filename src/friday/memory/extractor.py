@@ -10,6 +10,7 @@ from datetime import datetime
 import ollama
 
 from friday.brain.prompts import french_date
+from friday.memory.categories import CATEGORIES, HINTS, OTHER, checked
 from friday.memory.service import format_memories
 from friday.memory.store import Memory
 
@@ -35,6 +36,7 @@ la personne concernée, ex. « La sœur de l'utilisateur, Clara, … »). Garde 
 et garde les expressions de temps telles quelles (« samedi », « le mois dernier »).
 Si un fait corrige ou remplace un souvenir existant (déménagement, changement de travail…),
 mets le numéro de ce souvenir dans « replaces », sinon null.
+« category » : le thème du fait, parmi : {categories} ({hints}).
 S'il n'y a rien à retenir, renvoie une liste vide : c'est le cas le plus fréquent.
 
 Souvenirs existants :
@@ -58,8 +60,9 @@ SCHEMA = {
                 "properties": {
                     "text": {"type": "string"},
                     "replaces": {"type": ["integer", "null"]},
+                    "category": {"type": "string", "enum": list(CATEGORIES)},
                 },
-                "required": ["text", "replaces"],
+                "required": ["text", "replaces", "category"],
             },
         }
     },
@@ -81,6 +84,7 @@ MIN_WORDS = 3  # « oui », « merci », « stop » : rien à retenir
 class Fact:
     text: str
     replaces: int | None = None
+    category: str = OTHER
 
 
 class FactExtractor:
@@ -97,6 +101,8 @@ class FactExtractor:
             return []
         prompt = PROMPT.format(
             memories=format_memories(known) or "(aucun)",
+            categories=", ".join(CATEGORIES),
+            hints=HINTS,
             user_text=user_text.strip(),
             context=(context or "(rien)").strip()[-600:],
         )
@@ -118,10 +124,35 @@ class FactExtractor:
             Fact(
                 date_relative_terms(f["text"].strip(), datetime.now()),
                 f.get("replaces") if f.get("replaces") in known_ids else None,
+                checked(f.get("category")),
             )
             for f in facts
             if f.get("text", "").strip()
         ]
+
+
+CLASSIFY = """Range chaque souvenir dans UN thème parmi : {categories} ({hints}).
+{memories}"""
+
+
+def categorize(client: ollama.Client, model: str, memories: list[Memory]) -> dict[int, str]:
+    """Le thème des souvenirs d'avant la mémoire vivante (une seule fois, en arrière-plan)."""
+    if not memories:
+        return {}
+    schema = {"type": "object", "properties": {"themes": {"type": "array", "items": {
+        "type": "object", "properties": {"id": {"type": "integer"},
+                                         "category": {"type": "string", "enum": list(CATEGORIES)}},
+        "required": ["id", "category"]}}}, "required": ["themes"]}  # fmt: skip
+    prompt = CLASSIFY.format(categories=", ".join(CATEGORIES), hints=HINTS,
+                             memories=format_memories(memories))  # fmt: skip
+    response = client.chat(model=model, messages=[{"role": "user", "content": prompt}],
+                           format=schema, think=False, options={"temperature": 0})  # fmt: skip
+    try:
+        themes = json.loads(response.message.content)["themes"]
+    except (json.JSONDecodeError, KeyError, TypeError):
+        return {}
+    ids = {m.id for m in memories}
+    return {t["id"]: checked(t.get("category")) for t in themes if t.get("id") in ids}
 
 
 def date_relative_terms(text: str, today: datetime) -> str:
