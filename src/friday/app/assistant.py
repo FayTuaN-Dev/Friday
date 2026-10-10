@@ -233,6 +233,7 @@ class Assistant:
         try:
             interrupted = self._reply.run(stream)
             log.info("Réponse : %s", " ".join(self._reply.text.split())[:300])
+            self._keep_exchange(said, self._reply.text)
             if not interrupted:
                 self.inputs.wake.open_follow_up()  # relance possible sans redire « Friday »
             keeper = self.components.keeper
@@ -249,6 +250,16 @@ class Assistant:
         finally:
             stream.close()
             self.listener.on_reply_end(interrupted)
+
+    def _keep_exchange(self, said: str | None, reply: str) -> None:
+        """Mémoire de la journée : seulement ce que l'utilisateur a vraiment dit."""
+        day_log = getattr(self.components, "day_log", None)
+        if day_log is None or not said:
+            return
+        try:
+            day_log.add(said, reply)
+        except Exception as error:  # ne jamais gêner la conversation
+            log.warning("Mémoire de la journée : échange non gardé (%s)", error)
 
     # --- Utilitaires ---
 

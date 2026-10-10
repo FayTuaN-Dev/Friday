@@ -158,7 +158,7 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 | F2 | **Mot d'activation dédié** : openWakeWord abandonné (l'entraînement d'un modèle « Friday » ne fonctionne plus sur Colab en 2026) ; piste restante : un petit Whisper sur le processeur réservé au repérage de « Friday », le gros seulement pour la demande | Moins de faux déclenchements, moins de calcul | ⏸️ (abandonné, alternative à étudier) |
 | F3 | **Notifications Windows** quand une tâche de fond finit (Claude, analyse, rappel) même fenêtre réduite | Rien ne passe inaperçu | ✅ |
 | F4 | **Mails** : la vraie liste des catégories donnée au modèle (« quelles catégories ai-je ? » ne marchait que 5 fois sur 8) | Tri des mails fiable | ✅ |
-| F5 | **Mémoire de la journée** : résumé des conversations du jour gardé (« de quoi on a parlé hier ? ») | Continuité d'un jour à l'autre | ⬜ |
+| F5 | **Mémoire de la journée** : résumé des conversations du jour gardé (« de quoi on a parlé hier ? ») | Continuité d'un jour à l'autre | ✅ |
 | F6 | **Friday sur le téléphone** (à étudier : accès privé depuis le réseau local, sans service payant) | Parler à Friday hors du bureau | ⬜ |
 | F7 | **Limites Claude à l'écran** : fenêtre agrandie, une barre pour ce qu'il reste de la session (5 h) et de la semaine, avec la remise à zéro ; chiffres relayés par la ligne d'état de Claude Code | Savoir d'un coup d'œil ce qu'il reste avant d'envoyer une analyse | ✅ |
 | 9 | Finitions : icône près de l'horloge, démarrage avec Windows, `.exe` | Produit fini | ⬜ (reporté) |
