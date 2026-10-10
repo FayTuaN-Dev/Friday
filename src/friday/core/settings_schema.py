@@ -70,6 +70,12 @@ SECTIONS = (
     )),
     Section("Écoute", "mic", (
         Field("HANDS_FREE", "Mains libres (dire « Friday, … »)", "bool", "true"),
+        Field("CLAP_WAKE", "Réveil par double clap", "bool", "true",
+              "Deux claquements de mains rapprochés = « Friday » (avec les mains libres)."),
+        Field("CLAP_SENSITIVITY", "Sensibilité du double clap", "choice", "moyenne",
+              "Forte : claps plus doux ou micro loin ; faible si des bruits le réveillent.",
+              options=lambda: [("faible", "Faible"), ("moyenne", "Moyenne"),
+                               ("forte", "Forte")]),
         Field("MIC_DEVICE", "Micro", "choice", options=lambda: audio_devices(True)),
         Field("OUTPUT_DEVICE", "Sortie audio de Friday", "choice",
               options=lambda: audio_devices(False)),

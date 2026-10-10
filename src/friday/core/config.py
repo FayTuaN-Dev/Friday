@@ -77,6 +77,8 @@ class Settings:
     notifications: bool = True  # notification Windows quand une tâche de fond se termine
     day_memory: bool = True  # mémoire de la journée : les échanges gardés 90 jours (F5)
     night_dream: bool = True  # rêve nocturne : relire la journée, rapport de ménage (J2)
+    clap_wake: bool = True  # double clap = « Friday » (J3), avec l'écoute mains libres
+    clap_sensitivity: str = "moyenne"  # « faible », « moyenne » ou « forte »
     trading: TradingSettings = TradingSettings()
 
 
@@ -157,6 +159,8 @@ def load_settings() -> Settings:
         notifications=_bool("NOTIFICATIONS", True),
         day_memory=_bool("DAY_MEMORY", True),
         night_dream=_bool("NIGHT_DREAM", True),
+        clap_wake=_bool("CLAP_WAKE", True),
+        clap_sensitivity=os.getenv("CLAP_SENSITIVITY", "moyenne").strip().lower(),
         trading=TradingSettings(
             enabled=_bool("TRADING_ENABLED", True),
             passages=max(1, min(15, int(os.getenv("TRADING_PASSAGES", "10")))),

@@ -55,6 +55,8 @@ class VoiceInputs:
                     self.settings.mic_device,
                     self.settings.vad_silence_ms,
                     heard_log,
+                    on_clap=self.wake.on_clap if self.settings.clap_wake else None,
+                    clap_sensitivity=self.settings.clap_sensitivity,
                 )
                 self.hands_free.start()
             except Exception:
