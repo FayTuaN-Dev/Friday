@@ -27,7 +27,20 @@ map.addControl(new maplibregl.NavigationControl({visualizePitch: true}), "bottom
 let spin = null, marker = null, place = null, stopTimer = null, mode = "place", ready = false;
 const later = [];  // en attente du style (chargé après la page)
 const whenReady = (fn) => { if (ready) fn(); else later.push(fn); };
-const stopSpin = () => { if (spin) { clearInterval(spin); spin = null; } };
+const stopSpin = () => { if (spin) { spin.stop(); spin = null; } };
+// Animation fluide : à chaque image de l'écran, on avance selon le temps écoulé (et non par
+// sauts toutes les 50 ms, qui donnaient 20 pas par seconde, donc des à-coups)
+function animate(step) {
+  stopSpin();
+  let last = performance.now(), id = 0;
+  const frame = (now) => {
+    step(Math.min(now - last, 100) / 1000, now);  // secondes ; pas de bond après une pause
+    last = now;
+    id = requestAnimationFrame(frame);
+  };
+  id = requestAnimationFrame(frame);
+  spin = {stop: () => cancelAnimationFrame(id)};
+}
 // L'utilisateur prend la main : la rotation automatique s'arrête (sinon elle annule ses gestes)
 for (const name of ["mousedown", "wheel", "touchstart", "dragstart"]) map.on(name, stopSpin);
 map.on("load", () => {
@@ -57,7 +70,7 @@ window.fridayMove = () => {
     pitch: place.zoom > 13 ? 62 : 35, bearing: -20, duration: 3500, essential: true});
   map.once("moveend", () => {
     let bearing = map.getBearing();
-    spin = setInterval(() => { bearing += 0.12; map.setBearing(bearing); }, 60);
+    animate((dt) => { bearing += 2 * dt; map.setBearing(bearing); });  // 2° par seconde
     clearTimeout(stopTimer);
     stopTimer = setTimeout(stopSpin, 40000);
   });

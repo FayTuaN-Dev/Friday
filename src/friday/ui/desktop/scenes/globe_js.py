@@ -7,6 +7,7 @@ Le globe tourne tout seul dès qu'il s'affiche ; toucher la carte l'arrête."""
 GLOBE_CSS = """
 #leaders,#callouts{pointer-events:none}
 #leaders polyline{fill:none;stroke-width:1.2;stroke-opacity:.75}
+#leaders *{transition:opacity .3s}
 #leaders circle{stroke:none}
 .callout{position:absolute;left:0;top:0;width:230px;height:58px;box-sizing:border-box;
   padding:6px 10px;
@@ -117,42 +118,67 @@ function stack(items, top, bottom) {  // hauteurs des étiquettes, sans chevauch
   }
 }
 
+const FADE = 300;  // ms : fondu quand une étiquette change de colonne, apparaît ou disparaît
+const SWITCH = 0.2;  // une étiquette change de colonne quand son point dépasse le centre de 20 %
+let settling = false;
+
+function fade(it, on) {
+  for (const el of [it.card, it.line, it.end]) el.style.opacity = on ? "1" : "0";
+}
+
 function layoutCallouts() {
   if (mode !== "world" || !labelled.length) return;
   const w = callouts.clientWidth, h = callouts.clientHeight, c = map.getCenter();
   const mid = map.project(c), radius = 230 * Math.pow(2, map.getZoom() - 1.6);
-  const left = [], right = [];
+  const now = performance.now(), left = [], right = [];
   for (const it of labelled) {
-    const shown = facing(it.p, c);
-    for (const el of [it.card, it.line, it.end]) el.style.display = shown ? "" : "none";
-    if (!shown) continue;
+    if (!facing(it.p, c)) { fade(it, false); it.cur = null; continue; }  // passé derrière
     const xy = map.project([it.p.lon, it.p.lat]);
     it.x = xy.x; it.y = xy.y;
-    (xy.x < mid.x ? left : right).push(it);
+    const past = (xy.x - mid.x) / radius;
+    const side = past < -SWITCH ? -1 : past > SWITCH ? 1 : it.side || (past < 0 ? -1 : 1);
+    if (it.side && side !== it.side) { it.until = now + FADE; it.cur = null; }
+    it.side = side;
+    if (it.until > now) { fade(it, false); continue; }  // s'efface avant de changer de côté
+    (side < 0 ? left : right).push(it);
   }
+  let moving = false;
   for (const [items, side] of [[left, -1], [right, 1]]) {
     stack(items, MARGIN, h - MARGIN - 24);
     const edge = side < 0 ? Math.max(MARGIN + CARD_W, mid.x - radius - 48)
       : Math.min(w - MARGIN - CARD_W, mid.x + radius + 48);
     for (const it of items) {
-      it.card.style.transform = `translate(${side < 0 ? edge - CARD_W : edge}px, ${it.top}px)`;
-      const y = it.top + 14, elbow = edge - side * 22;
+      // Les étiquettes glissent vers leur place (pas de saut quand une place se libère)
+      it.cur = it.cur == null ? it.top : it.cur + (it.top - it.cur) * 0.2;
+      if (Math.abs(it.top - it.cur) > 0.5) moving = true; else it.cur = it.top;
+      it.card.style.transform = `translate(${side < 0 ? edge - CARD_W : edge}px, ${it.cur}px)`;
+      const y = it.cur + 14, elbow = edge - side * 22;
       it.line.setAttribute("points", `${it.x},${it.y} ${elbow},${y} ${edge},${y}`);
       it.end.setAttribute("cx", it.x); it.end.setAttribute("cy", it.y);
+      fade(it, true);
     }
+  }
+  // Globe arrêté (l'utilisateur a la main) : on finit quand même les glissements et fondus
+  const waiting = labelled.some((it) => it.until > now);
+  if ((moving || waiting) && !spin && !settling) {
+    settling = true;
+    requestAnimationFrame(() => { settling = false; layoutCallouts(); });
   }
 }
 
-function spinGlobe() {  // tourne sur lui-même, les halos « respirent »
-  stopSpin();
-  let t = 0;
-  spin = setInterval(() => {
-    const c = map.getCenter();
-    map.setCenter([c.lng + 0.1, c.lat]);
-    t += 0.05;
-    map.setPaintProperty("world-halo", "circle-radius",
-      ["*", 2.2 + 0.45 * Math.sin(t * 2), ["get", "size"]]);
-  }, 50);
+function spinGlobe() {  // tourne sur lui-même (3° par seconde), les halos « respirent »
+  clearTimeout(stopTimer);  // le minuteur de la carte des lieux n'arrête pas le globe
+  const c = map.getCenter();
+  let lng = c.lng, breath = 0;
+  animate((dt, now) => {
+    lng += 3 * dt;
+    map.setCenter([lng, c.lat]);
+    if (now - breath > 100) {  // 10 fois par seconde suffit à l'œil, et coûte bien moins
+      breath = now;
+      map.setPaintProperty("world-halo", "circle-radius",
+        ["*", 2.2 + 0.45 * Math.sin(now / 500), ["get", "size"]]);
+    }
+  });
 }
 
 // Le globe : points, étiquettes, atmosphère, puis la rotation, tout de suite
