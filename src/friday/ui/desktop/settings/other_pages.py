@@ -24,7 +24,9 @@ def title(text: str) -> QLabel:
 
 
 class AppearancePage(QWidget):
-    def __init__(self, current: QColor, apply_color: Callable[[QColor], None]) -> None:
+    def __init__(self, current: QColor, apply_color: Callable[[QColor], None],
+                 orb_style: str = "sphere", apply_style: Callable[[str], None] | None = None,
+                 ) -> None:  # fmt: skip
         super().__init__(objectName="SettingsPage")
         self.current, self.apply_color = QColor(current), apply_color
         layout = QVBoxLayout(self)
@@ -47,12 +49,29 @@ class AppearancePage(QWidget):
         layout.addWidget(other, 0, Qt.AlignLeft)
         layout.addWidget(QLabel("Appliquée tout de suite et gardée au prochain lancement.",
                                 objectName="Hint"))  # fmt: skip
+        if apply_style is not None:
+            layout.addSpacing(10)
+            layout.addWidget(QLabel("Cœur de Friday", objectName="SettingsLabel"))
+            styles = QHBoxLayout()
+            for value, name in (("sphere", "Sphère de particules"), ("holo", "Hologramme")):
+                button = QPushButton(name, objectName="SettingsSmall", checkable=True)
+                button.setChecked(value == orb_style)
+                button.clicked.connect(lambda _=False, v=value: self._style(v, apply_style))
+                styles.addWidget(button)
+                self.__dict__.setdefault("style_buttons", {})[value] = button
+            styles.addStretch()
+            layout.addLayout(styles)
         layout.addStretch()
 
     def _pick(self) -> None:
         chosen = QColorDialog.getColor(self.current, self, "Couleur de Friday")
         if chosen.isValid():
             self._choose(chosen)
+
+    def _style(self, value: str, apply_style: Callable[[str], None]) -> None:
+        for name, button in self.style_buttons.items():
+            button.setChecked(name == value)
+        apply_style(value)
 
     def _choose(self, color: QColor) -> None:
         self.current = color
