@@ -2,7 +2,7 @@
 noyau holographique, changé à chaud), l'auto-test du démarrage en surimpression, et les
 panneaux latéraux de la fenêtre agrandie (limites Claude, « En écoute »)."""
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, QPoint, Signal
 from PySide6.QtWidgets import QWidget
 
 from friday.ui.desktop import preferences
@@ -58,8 +58,61 @@ class StageMixin:
 
         if lines:
             self.boot_log.start(lines)
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(6000, self.warm_map_when_idle)  # après l'auto-test
         if problem := summary(lines):
             self.chat.add_notice(f"⚠️ {problem}")
+
+    def show_scene_display(self, display) -> bool:
+        """Scènes plein écran (J7) : la météo (si activé) et les lieux ; « ferme » / « reviens »
+        (Display « close ») les referme aussi. Renvoie True si l'affichage est traité."""
+        from friday.tools.popups import CLOSE
+
+        if display.kind == CLOSE:
+            self.scene_layer.close_scene()
+            return False  # les pop-ups se ferment aussi
+        if display.kind == "weather" and not self.settings.scenes:
+            return False
+        scene = self.scene_layer.scene_for(display.kind, display.data, display.title)
+        if scene is None:
+            return False
+        self.place_scene()
+        self.scene_layer.show_scene(scene, display.title)
+        self.pause_orb(True)  # la sphère, cachée dessous, ne s'anime plus pour rien
+        return True
+
+    def warm_map_when_idle(self) -> None:
+        """Prépare la carte 3D quand Friday est au repos (jamais pendant qu'elle parle :
+        créer le moteur web bloque la fenêtre un instant et hacherait la voix)."""
+        from PySide6.QtCore import QTimer
+
+        from friday.app.events import AssistantState
+
+        if self.scene_layer.map is not None:
+            return
+        if self.state is AssistantState.IDLE:
+            self.scene_layer.warm_map()
+        else:
+            QTimer.singleShot(3000, self.warm_map_when_idle)
+
+    def scene_follows(self, state) -> None:
+        """La carte ne s'anime qu'une fois que Friday a fini de parler."""
+        from friday.app.events import AssistantState
+
+        if self.scene_layer.showing_map and state is AssistantState.IDLE:
+            self.scene_layer.map.move()
+
+    def pause_orb(self, paused: bool) -> None:
+        timer = getattr(self.orb, "_timer", None)
+        if timer is not None:
+            timer.stop() if paused else timer.start()
+
+    def place_scene(self) -> None:
+        """Le calque couvre la fenêtre sous la barre de titre, jusqu'à la barre de saisie."""
+        top = self.title_bar.geometry().bottom() + 1
+        bottom = self.input.mapTo(self.shell, QPoint(0, 0)).y() - 12
+        self.scene_layer.setGeometry(0, top, self.shell.width(), max(100, bottom - top))
 
     def _side_panels(self, *_args) -> None:
         """Limites Claude et « En écoute » : seulement fenêtre agrandie ou plein écran."""

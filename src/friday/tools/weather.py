@@ -1,5 +1,6 @@
 """Outil : météo actuelle et prévisions sur 7 jours (Open-Meteo, gratuit et sans clé)."""
 
+import time
 from datetime import date
 
 import httpx
@@ -10,7 +11,9 @@ from friday.tools.weather_codes import describe_weather
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
-CURRENT = "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m"
+CURRENT = (
+    "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m,is_day"
+)
 DAILY = "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
 
 
@@ -18,6 +21,23 @@ def day_name(iso_day: str, today: date) -> str:
     day = date.fromisoformat(iso_day)
     delta = (day - today).days
     return {0: "Aujourd'hui", 1: "Demain"}.get(delta, JOURS[day.weekday()].capitalize())
+
+
+PREPOSITIONS = ("à ", "a ", "aux ", "au ", "en ", "sur ")
+ARTICLES = ("Les ", "Le ", "La ", "L'")
+
+
+def city_names(city: str) -> list[str]:
+    """Les noms à essayer : « aux Herbiers » → « Herbiers », puis « Les Herbiers »… (le service
+    météo ne trouve pas « Herbiers » sans son article)."""
+    city = city.strip()
+    for word in PREPOSITIONS:
+        if city.lower().startswith(word):
+            city = city[len(word) :].strip()
+    names = [city]
+    if not city.lower().startswith(tuple(a.lower() for a in ARTICLES)):
+        names += [f"{article}{city}" for article in ARTICLES]
+    return names
 
 
 class WeatherTool(Tool):
@@ -46,27 +66,31 @@ class WeatherTool(Tool):
         place = self._locate(city)
         if place is None:
             return ToolResult(f"Je ne trouve pas la ville « {city} ».")
-        forecast = self.client.get(
-            FORECAST_URL,
-            params={
-                "latitude": place["latitude"],
-                "longitude": place["longitude"],
-                "current": CURRENT,
-                "daily": DAILY,
-                "timezone": "auto",
-                "forecast_days": 7,
-            },
-        )
+        params = {
+            "latitude": place["latitude"],
+            "longitude": place["longitude"],
+            "current": CURRENT,
+            "daily": DAILY,
+            "timezone": "auto",
+            "forecast_days": 7,
+        }
+        for attempt in range(3):  # le service répond parfois « 503 » un instant
+            forecast = self.client.get(FORECAST_URL, params=params)
+            if forecast.status_code < 500 or attempt == 2:
+                break
+            time.sleep(1.5)
         forecast.raise_for_status()
         return self._result(place, forecast.json())
 
     def _locate(self, city: str) -> dict | None:
-        response = self.client.get(
-            GEOCODING_URL, params={"name": city, "count": 1, "language": "fr"}
-        )
-        response.raise_for_status()
-        results = response.json().get("results")
-        return results[0] if results else None
+        for name in city_names(city):
+            response = self.client.get(
+                GEOCODING_URL, params={"name": name, "count": 1, "language": "fr"}
+            )
+            response.raise_for_status()
+            if results := response.json().get("results"):
+                return results[0]
+        return None
 
     def _result(self, place: dict, data: dict) -> ToolResult:
         now, daily = data["current"], data["daily"]
@@ -80,6 +104,8 @@ class WeatherTool(Tool):
             "icon": icon,
             "wind": round(now["wind_speed_10m"]),
             "humidity": now["relative_humidity_2m"],
+            "code": now["weather_code"],  # pour la scène météo (ciel, pluie, neige…)
+            "is_day": bool(now.get("is_day", 1)),
         }
         days = []
         for i, iso_day in enumerate(daily["time"]):

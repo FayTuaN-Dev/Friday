@@ -127,6 +127,11 @@ class MainWindow(StageMixin, QMainWindow):
         self.limits.setVisible(False)
         centered.addWidget(self.limits, 0, Qt.AlignTop)
         centered.addSpacing(18)
+        from friday.ui.desktop.scenes.layer import SceneLayer
+
+        self.shell = shell
+        self.scene_layer = SceneLayer(shell)  # scènes plein écran : météo, carte 3D (J7)
+        self.scene_layer.closed.connect(lambda: self.pause_orb(False))
         outer = QVBoxLayout(shell)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
@@ -143,7 +148,9 @@ class MainWindow(StageMixin, QMainWindow):
         b.state.connect(self.show_state)
         b.user_message.connect(self.chat.add_user)
         b.reply_start.connect(self.chat.start_reply)
+        b.reply_start.connect(self.scene_layer.start_subtitle)
         b.reply_chunk.connect(self.chat.append_reply)
+        b.reply_chunk.connect(self.scene_layer.add_subtitle)
         b.reply_end.connect(self.chat.end_reply)
         b.notice.connect(self.chat.add_notice)
         b.tool.connect(self.chat.add_tool)
@@ -173,6 +180,7 @@ class MainWindow(StageMixin, QMainWindow):
         self.input.refresh(palette)
         self.orb.set_base_color(self.base)
         self.playing.refresh_style()
+        self.scene_layer.refresh_style()
         if self.native_corners:  # fine bordure Windows, à la couleur de Friday
             native_window.set_border_color(self, QColor(palette.accent).darker(250))
         self.frame.update()
@@ -192,6 +200,8 @@ class MainWindow(StageMixin, QMainWindow):
         self.input.edit.setFocus()
 
     def _on_display(self, display) -> None:
+        if self.show_scene_display(display):  # météo, lieu : en plein écran
+            return
         if display.kind == "settings":  # « ouvre les réglages »
             self.open_settings()
         elif display.kind == "journal":  # « ouvre mon journal »
@@ -270,6 +280,7 @@ class MainWindow(StageMixin, QMainWindow):
 
     def show_state(self, state: AssistantState) -> None:
         self.state = state
+        self.scene_follows(state)
         self.orb.set_state(state)
         self.status.setText(state.value.upper())
         self.status.setStyleSheet(f"color: {theme.current().states[state]};")
@@ -277,6 +288,16 @@ class MainWindow(StageMixin, QMainWindow):
     def _reset(self) -> None:
         self.chat.clear()
         self.assistant.reset()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self.place_scene()
+
+    def keyPressEvent(self, event) -> None:
+        if event.key() == Qt.Key_Escape and self.scene_layer.showing:  # Échap : retour
+            self.scene_layer.close_scene()
+            return
+        super().keyPressEvent(event)
 
     def changeEvent(self, event) -> None:
         if event.type() == QEvent.WindowStateChange:  # plein écran : plus de marge ni de poignée

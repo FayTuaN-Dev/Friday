@@ -25,7 +25,7 @@ MAX_EXTRA_WAIT = 3.0  # une phrase ne peut pas attendre plus que sa durée + ce 
 
 class AudioPlayer:
     def __init__(
-        self, sample_rate: int, device: int | str | None = None, latency: float = 0.2
+        self, sample_rate: int, device: int | str | None = None, latency: float = 0.35
     ) -> None:
         self.sample_rate = sample_rate
         self.underflows = 0  # moments où la carte son a manqué de données

@@ -32,8 +32,9 @@ CORE_GUIDE = """- close_popups : fermer les fenêtres que tu as affichées (rés
 - dream_report : ce que tu as fait cette nuit (relu la journée, souvenirs à vérifier)."""
 
 SKILLS = (
-    Skill("web", "internet : météo, recherche, actualité, pages web, images",
-          ("get_weather", "web_search", "read_webpage", "search_images", "market_quote"),
+    Skill("web", "internet : météo, recherche, actualité, pages web, images, cartes",
+          ("get_weather", "web_search", "read_webpage", "search_images", "market_quote",
+           "show_place"),
           """- get_weather : la météo (actuelle et sur 7 jours). Toujours cet outil pour la météo,
   jamais la recherche web.
 - web_search : chercher sur internet : actualité, faits récents, prix, horaires, résultats
@@ -42,7 +43,9 @@ SKILLS = (
 - read_webpage : lire une page précise (un lien donné, ou un résultat à approfondir).
 - search_images : montrer des images à l'écran.
 - market_quote : le cours d'une devise, de l'or, de l'argent, du pétrole, d'un indice, d'une
-  crypto ou d'une action. Toujours cet outil pour un cours, jamais web_search.""",
+  crypto ou d'une action. Toujours cet outil pour un cours, jamais web_search.
+- show_place : MONTRER un lieu réel sur une carte 3D (« montre-moi la tour Eiffel », « où se
+  trouve Tokyo ? »). Pour des PHOTOS d'un lieu, c'est search_images.""",
           ("meteo", "quel temps", "temps qu", "pluie", "pleu", "neige", "temperature", "degre",
            "vent ", "cherche", "recherche", "internet", "web", "actualit", "info ", "infos",
            "news", "nouvelles", "page", "lien", "article", "image", "photo ", "photos", "prix",
@@ -51,10 +54,11 @@ SKILLS = (
            "taux de change", "combien vaut", "l or ", "argent metal", "petrole", "bitcoin",
            "matieres premieres", "devise",
            "bitcoin", "crypto", "approfondi", "en savoir plus", "plus de detail", "developpe",
-           "guide", "le point", "numero"),
+           "guide", "le point", "numero", "montre moi", "fais moi voir", "ou se trouve",
+           "ou est situe", "carte", "en 3d", "vue du ciel"),
           ("quel temps fait-il demain", "cherche les dernières nouvelles sur la bourse",
            "montre-moi des images de chats", "qui a gagné le match hier soir",
-           "lis-moi cet article")),
+           "lis-moi cet article", "montre-moi la tour Eiffel")),
     Skill("screen", "voir l'écran de l'utilisateur",
           ("look_at_screen", "ask_claude_about_screen"),
           """- look_at_screen : regarder l'écran de l'utilisateur (« regarde mon écran », « c'est quoi
