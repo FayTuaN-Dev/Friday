@@ -55,6 +55,10 @@ def prefetcher(
 
             if about := asked_origin(text):  # « d'où tu sais que… » : trouvé par le code
                 return ("memory_origin", {"about": about})
+            from friday.tools.dream_report import asks_dream
+
+            if asks_dream(text):  # « qu'as-tu fait cette nuit ? »
+                return ("dream_report", {})
         if days:
             from friday.memory.day_log import asks_day
 

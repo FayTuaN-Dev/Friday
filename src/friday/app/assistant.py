@@ -217,7 +217,10 @@ class Assistant:
             self.listener.on_display(notification(task, result))
         if result.display:
             self.listener.on_display(result.display)
-        self._respond(f"(Message automatique, pas de l'utilisateur.) {result.text}")
+        from friday.app.notification import QUIET
+
+        if task not in QUIET:
+            self._respond(f"(Message automatique, pas de l'utilisateur.) {result.text}")
 
     def _respond(self, text: str, said: str | None = None) -> None:
         """`said` : ce que l'utilisateur a vraiment dit (None pour un message automatique) ;

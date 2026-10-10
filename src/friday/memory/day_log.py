@@ -49,6 +49,12 @@ class DayLog:
                 "ORDER BY quand", (start, end)).fetchall()  # fmt: skip
         return [(datetime.fromisoformat(when), said, reply) for when, said, reply in rows]
 
+    def last_time(self) -> datetime | None:
+        """Quand l'utilisateur a parlé pour la dernière fois (rêve : Friday inactive ?)."""
+        with self._lock:
+            row = self._db.execute("SELECT MAX(quand) FROM echanges").fetchone()
+        return datetime.fromisoformat(row[0]) if row and row[0] else None
+
     def prune(self, today: date | None = None) -> None:
         limit = ((today or date.today()) - timedelta(days=KEEP_DAYS)).isoformat()
         with self._lock:

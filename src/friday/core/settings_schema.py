@@ -92,6 +92,10 @@ SECTIONS = (
         Field("DAY_MEMORY", "Mémoire de la journée", "bool", "true",
               "Garde nos échanges 90 jours sur ce PC (data/journee.db) pour répondre à « de "
               "quoi on a parlé hier ? »."),
+        Field("NIGHT_DREAM", "Rêve nocturne", "bool", "true",
+              "La nuit (ou après 30 min sans parler), Friday relit la journée pour retenir ce "
+              "qu'elle a manqué et prépare un rapport de ménage, qu'elle propose sans rien "
+              "changer seule. Demande « qu'as-tu fait cette nuit ? »."),
         Field("BACKUP_DIR", "Copie des sauvegardes (dossier)", "text", "",
               "Facultatif : un dossier OneDrive ou une clé USB. Les sauvegardes quotidiennes "
               "restent aussi dans data/sauvegardes (les 7 dernières)."),

@@ -165,6 +165,14 @@ def load_components(
     components.backup = DailyBackup(DATA_DIR, Path(settings.backup_dir) if settings.backup_dir
                                     else None)  # fmt: skip
     components.backup.start()  # au démarrage si la dernière a plus de 24 h, puis chaque jour
+    if settings.night_dream and memory is not None and day_log is not None:
+        from friday.app.night_dream import NightDream
+        from friday.core.config import LOGS_DIR
+        from friday.memory.dream import Dreamer
+
+        dreamer = Dreamer(client, settings.ollama_model, settings.ollama_num_ctx)
+        NightDream(memory, day_log, dreamer, DATA_DIR / "reve", LOGS_DIR / "friday.log",
+                   on_background).start()  # fmt: skip
     if trading is not None and trading.prepare is not None:
         from friday.trading.warm import start_warming
 
