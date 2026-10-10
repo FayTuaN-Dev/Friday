@@ -11,6 +11,7 @@ TITLES = {
     "traduction du plan": "📝 Plan traduit",
     "rêve de la nuit": "🌙 Rêve de la nuit",
     "routine": "🔁 Routine",
+    "atelier": "🧪 Compétence",
 }
 QUIET = {"rêve de la nuit"}  # notification seulement : Friday ne parle pas (3 h du matin)
 MAX_CHARS = 200

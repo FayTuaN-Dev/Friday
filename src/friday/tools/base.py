@@ -93,6 +93,16 @@ class Tool(ABC):
 class ToolBox:
     def __init__(self, tools: list[Tool]) -> None:
         self._tools = {t.name: t for t in tools}
+        self.extra: set[str] = set()  # outils ajoutés en route (compétences apprises, J8)
+
+    def add(self, tool: Tool) -> None:
+        """Ajout à chaud : l'outil est toujours proposé au modèle."""
+        self._tools[tool.name] = tool
+        self.extra.add(tool.name)
+
+    def remove(self, name: str) -> None:
+        self._tools.pop(name, None)
+        self.extra.discard(name)
 
     def __bool__(self) -> bool:
         return bool(self._tools)
