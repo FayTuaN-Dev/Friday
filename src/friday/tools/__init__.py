@@ -4,6 +4,34 @@ from friday.core.config import Settings
 from friday.tools.base import Display, Tool, ToolBox, ToolResult
 
 
+def lab_tools(settings: Settings, on_background, holder: list) -> tuple[list[Tool], object]:
+    """Atelier de compétences (J8). `holder` recevra la boîte à outils une fois créée : les
+    compétences installées y sont ajoutées à chaud, ou retirées."""
+    from friday.core.config import DATA_DIR
+    from friday.skills_lab.lab import Lab
+    from friday.tools.skills_lab import (
+        CreateSkillTool,
+        InstallSkillTool,
+        ListLearnedSkillsTool,
+        RemoveLearnedSkillTool,
+    )
+
+    lab = Lab(DATA_DIR)
+
+    def install(tools: list[Tool]) -> None:
+        for tool in tools:
+            holder[0].add(tool)
+
+    def remove(names: list[str]) -> None:
+        for name in names:
+            holder[0].remove(name)
+
+    tools = [CreateSkillTool(lab, settings.claude_model, settings.claude_timeout, on_background),
+             InstallSkillTool(lab, install), ListLearnedSkillsTool(lab),
+             RemoveLearnedSkillTool(lab, remove)]  # fmt: skip
+    return tools, lab
+
+
 def routine_tools() -> list[Tool]:
     from friday.agenda.routines import RoutineStore
     from friday.core.config import DATA_DIR
@@ -28,6 +56,8 @@ def default_toolbox(
     """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine.
     `research` : carnet de recherche (ResearchLog) partagé par la recherche et la lecture web."""
     tools: list[Tool] = []
+    holder: list[ToolBox] = []  # la boîte à outils, pour l'atelier (J8)
+    lab = None
     if settings.tools_enabled:
         from friday.tools.images import ImageSearchTool
         from friday.tools.markets import MarketQuoteTool
@@ -67,7 +97,8 @@ def default_toolbox(
             settings.claude_workspace, settings.claude_model, settings.claude_timeout
         )
         claude = ClaudeCodeTool(job, on_background)
-        tools += [claude, CancelClaudeTool(job)]
+        workshop, lab = lab_tools(settings, on_background, holder)
+        tools += [claude, CancelClaudeTool(job), *workshop]
     else:
         claude = None
     if settings.vision_enabled:
@@ -189,7 +220,13 @@ def default_toolbox(
         from friday.tools.popups import ClosePopupsTool, OpenSettingsTool
 
         tools += [ClosePopupsTool(), OpenSettingsTool()]
-    return ToolBox(tools)
+    box = ToolBox(tools)
+    holder.append(box)
+    if lab is not None:  # les compétences apprises (ré-inspectées à chaque chargement)
+        for _, _, learned in lab.load_all():
+            for tool in learned:
+                box.add(tool)
+    return box
 
 
 __all__ = ["Display", "Tool", "ToolBox", "ToolResult", "default_toolbox"]

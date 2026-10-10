@@ -228,13 +228,19 @@ SKILLS = (
            "je veux acheter l'or à 4160 stop 4140", "ce trade respecte-t-il mon plan",
            "teste mon plan sur l'historique de l'or")),
     Skill("claude", "Claude Code : coder, créer ou modifier des fichiers, longues tâches",
-          ("ask_claude_code", "cancel_claude_task"),
+          ("ask_claude_code", "cancel_claude_task", "create_skill", "install_skill",
+           "list_learned_skills", "remove_learned_skill"),
           """- ask_claude_code : confier une tâche de programmation ou de création de fichiers à Claude
   Code (code, scripts, documents longs). Écris-lui une consigne complète. L'utilisateur
   confirme avant le lancement ; Claude travaille en arrière-plan et tu seras prévenu à la
-  fin. cancel_claude_task l'arrête.""",
+  fin. cancel_claude_task l'arrête.
+- create_skill : quand l'utilisateur veut que tu APPRENNES à faire quelque chose de nouveau
+  (« crée-toi une compétence pour… », « apprends à… ») ; « réessaie » relance la dernière.
+  install_skill : « installe-la » après le compte rendu. list_learned_skills,
+  remove_learned_skill : voir et supprimer les compétences apprises.""",
           ("claude", "code", "script", "programme qui", "developpe", "cree un fichier",
-           "ecris un fichier", "site web", "python"),
+           "ecris un fichier", "site web", "python", "competence", "apprends a", "apprendre a",
+           "installe la", "reessaie"),
           ("demande à Claude d'écrire un script", "crée-moi un programme qui trie mes photos")),
 )  # fmt: skip
 

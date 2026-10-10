@@ -104,7 +104,7 @@ class Toolset:
             return []
 
     def tool_names(self) -> set[str]:
-        names = set(self._always)
+        names = set(self._always) | self.toolbox.extra  # + compétences apprises (J8)
         for skill in self.skills:
             if skill.name in self.active:
                 names |= set(skill.tools)
