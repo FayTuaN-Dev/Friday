@@ -199,7 +199,8 @@ SKILLS = (
           """- Outils de trading du PC (rien ne part en ligne, sauf translate_plan après aperçu).
   position_size, pip_value, risk_reward : calculs EXACTS faits sur le PC ; extrais les
   chiffres de la demande, n'en invente aucun (demande ceux qui manquent), puis répète le
-  résultat tel quel. Jamais de calcul de tête.
+  résultat tel quel. Jamais de calcul de tête. Le cours n'est jamais à demander : le PC le
+  récupère tout seul.
 - trade_check : la check-list avant trade. Dès que l'utilisateur décrit une idée de trade
   chiffrée (« je veux acheter l'or à 4 160, stop 4 140 ») ou demande si un trade respecte son
   plan : sens, entrée, stop (et objectif, risque, lots s'il les donne). Répète le feu tel quel.

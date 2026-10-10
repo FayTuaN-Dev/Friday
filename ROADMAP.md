@@ -91,7 +91,6 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 
 ## Notes pour plus tard
 
-- **À retester (T8, jeu lancé pendant les essais)** : en mode trading, « calcule la valeur du pip sur 0,5 lot d'EUR/USD » → qwen a demandé le cours au lieu d'appeler pip_value.
 - **Spotify : lancer une playlist précise** (« lance Nova », « ma playlist chill ») : aujourd'hui Friday ouvre Spotify ou une recherche puis appuie sur lecture, sans lancer la playlist demandée (constaté le 10/10/2026).
 
 - **Recherche web plus fiable** : les moteurs gratuits (via `ddgs`) limitent parfois les requêtes
@@ -152,7 +151,7 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 | T7 | **Bibliothèque de stratégies** : d'autres familles que le plan actuel (cassure de range, croisement de moyennes, retour à la moyenne, cassure d'ouverture de séance…), chacune backtestée sur chaque instrument et comparée aux autres avec sa marge d'incertitude ; on ne garde que celles qui ont fonctionné sur le passé, et la stratégie choisie devient celle de la check-list et des alertes | Trader une stratégie qui a marché sur l'historique, pas une intuition | ✅ |
 | T7b | **Ton plan écrit devient la stratégie** : traduit en règles par Claude (après aperçu), vérifiées et redites en français par le code ; backtest, comparaison, alertes, check-list et briefing l'utilisent ; « Ma stratégie » dans les réglages (plan écrit ou stratégie de base) | Trader et tester SA stratégie, écrite librement | ✅ |
 | T7c | **Carnet de plans écrits** : autant de stratégies écrites que voulu (nommer, dupliquer, supprimer), chacune traduite, testée (« teste le plan … »), comparée aux autres et choisie ; le plan suivi est celui joint aux analyses | Écrire et tester plein de stratégies, une à une ou toutes ensemble | ✅ |
-| T8 | **Trading adapté à la nouvelle version** : calculs, check-list, journal, alertes, backtest, stratégies et briefing trading disponibles sans dire « mode trading » (routines comprises) ; le mode trading ne sert plus qu'à envoyer les analyses à Claude ; tout le local marche même sans Claude ; virgule perdue par le modèle (« 1,1650 » → 11650) remise à l'échelle du cours | Le trading fait partie de Friday, pas d'un mode à part | ✅ |
+| T8 | **Trading adapté à la nouvelle version** : calculs, check-list, journal, alertes, backtest, stratégies et briefing trading disponibles sans dire « mode trading » (routines comprises) ; le mode trading ne sert plus qu'à envoyer les analyses à Claude ; tout le local marche même sans Claude ; virgule perdue par le modèle (« 1,1650 » → 11650) remise à l'échelle du cours ; valeur du pip calculée par le code (qwen demandait le cours) | Le trading fait partie de Friday, pas d'un mode à part | ✅ |
 
 ### Prochaines étapes — Friday
 

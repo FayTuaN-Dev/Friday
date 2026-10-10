@@ -108,12 +108,14 @@ class PositionSizeTool(Tool):
 
 class PipValueTool(Tool):
     name = "pip_value"
-    description = "Calcule la valeur d'un pip / point pour un instrument et un nombre de lots."
+    description = (
+        "Calcule la valeur d'un pip / point pour un instrument et un nombre de lots (le cours "
+        "est récupéré tout seul : ne le demande pas)."
+    )
     parameters = {
         "instrument": INSTRUMENT,
         "lots": {"type": "number", "description": "Nombre de lots"},
-        "price": PRICE,
-    }
+    }  # pas de « price » : qwen le demandait toujours au lieu de calculer (constaté, T8)
     required = ("instrument", "lots")
 
     def __init__(self, account: str, prices: Prices | None = None) -> None:

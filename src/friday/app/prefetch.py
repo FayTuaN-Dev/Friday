@@ -14,6 +14,23 @@ MARKET_WORDS = ("alerte", "previens", "surveille", "achet", "achat", "vend", "ve
                 "pips")  # fmt: skip
 
 
+def pip_request(text: str) -> tuple[str, dict] | None:
+    """« combien vaut un pip sur 2 lots d'or » → pip_value, choisi par le code : qwen
+    demandait le cours au lieu de calculer, une fois sur deux (constaté, T8)."""
+    import re
+
+    from friday.trading.instruments import detect
+    from friday.voice.wake import normalize
+
+    if not re.search(r"\bpips?\b", normalize(text)):
+        return None
+    lots = re.search(r"(\d+(?:[.,]\d+)?)\s*lots?\b", text)
+    found = detect(re.sub(r"\b[dD](?:'|’| )or\b", "l'or", text))  # « 2 lots d'or »
+    if lots is None or found is None:
+        return None
+    return ("pip_value", {"instrument": found.name, "lots": float(lots.group(1).replace(",", "."))})
+
+
 def market_request(text: str) -> str:
     """« préviens-moi si l'or passe 4 150 » : la consigne qui active les outils de trading."""
     from friday.trading.instruments import detect
@@ -97,6 +114,8 @@ def prefetcher(
             if asks_categories(text):  # la liste, lue par le code (le modèle se trompait)
                 return ("category_mails", {})
         if trading:  # avec ou sans mode trading (une routine « briefing trading » aussi)
+            if asked := pip_request(text):
+                return asked
             if getattr(trading, "choice", None) is not None and (
                     asked := plan_request(text, trading.choice.book)):  # fmt: skip
                 return asked  # le code choisit l'outil, l'instrument, la stratégie, le plan

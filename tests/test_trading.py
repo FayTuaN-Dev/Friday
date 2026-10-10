@@ -299,6 +299,21 @@ def test_trading_words_do_not_steal_everyday_requests():
     assert "mode trading" in market_request("que penses-tu de l'or en ce moment ?")
 
 
+def test_the_code_launches_the_pip_value_in_and_out_of_trading_mode(tmp_path):
+    from friday.app.prefetch import pip_request
+
+    assert pip_request("combien vaut un pip sur 2 lots d'or") == (
+        "pip_value", {"instrument": "l'or", "lots": 2.0})  # fmt: skip
+    assert pip_request("valeur du pip pour 0,5 lot de GBP/USD")[1]["lots"] == 0.5
+    assert pip_request("c'est quoi un pip ?") is None  # une question, pas un calcul
+    assert pip_request("2 lots de pipettes") is None
+    journal = TradeJournal(tmp_path / "t.db")
+    trading = Trading(TradingMode(), journal, ContextBuilder(None, journal), FakeJob())
+    prefetch = prefetcher(None, trading, SkillRouter(SKILLS))
+    trading.mode.enabled = True  # en mode trading : le calcul, pas une analyse par Claude
+    assert prefetch("combien vaut un pip sur 2 lots d'or")[0] == "pip_value"
+
+
 def test_a_price_whose_comma_was_lost_is_put_back_to_scale():
     from friday.trading.instruments import same_scale
 

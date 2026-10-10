@@ -106,7 +106,8 @@ def test_parse_events():
 def test_list_events_tool():
     calendar, events = calendar_with([DENTIST, HOLIDAY])
     result = ListEventsTool(calendar, RecentEvents()).run("cette semaine")
-    assert "[1] jeudi 8 octobre 2026, 14:00–15:00 : Dentiste (Bordeaux)" in result.text
+    # date écrite seulement sur plusieurs jours (dimanche : « cette semaine » = aujourd'hui)
+    assert "14:00–15:00 : Dentiste (Bordeaux)" in result.text
     assert result.display.data["items"][0]["text"] == "Dentiste"
     assert events.log[0][1]["singleEvents"] is True
     empty, _ = calendar_with([])
