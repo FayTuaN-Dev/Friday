@@ -141,3 +141,18 @@ def load_trading(settings: Settings, library):
     except Exception:
         log.exception("Trading indisponible, Friday continue sans")
         return None
+
+
+def load_world(settings: Settings, trading):
+    """Veille monde (J9) ; branchée aussi dans le trading : bloc « monde » joint aux analyses
+    de Claude, ligne « Monde » du briefing trading."""
+    if not settings.world:
+        return None
+    from friday.world.digest import World
+
+    world = World()
+    if trading is not None:
+        trading.builder.context.world = world.context
+        if trading.briefing is not None:
+            trading.briefing.world = world.briefing_line
+    return world

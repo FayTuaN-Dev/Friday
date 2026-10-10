@@ -57,6 +57,7 @@ class ContextSources:
         self.headlines, self.now, self.quote = headlines, now, quote
         self.euro = euro or (lambda: euro_data.text(cache_dir))
         self.hours, self.result = hours, result
+        self.world = None  # instrument → actualité internationale liée (J9), ou None
 
     def blocks(self, instrument: Instrument) -> tuple[list[Block], list[str]]:
         """(blocs à joindre, notes pour l'aperçu)."""
@@ -72,6 +73,9 @@ class ContextSources:
             ("marches_lies", "marchés liés : dollar, taux, volatilité (Yahoo Finance)",
              lambda: related.text(instrument, self.quote)),
         )  # fmt: skip
+        if self.world is not None:
+            steps += (("monde", "actualité internationale (Le Monde, France 24) et "
+                       "catastrophes (GDACS)", lambda: self.world(instrument)),)  # fmt: skip
         if "EUR" in instrument.currencies:  # inflation, chômage, taux BCE (officiels)
             steps += (("zone_euro", "zone euro : inflation, chômage, taux BCE (Eurostat, BCE)",
                        self.euro),)  # fmt: skip

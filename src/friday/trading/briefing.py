@@ -30,8 +30,9 @@ class TradingBriefing:
 def build(instruments: list[Instrument], history: History, events: list[Event] | None,
           rules: PlanRules, now: datetime, hours: tuple[int, int] = (9, 18),
           offsets: dict[str, float] | None = None, open_trades: int = 0,
-          alerts: int = 0, strategy_of=None) -> TradingBriefing:  # fmt: skip
-    """`strategy_of(symbole)` : la stratégie choisie pour l'instrument (le plan sinon)."""
+          alerts: int = 0, strategy_of=None, world: str = "") -> TradingBriefing:  # fmt: skip
+    """`strategy_of(symbole)` : la stratégie choisie pour l'instrument (le plan sinon).
+    `world` : la ligne « Monde » (veille monde, J9), si elle a quelque chose à dire."""
     local = now.astimezone(PARIS)
     title = f"Briefing trading du {DAYS[local.weekday()]} {local:%d/%m}."
     briefing = TradingBriefing([("Briefing trading", title)])
@@ -47,6 +48,8 @@ def build(instruments: list[Instrument], history: History, events: list[Event] |
         except MarketUnavailable:
             text = f"{_name(instrument)} : cours indisponibles ce matin."
         briefing.parts.append((instrument.name, text))
+    if world:
+        briefing.parts.append(("Monde", world))
     briefing.parts.append(("Ton plan", _plan(rules, open_trades, alerts)))
     return briefing
 

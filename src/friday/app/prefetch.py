@@ -86,7 +86,13 @@ def plan_request(text: str, book) -> tuple[str, dict] | None:
 
 
 def prefetcher(
-    library, trading, router, mail: bool = False, days: bool = False, memory: bool = False
+    library,
+    trading,
+    router,
+    mail: bool = False,
+    days: bool = False,
+    memory: bool = False,
+    world: bool = False,
 ):
     """Outil lancé d'office avant de répondre. Plans, stratégies et briefing trading : choisis
     par le code. Mode trading : une question d'analyse part dans le paquet pour Claude (après
@@ -113,6 +119,11 @@ def prefetcher(
 
             if asks_categories(text):  # la liste, lue par le code (le modèle se trompait)
                 return ("category_mails", {})
+        if world:
+            from friday.tools.world import movers_request
+
+            if asked := movers_request(text):  # l'instrument : choisi par le code
+                return asked
         if trading:  # avec ou sans mode trading (une routine « briefing trading » aussi)
             if asked := pip_request(text):
                 return asked

@@ -134,6 +134,11 @@ src/friday/
 │   ├── journal_export.py  export CSV pour Excel, captures d'entrée (data/journal_captures)
 │   └── journal_stats.py   ce que le journal apprend : groupes (setup, instrument, heure, jour,
 │                          plan, état d'esprit), constats, bilan anonyme de la revue hebdomadaire
+├── world/                 veille monde (J9) : titres Le Monde / France 24, catastrophes GDACS
+│   ├── sources.py         lecture des flux (gratuits, sans clé), une source en panne tolérée
+│   ├── themes.py          grille fixe : thèmes (Moyen-Orient, Fed…) → instruments touchés
+│   └── digest.py          World : cache 15 min, phrases construites par le code (point sur le
+│                          monde, ce qui peut bouger les marchés, bloc des analyses, briefing)
 ├── library/               bibliothèque de documents (data/bibliotheque → data/library.db)
 │   ├── chunker.py         découpe en passages (~900 caractères, chevauchement, n° de page)
 │   ├── store.py           SQLite : documents, passages, vecteurs + index plein texte FTS5

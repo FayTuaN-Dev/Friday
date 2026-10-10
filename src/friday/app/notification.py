@@ -12,8 +12,10 @@ TITLES = {
     "rêve de la nuit": "🌙 Rêve de la nuit",
     "routine": "🔁 Routine",
     "atelier": "🧪 Compétence",
+    "monde": "🌍 Alerte monde",
 }
-QUIET = {"rêve de la nuit"}  # notification seulement : Friday ne parle pas (3 h du matin)
+# Notification seulement, Friday ne parle pas : le rêve (3 h du matin), l'alerte monde
+QUIET = {"rêve de la nuit", "monde"}
 MAX_CHARS = 200
 
 
