@@ -79,6 +79,7 @@ class Settings:
     night_dream: bool = True  # rêve nocturne : relire la journée, rapport de ménage (J2)
     clap_wake: bool = True  # double clap = « Friday » (J3), avec l'écoute mains libres
     clap_sensitivity: str = "moyenne"  # « faible », « moyenne » ou « forte »
+    scenes: bool = True  # météo en scène plein écran plutôt qu'en fenêtre (J7)
     trading: TradingSettings = TradingSettings()
 
 
@@ -161,6 +162,7 @@ def load_settings() -> Settings:
         night_dream=_bool("NIGHT_DREAM", True),
         clap_wake=_bool("CLAP_WAKE", True),
         clap_sensitivity=os.getenv("CLAP_SENSITIVITY", "moyenne").strip().lower(),
+        scenes=_bool("SCENES", True),
         trading=TradingSettings(
             enabled=_bool("TRADING_ENABLED", True),
             passages=max(1, min(15, int(os.getenv("TRADING_PASSAGES", "10")))),

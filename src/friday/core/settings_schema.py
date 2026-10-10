@@ -98,6 +98,9 @@ SECTIONS = (
         Field("DAY_MEMORY", "Mémoire de la journée", "bool", "true",
               "Garde nos échanges 90 jours sur ce PC (data/journee.db) pour répondre à « de "
               "quoi on a parlé hier ? »."),
+        Field("SCENES", "Scènes plein écran", "bool", "true",
+              "La météo en ciel animé sur toute la fenêtre (sinon dans une petite fenêtre). Les "
+              "lieux (« montre-moi la tour Eiffel ») s'affichent toujours en carte 3D."),
         Field("NIGHT_DREAM", "Rêve nocturne", "bool", "true",
               "La nuit (ou après 30 min sans parler), Friday relit la journée pour retenir ce "
               "qu'elle a manqué et prépare un rapport de ménage, qu'elle propose sans rien "

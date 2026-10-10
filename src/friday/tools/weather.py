@@ -10,7 +10,9 @@ from friday.tools.weather_codes import describe_weather
 
 GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
-CURRENT = "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m"
+CURRENT = (
+    "temperature_2m,apparent_temperature,weather_code,wind_speed_10m,relative_humidity_2m,is_day"
+)
 DAILY = "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
 
 
@@ -80,6 +82,8 @@ class WeatherTool(Tool):
             "icon": icon,
             "wind": round(now["wind_speed_10m"]),
             "humidity": now["relative_humidity_2m"],
+            "code": now["weather_code"],  # pour la scène météo (ciel, pluie, neige…)
+            "is_day": bool(now.get("is_day", 1)),
         }
         days = []
         for i, iso_day in enumerate(daily["time"]):

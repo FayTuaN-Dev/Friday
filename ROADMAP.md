@@ -178,7 +178,7 @@ Idées tirées de [jarvis-OS](https://github.com/Grominet95/jarvis-OS) (AGPL-3.0
 | J4 | **Sphère de particules** qui réagit à la voix, séquence de démarrage (auto-test qui défile), widget « En écoute » (Spotify, YouTube… via Windows) | L'effet Jarvis | ✅ |
 | J5 | **Routines planifiées** (« tous les jours à 7 h… », « le lundi… »), rattrapées si le PC était éteint | Friday agit seule à heure fixe | ✅ |
 | J6 | **Friday sur le téléphone** : bot Telegram réservé à l'utilisateur, ou Tailscale (privé) — remplace F6 | Parler à Friday hors du bureau | ⬜ |
-| J7 | **Scènes plein écran** : météo animée, carte 3D d'un lieu (« montre-moi la tour Eiffel »), retour à la sphère | Des réponses qui se voient | ⬜ |
+| J7 | **Scènes plein écran** : météo animée, carte 3D d'un lieu (« montre-moi la tour Eiffel »), retour à la sphère | Des réponses qui se voient | ✅ |
 | J8 | **Atelier de compétences** : Claude écrit une nouvelle compétence, Friday la teste, l'inspecte (droits demandés) et l'installe après validation de l'utilisateur | Friday apprend de nouveaux outils | ⬜ |
 | J9 | **Globe géopolitique** (World Monitor) : à analyser avant de décider | Voir ce qui bouge les marchés | ⬜ |
 
