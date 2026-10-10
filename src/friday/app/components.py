@@ -61,19 +61,24 @@ def load_components(
     contexts = {"web": research.summary}
     if briefing:
         contexts["briefing"] = briefing.summary
+    toolbox = default_toolbox(
+        settings, memory, on_background, agenda, briefing, google, research, library, trading
+    )
+    if (categories := toolbox.find("category_mails")) is not None:
+        from friday.tools.mail_sorting import categories_context
+
+        contexts["mail"] = lambda: categories_context(categories.mailbox)
     brain = Brain(
         settings,
         client=client,
-        toolbox=default_toolbox(
-            settings, memory, on_background, agenda, briefing, google, research, library, trading
-        ),
+        toolbox=toolbox,
         recall=(lambda question: format_memories(memory.relevant(question))) if memory else None,
         router=load_router(memory),
         skill_contexts=contexts,
         skill_hints=hints(library, trading),
         skill_gates={"trading": (lambda: trading.mode.enabled) if trading else (lambda: False)},
     )
-    brain.prefetch = prefetcher(library, trading, brain.toolset.router)
+    brain.prefetch = prefetcher(library, trading, brain.toolset.router, mail=categories is not None)
     brain.warmup()
     warn_if_spilling(client, settings.ollama_model, settings.ollama_num_ctx)
     components = Components(

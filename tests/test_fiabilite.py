@@ -56,7 +56,7 @@ def test_backup_keeps_what_matters_and_only_seven(tmp_path):
     data.mkdir()
     fill(data)
     usb = tmp_path / "usb"
-    archive = backup(data, copy_to=usb)
+    archive = backup(data, copy_to=usb, now=datetime(2026, 9, 1, 8, 0))  # date fixe
     names = set(zipfile.ZipFile(archive).namelist())
     assert names == {"trading.db", "trading_plans.json"}  # ni caches, ni modèles, ni PDF
     restored = tmp_path / "restored.db"

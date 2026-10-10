@@ -100,6 +100,9 @@ class ToolBox:
     def names(self) -> list[str]:
         return list(self._tools)
 
+    def find(self, name: str) -> "Tool | None":
+        return self._tools.get(name)
+
     def schemas(self, names: set[str] | None = None) -> list[dict[str, Any]]:
         """Schémas de tous les outils, ou seulement de ceux nommés (aiguillage)."""
         return [t.schema() for t in self._tools.values() if names is None or t.name in names]

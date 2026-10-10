@@ -68,7 +68,9 @@ def test_category_mails_and_listing():
     box = FakeMailbox({"banque1": {"L-B"}, "promo1": {"L-P"}}, LABELS)
     tool = CategoryMailsTool(box)
     assert "Expéditeur banque1" in tool.run("banque").text
-    assert "Catégories existantes" in tool.run("").text
+    assert "« Tes catégories de mails : Banque & finances et Promotions & newsletters. »" in (
+        tool.run("").text)  # fmt: skip
+    assert "Je n'ai pas de catégorie « voyages »" in tool.run("voyages").text
     assert "pas encore été triés" in CategoryMailsTool(FakeMailbox({})).run("banque").text
 
 
@@ -183,3 +185,27 @@ def test_refused_requests_are_retried_not_lost(monkeypatch):
     service = SimpleNamespace(new_batch_http_request=lambda callback: Batch(callback))
     found = mailbox_module.run_batched(service, list("abcde"), lambda item: item)
     assert sorted(found) == list("abcde")  # b et d récupérés au 2e passage
+
+
+def test_the_real_category_list_is_given_and_asked_by_the_code():
+    from friday.app.prefetch import prefetcher
+    from friday.tools.mail_sorting import asks_categories, categories_context
+
+    box = FakeMailbox({}, LABELS)
+    assert categories_context(box) == ("Catégories de mails existantes (tri de Friday) : "
+                                       "Banque & finances et Promotions & newsletters. N'en "
+                                       "cite aucune autre.")  # fmt: skip
+    assert "aucune pour l'instant" in categories_context(FakeMailbox({}))
+
+    class Offline:
+        def category_labels(self):
+            raise ConnectionError("Gmail pas connecté")
+
+    assert categories_context(Offline()) == ""
+    for text in ("Quelles catégories ai-je ?", "donne-moi la liste des catégories",
+                 "c'est quoi mes catégories de mails"):  # fmt: skip
+        assert asks_categories(text), text
+    assert not asks_categories("trie mes mails")
+    prefetch = prefetcher(None, None, None, mail=True)
+    assert prefetch("quelles catégories ai-je ?") == ("category_mails", {})
+    assert prefetcher(None, None, None)("quelles catégories ai-je ?") is None  # sans Gmail
