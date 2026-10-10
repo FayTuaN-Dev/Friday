@@ -61,6 +61,35 @@ class SortMailsTool(Tool):
         ))  # fmt: skip
 
 
+# « Quelles catégories ai-je ? » : reconnu par le code (le modèle se trompait 3 fois sur 8)
+ASKS = ("quelles categories", "quelle categorie", "mes categories", "liste des categories",
+        "categories de mail", "categories de courriel", "categories existent")  # fmt: skip
+
+
+def asks_categories(text: str) -> bool:
+    from friday.voice.wake import normalize
+
+    padded = f" {normalize(text)} "
+    return any(f" {words}" in padded for words in ASKS)
+
+
+def say_list(names: list[str]) -> str:
+    names = sorted(names)
+    return names[0] if len(names) == 1 else ", ".join(names[:-1]) + " et " + names[-1]
+
+
+def categories_context(mailbox: Mailbox) -> str:
+    """La VRAIE liste des catégories, donnée au modèle dès qu'on parle de mails."""
+    try:
+        names = list(mailbox.category_labels())
+    except Exception:  # Gmail pas encore connecté : rien plutôt qu'une erreur
+        return ""
+    if not names:
+        return "Catégories de mails : aucune pour l'instant (les mails n'ont pas été triés)."
+    return (f"Catégories de mails existantes (tri de Friday) : {say_list(names)}. N'en cite "
+            "aucune autre.")  # fmt: skip
+
+
 class CategoryMailsTool(Tool):
     name = "category_mails"
     description = (
@@ -82,11 +111,13 @@ class CategoryMailsTool(Tool):
         def show() -> ToolResult:
             labels = self.mailbox.category_labels()
             if not labels:
-                return ToolResult("Aucune catégorie : les mails n'ont pas encore été triés.")
+                return ToolResult("Dis EXACTEMENT : « Aucune catégorie : tes mails n'ont pas "
+                                  "encore été triés. Dis « trie mes mails ». »")  # fmt: skip
             name = find_category(category, list(labels)) if category else None
             if name is None:
-                known = ", ".join(sorted(labels))
-                return ToolResult(f"Catégories existantes : {known}.")
+                unknown = f"Je n'ai pas de catégorie « {category} ». " if category else ""
+                return ToolResult(f"Dis EXACTEMENT : « {unknown}Tes catégories de mails : "
+                                  f"{say_list(list(labels))}. »")  # fmt: skip
             ids = self.mailbox.ids(
                 "-in:trash", labels[name], limit=max(1, min(int(count or 10), 30))
             )

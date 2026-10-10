@@ -42,12 +42,17 @@ def plan_request(text: str, book) -> tuple[str, dict] | None:
     return None
 
 
-def prefetcher(library, trading, router):
+def prefetcher(library, trading, router, mail: bool = False):
     """Outil lancé d'office avant de répondre. Mode trading : une question d'analyse part dans
     le paquet pour Claude (après aperçu). Sinon : la bibliothèque, si elle connaît le sujet."""
     choose = router.choose if router else None
 
     def prefetch(text: str) -> tuple[str, dict] | None:
+        if mail:
+            from friday.tools.mail_sorting import asks_categories
+
+            if asks_categories(text):  # la liste, lue par le code (le modèle se trompait)
+                return ("category_mails", {})
         if trading and trading.mode.enabled:
             if getattr(trading, "choice", None) is not None and (
                     asked := plan_request(text, trading.choice.book)):  # fmt: skip
