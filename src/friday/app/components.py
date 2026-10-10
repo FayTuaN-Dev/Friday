@@ -94,7 +94,8 @@ def load_components(
         skill_gates={"trading": (lambda: trading.mode.enabled) if trading else (lambda: False)},
     )
     brain.prefetch = prefetcher(library, trading, brain.toolset.router,
-                                mail=categories is not None, days=day_log is not None)  # fmt: skip
+                                mail=categories is not None, days=day_log is not None,
+                                memory=memory is not None)  # fmt: skip
     brain.warmup()
     warn_if_spilling(client, settings.ollama_model, settings.ollama_num_ctx)
     components = Components(
@@ -113,6 +114,7 @@ def load_components(
 
         extractor = FactExtractor(client, settings.ollama_model, settings.ollama_num_ctx)
         components.keeper = MemoryKeeper(memory, extractor, on_memory)
+        components.keeper.sort_unthemed(client, settings.ollama_model)
 
     if settings.tts_enabled:
         try:
@@ -196,7 +198,8 @@ def load_memory(settings: Settings, client: ollama.Client) -> MemoryService | No
         DATA_DIR.mkdir(exist_ok=True)
         embedder = Embedder(settings.embed_model, client)
         embedder.query("test")  # vérifie que le modèle est installé (et le charge)
-        memory = MemoryService(MemoryStore(DATA_DIR / "memory.db"), embedder)
+        memory = MemoryService(MemoryStore(DATA_DIR / "memory.db"), embedder,
+                               mirror=DATA_DIR / "memoire.md")  # fmt: skip
         log.info("Mémoire chargée : %d souvenirs", memory.store.count())
         return memory
     except Exception:

@@ -1,12 +1,15 @@
 """Outils de mémoire : retenir, oublier, et montrer ce que Friday sait de l'utilisateur."""
 
+from friday.memory.categories import CATEGORIES
 from friday.memory.service import MemoryService
 from friday.tools.base import Display, Tool, ToolResult
 
 
 def memories_display(memory: MemoryService, refresh: bool = False) -> Display:
     """Pop-up des souvenirs ; `refresh` : ne fait que mettre à jour celle déjà ouverte."""
-    items = [{"id": m.id, "text": m.text, "date": m.updated_at[:10], "source": m.source}
+    items = [{"id": m.id, "text": m.text, "date": m.updated_at[:10], "source": m.source,
+              "category": m.category, "confirmations": m.confirmations,
+              "before": [old.text for old in memory.history(m.id)]}
              for m in memory.all()]  # fmt: skip
     return Display("memories", "Ce que je sais sur vous", {"memories": items}, key="memories",
                    refresh=refresh)  # fmt: skip
@@ -28,6 +31,7 @@ class RememberTool(Tool):
             "type": "integer",
             "description": "Numéro du souvenir que ce fait remplace (s'il le contredit)",
         },
+        "category": {"type": "string", "enum": list(CATEGORIES), "description": "Le thème"},
     }
     required = ("fact",)
 
@@ -37,8 +41,9 @@ class RememberTool(Tool):
     def label(self, args: dict) -> str:
         return f"🧠 Mémorisation : {args.get('fact', '')}"
 
-    def run(self, fact: str, replaces: int | None = None) -> ToolResult:
-        memory = self.memory.remember(fact, "explicit", int(replaces) if replaces else None)
+    def run(self, fact: str, replaces: int | None = None, category: str = "") -> ToolResult:
+        memory = self.memory.remember(fact, "explicit", int(replaces) if replaces else None,
+                                      category)  # fmt: skip
         return ToolResult(f"C'est mémorisé (souvenir n°{memory.id}) : {memory.text}",
                           memories_display(self.memory, refresh=True))  # fmt: skip
 
