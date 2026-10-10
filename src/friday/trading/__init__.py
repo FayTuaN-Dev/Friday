@@ -16,7 +16,7 @@ class Trading:
     mode: TradingMode
     journal: TradeJournal
     builder: ContextBuilder
-    job: ClaudeCodeJob  # Claude isolé (analyst.py)
+    job: ClaudeCodeJob | None  # Claude isolé (analyst.py) ; None si Claude est désactivé
     account_currency: str = "EUR"
     capture: object = None  # ChartCapture (fenêtre du graphique), ou None
     current: Instrument | None = field(default_factory=lambda: by_symbol("EURUSD"))

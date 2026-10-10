@@ -98,12 +98,8 @@ class SettingsWindow(Popup):
         return form
 
     def _translate_plan(self, name: str) -> None:
-        """« Traduire en règles » : comme le dire (passe d'abord en mode trading s'il le faut)."""
-        assistant = self.main_window.assistant
-        trading = getattr(assistant.components, "trading", None)
-        if trading is not None and not trading.mode.enabled:
-            assistant.submit_text("mode trading")
-        assistant.submit_text(f"traduis le plan {name}")
+        """« Traduire en règles » : comme le dire (plus besoin du mode trading)."""
+        self.main_window.assistant.submit_text(f"traduis le plan {name}")
 
     def _footer(self) -> QHBoxLayout:
         self.banner = QLabel(objectName="Hint", wordWrap=True)

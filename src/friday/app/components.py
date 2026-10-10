@@ -91,7 +91,8 @@ def load_components(
         router=load_router(memory),
         skill_contexts=contexts,
         skill_hints=hints(library, trading),
-        skill_gates={"trading": (lambda: trading.mode.enabled) if trading else (lambda: False)},
+        # Outils de trading : toujours là ; l'analyse par Claude : en mode trading seulement
+        skill_gates={"analyse_trading": lambda: bool(trading and trading.mode.enabled)},
     )
     brain.prefetch = prefetcher(library, trading, brain.toolset.router,
                                 mail=categories is not None, days=day_log is not None,

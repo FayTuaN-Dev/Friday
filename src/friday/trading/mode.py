@@ -58,7 +58,8 @@ ASK_ANALYSIS = ("claude", "analyse", "analyser", "ton avis", "qu en penses", "qu
 # Revue hebdomadaire du journal : par Claude (bilan anonyme, après aperçu), jamais locale.
 REVIEW = ("revue", "bilan de la semaine", "bilan hebdo", "debrief de la semaine")
 # Compétences qui ne concernent pas une analyse de trading : elles restent locales.
-OTHER_SKILLS = {"pc", "mail", "calendar", "reminders", "files", "briefing", "claude"}
+OTHER_SKILLS = {"pc", "mail", "calendar", "reminders", "files", "briefing", "claude",
+                "routines"}  # fmt: skip
 
 
 # La question parle du graphique affiché : capture ciblée (et seulement alors).
@@ -80,14 +81,16 @@ def _command_words(text: str) -> str:
     return words.strip()
 
 
-def briefing_request(text: str) -> str | None:
+def briefing_request(text: str, strict: bool = False) -> str | None:
     """« briefing trading (sur l'argent) » → le symbole demandé, « » pour ceux des réglages,
     ou None. Choisi par le code : qwen passait toujours l'or, même pour l'argent (constaté).
-    Les annonces automatiques (« (Message automatique… ») ne relancent rien."""
+    Les annonces automatiques (« (Message automatique… ») ne relancent rien. `strict` (hors
+    mode trading) : « prépare ma journée » seul est le briefing du matin, pas celui-ci."""
     if text.lstrip().startswith("(Message automatique"):
         return None
     padded = f" {normalize(text)} "
-    if not any(f" {word}" in padded for word in BRIEFING):
+    words = [w for w in BRIEFING if not strict or "trading" in w]
+    if not any(f" {word}" in padded for word in words):
         return None
     from friday.trading.instruments import detect
 

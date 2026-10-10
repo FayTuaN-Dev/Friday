@@ -6,7 +6,7 @@ from friday.tools.trading import INSTRUMENT
 from friday.trading import risk_calc
 from friday.trading.alerts.store import Alert
 from friday.trading.alerts.watcher import AlertWatcher
-from friday.trading.instruments import by_symbol
+from friday.trading.instruments import by_symbol, same_scale
 from friday.trading.market import MarketUnavailable, _digits
 
 
@@ -48,6 +48,7 @@ class PriceAlertTool(_AlertTool):
             price, seen = self.watcher.price(item)
         except (ValueError, MarketUnavailable) as error:
             return ToolResult(f"Alerte impossible : {error} Dis-le simplement.")
+        level = same_scale(level, price)  # virgule perdue par le modèle
         alert = self.watcher.store.add_level(item.symbol, level, above=level > price)
         source = ""
         if not seen and item.note:  # contrat à terme sans graphique : le dire

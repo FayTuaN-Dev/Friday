@@ -31,10 +31,18 @@ log = logging.getLogger(__name__)
 Loader = Callable[..., Components]
 TRADING_ON = (
     "Le mode trading vient d'être activé. Annonce-le en une ou deux phrases : les questions "
-    "d'analyse partent à Claude seulement après un aperçu à valider ; calculs de risque et "
-    "journal restent sur le PC ; « fin du mode trading » pour en sortir."
+    "d'analyse partent à Claude seulement après un aperçu à valider ; « fin du mode trading » "
+    "pour en sortir."
 )
-TRADING_OFF = "Le mode trading est désactivé. Dis-le en une phrase : tout redevient local."
+TRADING_OFF = (
+    "Le mode trading est désactivé. Dis-le en une phrase : les analyses ne partent plus à "
+    "Claude ; calculs, check-list, journal et alertes restent disponibles."
+)
+TRADING_NO_CLAUDE = (
+    "L'utilisateur a demandé le mode trading, mais Claude est désactivé dans les réglages. "
+    "Dis-le en une phrase : pas d'analyse par Claude ; calculs, check-list, journal et alertes "
+    "marchent sans lui."
+)
 
 
 class Assistant:
@@ -198,6 +206,9 @@ class Assistant:
         change = trading.mode.command(text) if trading else None
         if change is None:
             return False
+        if change == "on" and trading.job is None:
+            self._respond("(Message automatique, pas de l'utilisateur.) " + TRADING_NO_CLAUDE)
+            return True
         trading.mode.enabled = change == "on"
         log.info("Mode trading %s", "activé" if trading.mode.enabled else "désactivé")
         self.listener.on_display(Display("trading_mode", "Mode trading",

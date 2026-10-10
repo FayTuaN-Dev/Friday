@@ -1,24 +1,50 @@
 """Ce que Friday prépare d'office avant de répondre : les consignes par demande (hints) et
 l'outil lancé d'avance (prefetch) — bibliothèque, ou analyse en mode trading."""
 
-from friday.trading.mode import briefing_request, strategy_request
+from friday.trading.mode import ASK_ANALYSIS, briefing_request, strategy_request
 
 TRADING_LOCAL = (
     "Mode trading : demande locale (calcul de risque, journal…) : utilise les outils du PC, "
     "rien ne part en ligne."
 )
+TRADING_ANALYSIS = "Mode trading actif : une question d'analyse de marché → trading_analysis."
+# Hors mode trading : un instrument (« l'or », « EUR/USD ») + un de ces mots → les outils
+MARKET_WORDS = ("alerte", "previens", "surveille", "achet", "achat", "vend", "vente", "stop",
+                "short", "backtest", "teste", "briefing", "strategie", "setup", "lots",
+                "pips")  # fmt: skip
+
+
+def market_request(text: str) -> str:
+    """« préviens-moi si l'or passe 4 150 » : la consigne qui active les outils de trading."""
+    from friday.trading.instruments import detect
+    from friday.voice.wake import normalize
+
+    padded = f" {normalize(text)} "
+    found = detect(text)
+    if found is None:
+        return ""
+    if any(f" {w}" in padded for w in ASK_ANALYSIS):
+        return (f"Question d'analyse sur {found.name} : seul Claude l'analyse, en mode trading ; "
+                "propose de dire « mode trading ».")  # fmt: skip
+    if any(f" {w}" in padded for w in MARKET_WORDS):
+        return f"Demande de trading ({found.name}) : outils de trading du PC."
+    return ""
 
 
 def hints(library, trading) -> dict:
-    """Consignes par demande : la bibliothèque si elle connaît le sujet (hors mode trading),
-    la compétence trading pour les demandes locales du mode trading."""
+    """Consignes par demande : la bibliothèque si elle connaît le sujet (hors mode trading) ;
+    les outils de trading en mode trading, ou hors mode pour une demande sur un instrument ;
+    l'analyse par Claude en mode trading."""
     found = {}
     if library:
         found["library"] = lambda text: (
             "" if trading and trading.mode.enabled else library.hint(text)
         )
     if trading:
-        found["trading"] = lambda text: TRADING_LOCAL if trading.mode.enabled else ""
+        found["trading"] = lambda text: (
+            TRADING_LOCAL if trading.mode.enabled else market_request(text)
+        )
+        found["analyse_trading"] = lambda text: TRADING_ANALYSIS if trading.mode.enabled else ""
     return found
 
 
@@ -45,8 +71,9 @@ def plan_request(text: str, book) -> tuple[str, dict] | None:
 def prefetcher(
     library, trading, router, mail: bool = False, days: bool = False, memory: bool = False
 ):
-    """Outil lancé d'office avant de répondre. Mode trading : une question d'analyse part dans
-    le paquet pour Claude (après aperçu). Sinon : la bibliothèque, si elle connaît le sujet."""
+    """Outil lancé d'office avant de répondre. Plans, stratégies et briefing trading : choisis
+    par le code. Mode trading : une question d'analyse part dans le paquet pour Claude (après
+    aperçu). Sinon : la bibliothèque, si elle connaît le sujet."""
     choose = router.choose if router else None
 
     def prefetch(text: str) -> tuple[str, dict] | None:
@@ -69,13 +96,15 @@ def prefetcher(
 
             if asks_categories(text):  # la liste, lue par le code (le modèle se trompait)
                 return ("category_mails", {})
-        if trading and trading.mode.enabled:
+        if trading:  # avec ou sans mode trading (une routine « briefing trading » aussi)
             if getattr(trading, "choice", None) is not None and (
                     asked := plan_request(text, trading.choice.book)):  # fmt: skip
                 return asked  # le code choisit l'outil, l'instrument, la stratégie, le plan
-            if trading.briefing is not None and (wanted := briefing_request(text)) is not None:
+            wanted = briefing_request(text, strict=not trading.mode.enabled)
+            if trading.briefing is not None and wanted is not None:
                 return ("trading_briefing", {"instrument": wanted})  # le code choisit
-            if trading.mode.route(text, choose) == "analysis":
+        if trading and trading.mode.enabled:
+            if trading.job is not None and trading.mode.route(text, choose) == "analysis":
                 return ("trading_analysis", {"question": text})
             return None
         return library.auto_search(text) if library else None

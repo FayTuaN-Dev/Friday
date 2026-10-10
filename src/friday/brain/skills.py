@@ -107,7 +107,8 @@ SKILLS = (
            "add_note", "list_notes", "remove_note"),
           """- set_timer, set_reminder, list_reminders, cancel_reminder : minuteurs et rappels. Pour
   un rappel, donne l'heure (« 18:00 ») et le jour (« demain », « lundi »), ou le délai
-  (« 2 minutes »), EXACTEMENT comme l'utilisateur les a dits : ne convertis rien.
+  (« 2 minutes »), EXACTEMENT comme l'utilisateur les a dits : ne convertis rien. Une
+  alerte à une heure (« mets une alerte à 7 h ») est un rappel : set_reminder.
 - add_note, list_notes, remove_note : notes et listes (courses, tâches…).
 - Quand l'utilisateur demande de sauvegarder, garder ou mettre de côté des informations
   (par exemple les points d'intérêt d'une recherche) : appelle add_note pour chacune, dans
@@ -115,7 +116,8 @@ SKILLS = (
   pas l'avoir fait.""",
           ("rappel", "minuteur", "timer", "alarme", "chrono", "note", "liste", "course",
            "tache", "achete", "dans 5 minutes", "dans 10 minutes", "previens moi", "sauvegard",
-           "point d interet", "points d interet", "de cote", "garde moi", "garde ces"),
+           "point d interet", "points d interet", "de cote", "garde moi", "garde ces",
+           "alerte a ", "alerte pour", "alerte demain", "alerte ce soir"),
           ("rappelle-moi d'appeler maman à 18 h", "minuteur de 10 minutes",
            "ajoute du lait à ma liste de courses", "qu'y a-t-il sur ma liste")),
     Skill("routines", "routines : demandes que Friday fait seule, régulièrement, à heure fixe",
@@ -188,22 +190,24 @@ SKILLS = (
            "mes cours", "mon cours", "selon mes", "dans mes notes de cours", "mes fiches"),
           ("que dit mon livre sur la gestion du risque", "cherche dans ma bibliothèque",
            "qu'y a-t-il dans mes documents sur le Forex", "d'après mes cours, c'est quoi un pip")),
-    Skill("trading", "mode trading : calculs de risque, journal de trading, analyses",
+    Skill("trading", "trading : calculs de risque, check-list, journal, alertes, backtest, "
+          "stratégies, briefing trading",
           ("position_size", "pip_value", "risk_reward", "log_trade", "annotate_trade", "close_trade",
-           "trade_stats", "trading_analysis", "open_journal", "trade_check", "backtest_plan", "set_price_alert", "watch_setup",
-           "list_alerts", "cancel_alert", "trading_briefing", "past_analyses", "compare_strategies",
-           "choose_strategy", "translate_plan"),
-          """- Mode trading actif. position_size, pip_value, risk_reward : calculs EXACTS faits
-  sur le PC ; extrais les chiffres de la demande, n'en invente aucun (demande ceux qui
-  manquent), puis répète le résultat tel quel. Jamais de calcul de tête.
+           "trade_stats", "open_journal", "trade_check", "backtest_plan", "set_price_alert",
+           "watch_setup", "list_alerts", "cancel_alert", "trading_briefing", "past_analyses",
+           "compare_strategies", "choose_strategy", "translate_plan"),
+          """- Outils de trading du PC (rien ne part en ligne, sauf translate_plan après aperçu).
+  position_size, pip_value, risk_reward : calculs EXACTS faits sur le PC ; extrais les
+  chiffres de la demande, n'en invente aucun (demande ceux qui manquent), puis répète le
+  résultat tel quel. Jamais de calcul de tête.
 - trade_check : la check-list avant trade. Dès que l'utilisateur décrit une idée de trade
   chiffrée (« je veux acheter l'or à 4 160, stop 4 140 ») ou demande si un trade respecte son
   plan : sens, entrée, stop (et objectif, risque, lots s'il les donne). Répète le feu tel quel.
 - backtest_plan : rejouer le plan sur l'historique (« teste mon plan sur l'or », « et avec
   un objectif à 3 R ? »). Répète la phrase donnée telle quelle.
 - set_price_alert (« préviens-moi si l'or passe 4 150 »), watch_setup (« surveille l'or » :
-  le setup du plan), list_alerts, cancel_alert : les alertes, surveillées sur le PC et
-  annoncées à la voix. Répète la phrase donnée telle quelle.
+  le setup du plan), list_alerts, cancel_alert : les alertes de PRIX, surveillées sur le PC
+  et annoncées à la voix (une alerte à une heure est un rappel). Répète la phrase telle quelle.
 - compare_strategies (« compare les stratégies sur l'or ») et choose_strategy (« choisis la
   cassure de range pour l'or ») : la bibliothèque de stratégies. Répète la phrase telle quelle.
 - translate_plan : traduire son plan écrit en règles (« traduis mon plan »), après aperçu.
@@ -213,20 +217,29 @@ SKILLS = (
   trading ») ; à ne pas confondre avec le briefing du matin. Répète le texte tel quel.
 - log_trade (avec setup, plan respecté, état d'esprit s'il les dit), annotate_trade (les
   ajouter après coup), close_trade, trade_stats (bilan et ce que le journal apprend) : le journal.
-  « Note ce trade » / « note le trade » : log_trade (le journal), jamais add_note de trading (local) ; open_journal :
+  « Note ce trade » / « note le trade » : log_trade (le journal), jamais add_note ; open_journal :
   l'ouvrir à l'écran (« ouvre mon journal »).
-- trading_analysis : faire analyser une question par Claude (l'utilisateur valide d'abord).
+- Une question d'analyse de marché (« que penses-tu de l'or ? ») : seul Claude l'analyse, et
+  seulement en mode trading ; s'il n'est pas actif, propose de dire « mode trading ».
 - Tu ne donnes jamais d'ordre ni de signal ; tu ne passes jamais d'ordre.""",
-          ("taille de position", "lots", "pip", "ratio", "risque rendement", "journal de trading",
-           "mes trades", "trade", "stop", "check list", "checklist", "mon plan", "acheter", "backtest",
-           "historique", "alerte", "previens moi", "surveille", "setup se forme",
-           "briefing trading", "journee de trading",
-           "mes analyses", "dernieres analyses", "tes analyses", "strategie", "strategies",
-           "vendre"),
+          ("taille de position", "combien de lots", "nombre de lots", "valeur du pip",
+           "valeur d un pip", "pip ", "pips ", "risque rendement", "ratio risque", "risk reward",
+           "trade", "journal de trading", "mon journal de", "check list", "checklist",
+           "respecte mon plan", "respecte le plan", "mon plan de trading", "backtest", "back test",
+           "teste mon plan", "teste le plan", "briefing trading", "brief trading",
+           "journee de trading", "mes analyses", "dernieres analyses", "tes analyses",
+           "strategie", "setup"),
           ("calcule ma taille de position", "combien vaut un pip sur 0,5 lot",
            "note ce trade dans le journal", "quel est mon bilan de trading",
            "je veux acheter l'or à 4160 stop 4140", "ce trade respecte-t-il mon plan",
-           "teste mon plan sur l'historique de l'or")),
+           "teste mon plan sur l'historique de l'or", "préviens-moi si l'or passe 4150",
+           "quelles alertes de prix j'ai")),
+    Skill("analyse_trading", "mode trading : faire analyser une question de marché par Claude",
+          ("trading_analysis",),
+          """- Mode trading actif. trading_analysis : faire analyser une question de marché par
+  Claude (l'utilisateur valide d'abord l'aperçu). Tu ne donnes jamais d'ordre ni de signal.""",
+          ("analyse", "ton avis", "que penses"),
+          ("que penses-tu de l'or en ce moment", "analyse l'EUR/USD")),
     Skill("claude", "Claude Code : coder, créer ou modifier des fichiers, longues tâches",
           ("ask_claude_code", "cancel_claude_task", "create_skill", "install_skill",
            "list_learned_skills", "remove_learned_skill"),

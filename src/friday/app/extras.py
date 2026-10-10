@@ -78,8 +78,9 @@ def load_library(settings: Settings, memory):
 
 
 def load_trading(settings: Settings, library):
-    """Mode trading (désactivé au démarrage, activé par « mode trading »). Demande Claude Code."""
-    if not settings.trading.enabled or not settings.claude_enabled:
+    """Trading : outils locaux toujours là ; le mode trading (désactivé au démarrage, activé
+    par « mode trading ») envoie les analyses à Claude, s'il est activé dans les réglages."""
+    if not settings.trading.enabled:
         return None
     try:
         from friday.trading import Trading, news, related
@@ -119,8 +120,10 @@ def load_trading(settings: Settings, library):
         market = warm.wrap("marche", snapshot)
         builder = ContextBuilder(library, journal, config.passages, config.max_chars,
                                  config.blocklist, capture, market, context)  # fmt: skip
-        job = isolated_job(DATA_DIR / "trading_claude", config.model or settings.claude_model,
-                           settings.claude_timeout)  # fmt: skip
+        model = config.model or settings.claude_model
+        claude = settings.claude_enabled  # sans Claude : ni analyses, ni traduction du plan
+        job = (isolated_job(DATA_DIR / "trading_claude", model, settings.claude_timeout)
+               if claude else None)  # fmt: skip
         rules = DATA_DIR / "trading_rules.json"
         alerts = AlertWatcher(AlertStore(DATA_DIR / "trading_alerts.json"), rules,
                               capture.window_title, hours=config.hours)  # fmt: skip
@@ -131,11 +134,10 @@ def load_trading(settings: Settings, library):
                                            config.briefing)  # fmt: skip
         trading.prepare = lambda instrument: (market(instrument), context.blocks(instrument))
         trading.choice = choice
-        trading.translator = translator(DATA_DIR / "trading_claude",
-                                        config.model or settings.claude_model,
-                                        settings.claude_timeout)  # fmt: skip
+        trading.translator = (translator(DATA_DIR / "trading_claude", model,
+                                         settings.claude_timeout) if claude else None)  # fmt: skip
         alerts.choice = trading.choice  # les alertes suivent la stratégie choisie
         return trading
     except Exception:
-        log.exception("Mode trading indisponible, Friday continue sans")
+        log.exception("Trading indisponible, Friday continue sans")
         return None
