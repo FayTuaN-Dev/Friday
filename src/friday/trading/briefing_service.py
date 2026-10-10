@@ -28,6 +28,7 @@ class BriefingService:
         self.trading, self.state_path, self.hours = trading, state_path, hours
         self.configured, self.auto, self.history = instruments, auto, history
         self.now, self.interval = now, interval
+        self.world = None  # instruments → ligne « Monde » (J9), ou None
         self._stop = threading.Event()
 
     def instruments(self) -> list[Instrument]:
@@ -42,13 +43,15 @@ class BriefingService:
 
     def build(self, instruments: list[Instrument] | None = None) -> TradingBriefing:
         alerts = getattr(self.trading, "alerts", None)
+        instruments = instruments or self.instruments()
         return build(
-            instruments or self.instruments(), self.history, self._events(),
+            instruments, self.history, self._events(),
             load_rules(self.trading.rules_path), self.now(), self.hours,
             alerts.store.offsets if alerts is not None else {},
             sum(1 for t in self.trading.journal.all_trades() if t.exit is None),
             len(alerts.store.all()) if alerts is not None else 0,
             getattr(getattr(self.trading, "choice", None), "get", None),
+            self.world(instruments) if self.world else "",
         )  # fmt: skip
 
     def due(self) -> bool:

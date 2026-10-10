@@ -21,7 +21,7 @@ from friday.ui.desktop.popups.base import Popup
 KINDS = {
     "extrait": "Extrait", "capture": "Capture", "bilan": "Bilan", "marche": "Marché",
     "calendrier": "Calendrier", "actualites": "Actualités", "positionnement": "Positionnement",
-    "seances": "Séances", "plan": "Plan", "marches_lies": "Marchés liés",
+    "seances": "Séances", "plan": "Plan", "marches_lies": "Marchés liés", "monde": "Monde",
 }  # fmt: skip
 
 

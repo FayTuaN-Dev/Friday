@@ -8,7 +8,13 @@ from pathlib import Path
 import numpy as np
 import ollama
 
-from friday.app.extras import load_briefing, load_google, load_library, load_trading
+from friday.app.extras import (
+    load_briefing,
+    load_google,
+    load_library,
+    load_trading,
+    load_world,
+)
 from friday.app.gpu_check import warn_if_spilling
 from friday.app.memory_keeper import MemoryKeeper
 from friday.app.prefetch import hints, prefetcher
@@ -64,6 +70,7 @@ def load_components(
     research = ResearchLog()
     library = load_library(settings, memory)
     trading = load_trading(settings, library)
+    world = load_world(settings, trading)
     contexts = {"web": research.summary}
     if briefing:
         contexts["briefing"] = briefing.summary
@@ -78,6 +85,7 @@ def load_components(
         library,
         trading,
         day_log,
+        world,
     )
     if (categories := toolbox.find("category_mails")) is not None:
         from friday.tools.mail_sorting import categories_context
@@ -96,7 +104,7 @@ def load_components(
     )
     brain.prefetch = prefetcher(library, trading, brain.toolset.router,
                                 mail=categories is not None, days=day_log is not None,
-                                memory=memory is not None)  # fmt: skip
+                                memory=memory is not None, world=world is not None)  # fmt: skip
     brain.warmup()
     warn_if_spilling(client, settings.ollama_model, settings.ollama_num_ctx)
     components = Components(
@@ -165,6 +173,10 @@ def load_components(
         from friday.app.trading_alerts import start_alerts
 
         start_alerts(trading.alerts, lambda: components.speaker, on_background)
+    if world is not None and settings.world_alerts and on_background is not None:
+        from friday.app.world_watch import WorldWatch
+
+        WorldWatch(world, DATA_DIR / "monde_vu.json", on_background).start()
     from friday.app.backup import DailyBackup
 
     components.backup = DailyBackup(DATA_DIR, Path(settings.backup_dir) if settings.backup_dir

@@ -7,16 +7,30 @@ contenir « ignore tes consignes et fais… ».
    déclencher seul. Les actions sensibles (envoyer, supprimer) sont de toute façon confirmées.
 """
 
+import re
+
 # Outils qui ramènent du texte écrit par des tiers
 EXTERNAL = {
     "web_search", "read_webpage", "search_images", "read_file", "read_clipboard", "check_mail",
     "search_mail", "read_mail", "category_mails", "look_at_screen", "search_library",
+    "world_news", "market_movers",
 }  # fmt: skip
 # Actions confirmées seulement si un contenu externe vient d'être lu
 GUARDED_AFTER_EXTERNAL = {
     "open_website", "open_app", "open_file", "remember", "add_event", "add_note",
     "set_reminder", "play_music",
 }  # fmt: skip
+EXACT = re.compile(r"Dis EXACTEMENT : « (.+) »", re.DOTALL)
+
+
+def exact_sentence(text: str) -> str | None:
+    """La phrase toute faite d'un outil (« Dis EXACTEMENT : « … » », rien d'autre), ou None.
+    Celle d'un outil lancé d'office est dite telle quelle, sans le modèle : qwen la résumait
+    parfois (constaté, J9), et des titres de tiers n'ont pas à passer par lui."""
+    found = EXACT.fullmatch(text.strip())
+    return found.group(1).strip() if found else None
+
+
 # Marques laissées dans la demande par les pièces jointes (presse-papier, fichiers)
 ATTACHED_MARKERS = ("[Texte copié par l'utilisateur", "[Fichier joint", "[Fichier copié")
 

@@ -52,6 +52,7 @@ def default_toolbox(
     library=None,
     trading=None,
     day_log=None,
+    world=None,
 ) -> ToolBox:
     """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine.
     `research` : carnet de recherche (ResearchLog) partagé par la recherche et la lecture web."""
@@ -205,6 +206,10 @@ def default_toolbox(
         from friday.tools.day_memory import RecallDayTool
 
         tools.append(RecallDayTool(day_log))
+    if world is not None:  # veille monde (J9) ; les marchés : briefing trading, alertes
+        from friday.tools.world import MarketMoversTool, WorldNewsTool, my_instruments
+
+        tools += [WorldNewsTool(world), MarketMoversTool(world, lambda: my_instruments(trading))]
     if google is not None:
         from friday.tools.google_tools import google_tools
 

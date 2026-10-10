@@ -80,6 +80,8 @@ class Settings:
     clap_wake: bool = True  # double clap = « Friday » (J3), avec l'écoute mains libres
     clap_sensitivity: str = "moyenne"  # « faible », « moyenne » ou « forte »
     scenes: bool = True  # météo en scène plein écran plutôt qu'en fenêtre (J7)
+    world: bool = True  # veille monde : actualité internationale, catastrophes (J9)
+    world_alerts: bool = True  # notification discrète pour un événement majeur (J9)
     trading: TradingSettings = TradingSettings()
 
 
@@ -163,6 +165,8 @@ def load_settings() -> Settings:
         clap_wake=_bool("CLAP_WAKE", True),
         clap_sensitivity=os.getenv("CLAP_SENSITIVITY", "moyenne").strip().lower(),
         scenes=_bool("SCENES", True),
+        world=_bool("WORLD", True),
+        world_alerts=_bool("WORLD_ALERTS", True),
         trading=TradingSettings(
             enabled=_bool("TRADING_ENABLED", True),
             passages=max(1, min(15, int(os.getenv("TRADING_PASSAGES", "10")))),

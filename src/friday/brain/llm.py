@@ -122,12 +122,21 @@ class Brain:
         if self._think:
             yield ThinkingStarted()
         try:
+            rounds = MAX_TOOL_ROUNDS + 1
             if self.prefetch and (auto := self.prefetch(user_text)):
                 acted = True
                 name, args = auto
                 call = SimpleNamespace(function=SimpleNamespace(name=name, arguments=args))
-                yield from self._run_tools([call], "", cancelled)
-            for round_ in range(MAX_TOOL_ROUNDS + 1):
+                results = []
+                for event in self._run_tools([call], "", cancelled):
+                    if isinstance(event, ToolFinished):
+                        results.append(event.result.text)
+                    yield event
+                if results and (exact := safety.exact_sentence(results[0])):
+                    yield exact  # dite telle quelle : le modèle n'a rien à ajouter
+                    self.conversation.add("assistant", exact)
+                    rounds = 0
+            for round_ in range(rounds):
                 parts = []
                 calls: list[Any] = []
                 # Au dernier tour, plus d'outils : le modèle doit conclure.
