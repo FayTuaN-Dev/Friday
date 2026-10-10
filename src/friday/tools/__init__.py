@@ -4,6 +4,15 @@ from friday.core.config import Settings
 from friday.tools.base import Display, Tool, ToolBox, ToolResult
 
 
+def routine_tools() -> list[Tool]:
+    from friday.agenda.routines import RoutineStore
+    from friday.core.config import DATA_DIR
+    from friday.tools.routines import AddRoutineTool, ListRoutinesTool, RemoveRoutineTool
+
+    store = RoutineStore(DATA_DIR / "routines.json")
+    return [AddRoutineTool(store), ListRoutinesTool(store), RemoveRoutineTool(store)]
+
+
 def default_toolbox(
     settings: Settings,
     memory=None,
@@ -144,6 +153,7 @@ def default_toolbox(
             SetTimerTool(agenda), SetReminderTool(agenda), ListRemindersTool(agenda),
             CancelReminderTool(agenda), AddNoteTool(agenda), ListNotesTool(agenda),
             RemoveNoteTool(agenda),
+            *routine_tools(),
         ]  # fmt: skip
     if memory is not None:
         from friday.tools.memory import ForgetTool, ListMemoriesTool, RememberTool

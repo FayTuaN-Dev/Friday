@@ -10,6 +10,7 @@ TITLES = {
     "briefing trading": "🌅 Briefing trading",
     "traduction du plan": "📝 Plan traduit",
     "rêve de la nuit": "🌙 Rêve de la nuit",
+    "routine": "🔁 Routine",
 }
 QUIET = {"rêve de la nuit"}  # notification seulement : Friday ne parle pas (3 h du matin)
 MAX_CHARS = 200

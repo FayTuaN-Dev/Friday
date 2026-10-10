@@ -114,6 +114,22 @@ SKILLS = (
            "point d interet", "points d interet", "de cote", "garde moi", "garde ces"),
           ("rappelle-moi d'appeler maman à 18 h", "minuteur de 10 minutes",
            "ajoute du lait à ma liste de courses", "qu'y a-t-il sur ma liste")),
+    Skill("routines", "routines : demandes que Friday fait seule, régulièrement, à heure fixe",
+          ("add_routine", "list_routines", "remove_routine"),
+          """- add_routine : quand l'utilisateur veut que tu fasses quelque chose RÉGULIÈREMENT à
+  heure fixe (« tous les jours à 7 h, fais-moi mon briefing », « chaque lundi à 8 h, trie
+  mes mails »). request = l'action seule, avec ses mots ; time = l'heure ; days = les jours
+  EXACTEMENT comme dits. Ne fais PAS l'action maintenant : programme-la.
+- list_routines, remove_routine : voir et supprimer les routines.""",
+          ("routine", "tous les jours", "tous les matins", "tous les soirs", "chaque jour",
+           "chaque matin", "chaque soir", "chaque lundi", "chaque semaine", "tous les lundis",
+           "tous les mardis", "tous les mercredis", "tous les jeudis", "tous les vendredis",
+           "tous les samedis", "tous les dimanches", "en semaine", "le week end", "programme",
+           # « le vendredi à 18 h, fais… » : en français, une habitude
+           "le lundi a", "le mardi a", "le mercredi a", "le jeudi a", "le vendredi a",
+           "le samedi a", "le dimanche a", "les lundis", "les vendredis"),
+          ("tous les jours à 7 h, fais-moi mon briefing", "chaque lundi à 8 h, trie mes mails",
+           "quelles sont mes routines ?", "supprime la routine des mails")),
     Skill("calendar", "agenda Google : voir, ajouter, déplacer, supprimer des rendez-vous",
           ("list_events", "add_event", "move_event", "delete_event"),
           """- list_events, add_event, move_event, delete_event : l'agenda Google. Pour l'agenda (« qu'est-ce

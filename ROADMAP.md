@@ -91,6 +91,8 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 
 ## Notes pour plus tard
 
+- **Spotify : lancer une playlist précise** (« lance Nova », « ma playlist chill ») : aujourd'hui Friday ouvre Spotify ou une recherche puis appuie sur lecture, sans lancer la playlist demandée (constaté le 10/10/2026).
+
 - **Recherche web plus fiable** : les moteurs gratuits (via `ddgs`) limitent parfois les requêtes
   d'une même connexion. Si ça devient gênant, ajouter un fournisseur avec clé gratuite en secours :
   Brave Search API (2 000 recherches/mois) ou Tavily (1 000/mois, pensé pour les assistants IA).
@@ -174,7 +176,7 @@ Idées tirées de [jarvis-OS](https://github.com/Grominet95/jarvis-OS) (AGPL-3.0
 | J2 | **Rêve nocturne** : la nuit, Friday relit les échanges de la journée (F5) pour en tirer les faits manqués, et prépare un rapport de ménage (souvenirs contradictoires, erreurs répétées) qu'elle propose sans rien appliquer seule | Une mémoire qui s'entretient | ✅ |
 | J3 | **Double clap** pour réveiller Friday (sensibilité réglable) | Un réveil sans mot d'activation | ✅ |
 | J4 | **Sphère de particules** qui réagit à la voix, séquence de démarrage (auto-test qui défile), widget « En écoute » (Spotify, YouTube… via Windows) | L'effet Jarvis | ✅ |
-| J5 | **Routines planifiées** (« tous les jours à 7 h… », « le lundi… »), rattrapées si le PC était éteint | Friday agit seule à heure fixe | ⬜ |
+| J5 | **Routines planifiées** (« tous les jours à 7 h… », « le lundi… »), rattrapées si le PC était éteint | Friday agit seule à heure fixe | ✅ |
 | J6 | **Friday sur le téléphone** : bot Telegram réservé à l'utilisateur, ou Tailscale (privé) — remplace F6 | Parler à Friday hors du bureau | ⬜ |
 | J7 | **Scènes plein écran** : météo animée, carte 3D d'un lieu (« montre-moi la tour Eiffel »), retour à la sphère | Des réponses qui se voient | ⬜ |
 | J8 | **Atelier de compétences** : Claude écrit une nouvelle compétence, Friday la teste, l'inspecte (droits demandés) et l'installe après validation de l'utilisateur | Friday apprend de nouveaux outils | ⬜ |
