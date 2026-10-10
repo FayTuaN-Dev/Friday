@@ -135,3 +135,27 @@ def test_creating_a_skill_runs_claude_then_checks(tmp_path, monkeypatch):
     assert tool.run("suivre mes colis").text.startswith("C'est lancé")
     assert finished.wait(120)
     assert done[0].startswith("Dis EXACTEMENT : « La compétence « Convertisseur")
+
+
+def test_learned_skills_load_alongside_trading(tmp_path, monkeypatch):
+    """Constaté (T8) : le labo des stratégies masquait l'atelier → démarrage impossible."""
+    import dataclasses
+
+    from fakes import SETTINGS
+
+    from friday.tools import default_toolbox
+    from friday.trading import Trading
+    from friday.trading.context_builder import ContextBuilder
+    from friday.trading.journal import TradeJournal
+    from friday.trading.mode import TradingMode
+
+    monkeypatch.setattr("friday.core.config.DATA_DIR", tmp_path)
+    lab = Lab(tmp_path)
+    lab.install(lab.check(draft(lab, "essai6")))
+    journal = TradeJournal(tmp_path / "t.db")
+    trading = Trading(TradingMode(), journal, ContextBuilder(None, journal), None, choice=object())
+    claude = dataclasses.replace(SETTINGS, claude_enabled=True, claude_workspace=tmp_path)
+    box = default_toolbox(claude, trading=trading, on_background=lambda *a: None)
+    assert box.find("celsius_to_fahrenheit") is not None
+    assert box.find("compare_strategies") is not None and box.find("log_trade") is not None
+    assert box.find("trading_analysis") is None  # sans Claude : pas d'analyse

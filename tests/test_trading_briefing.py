@@ -157,8 +157,11 @@ def test_the_code_launches_the_briefing_with_the_named_instrument():
     assert briefing_request("prépare ma journée de trading sur l'EUR/USD") == "EURUSD"
     assert briefing_request("quel temps fait-il ?") is None
     assert briefing_request("(Message automatique, pas de l'utilisateur.) briefing trading") is None
-    trading = SimpleNamespace(mode=TradingMode(), briefing=object())
+    trading = SimpleNamespace(mode=TradingMode(), briefing=object(), job=None)
     prefetch = prefetcher(None, trading, None)
-    assert prefetch("briefing trading sur l'or") is None  # hors du mode trading
+    # hors du mode trading aussi (une routine « briefing trading » à 8 h, T8)…
+    assert prefetch("briefing trading sur l'or") == ("trading_briefing", {"instrument": "XAUUSD"})
+    assert prefetch("prépare ma journée") is None  # … mais ça, c'est le briefing du matin
     trading.mode.enabled = True
     assert prefetch("briefing trading sur l'or") == ("trading_briefing", {"instrument": "XAUUSD"})
+    assert prefetch("prépare ma journée") == ("trading_briefing", {"instrument": ""})

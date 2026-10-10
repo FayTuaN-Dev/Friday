@@ -71,7 +71,9 @@ src/friday/
 │   ├── store.py           AgendaStore : rappels et listes dans SQLite
 │   ├── times.py           calcul des dates (« 18:00 » + « demain » → date exacte)
 │   └── scheduler.py       ReminderScheduler : déclenche à l'heure, rattrape les manqués
-├── trading/               mode trading (« mode trading » / « fin du mode trading »)
+├── trading/               trading : outils locaux toujours là (calculs, check-list, journal,
+│                          alertes, backtest, stratégies, briefing) ; le mode trading (« mode
+│                          trading » / « fin du mode trading ») envoie les analyses à Claude
 │   ├── mode.py            état du mode, commandes, aiguillage local / analyse (déterministe)
 │   ├── masking.py         masquage avant aperçu : montants, comptes, IBAN, e-mails, clés, chemins
 │   ├── context_builder.py paquet minimal (question + extraits plafonnés), balises neutralisées ;

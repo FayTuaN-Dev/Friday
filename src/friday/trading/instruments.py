@@ -9,6 +9,7 @@ TradingView (son titre commence par le symbole). Un symbole inconnu est traité 
 action (« AAPL », « MC.PA »).
 """
 
+import math
 import re
 from dataclasses import dataclass
 
@@ -122,6 +123,16 @@ def detect(text: str) -> Instrument | None:
             return found
     stock = re.search(r"\bactions?\s+(?:de\s+|d')?([A-Z][A-Z0-9]{0,5}(?:\.[A-Z]{1,3})?)\b", text)
     return by_symbol(stock.group(1)) if stock else None
+
+
+def same_scale(value: float, price: float) -> float:
+    """Un prix dicté dont la virgule s'est perdue (« 1,1650 » lu 11650 par le modèle,
+    constaté) : ramené à l'échelle du cours s'il en est décalé d'une puissance de 10."""
+    if value <= 0 or price <= 0:
+        return value
+    power = math.log10(value / price)
+    k = round(power)
+    return value / 10**k if k != 0 and abs(power - k) < 0.3 else value
 
 
 def parse_price(text: str) -> float | None:

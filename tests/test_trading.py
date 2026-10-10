@@ -254,20 +254,81 @@ def test_outside_trading_mode_nothing_changes(tmp_path):
     assert hints(library, trading)["library"]("c'est quoi un pip ?") == ""
 
 
-def test_trading_tools_exist_only_in_trading_mode(tmp_path):
+def test_local_trading_tools_are_always_there_claude_only_in_trading_mode(tmp_path):
+    """T8 : calculs, journal, alertes… sans dire « mode trading » ; l'analyse par Claude,
+    elle, n'existe qu'en mode trading (même pas chargeable hors du mode)."""
     mode = TradingMode()
     journal = TradeJournal(tmp_path / "t.db")
-    box = ToolBox([PositionSizeTool("EUR"), RiskRewardTool(), TradeStatsTool(journal)])
+    analysis = TradingAnalysisTool(ContextBuilder(None, journal), FakeJob(), journal,
+                                   lambda *a: None)  # fmt: skip
+    box = ToolBox([PositionSizeTool("EUR"), RiskRewardTool(), TradeStatsTool(journal), analysis])
     client = FakeClient(rounds=[["ok"]] * 2)
     brain = Brain(SETTINGS, client=client, toolbox=box, router=SkillRouter(SKILLS),
-                  skill_gates={"trading": lambda: mode.enabled})  # fmt: skip
+                  skill_gates={"analyse_trading": lambda: mode.enabled})  # fmt: skip
     list(brain.reply("Calcule ma taille de position"))
     names = {t["function"]["name"] for t in client.calls[-1]["tools"] or []}
-    assert not names & {"position_size", "risk_reward", "trade_stats"}
-    assert "trading" not in str(client.calls[-1]["tools"])  # même pas chargeable
+    assert "position_size" in names and "trading_analysis" not in names
+    assert "analyse_trading" not in str(client.calls[-1]["tools"])  # même pas chargeable
     mode.enabled = True
-    list(brain.reply("Calcule ma taille de position"))
-    assert "position_size" in {t["function"]["name"] for t in client.calls[-1]["tools"]}
+    list(brain.reply("Que penses-tu de l'or ?"))
+    assert "trading_analysis" in str(client.calls[-1]["tools"])
+
+
+def test_trading_words_do_not_steal_everyday_requests():
+    from friday.app.prefetch import market_request
+
+    choose = SkillRouter(SKILLS).choose
+    for text in (
+        "mets une alerte à 7 h",
+        "stoppe la musique",
+        "prépare ma journée",
+        "regarde l'historique de mes mails",
+        "vends-moi ce film en deux phrases",
+    ):
+        assert "trading" not in choose(text), text
+        assert market_request(text) == "", text
+    for text in (
+        "note ce trade dans mon journal",
+        "calcule ma taille de position",
+        "teste mon plan sur l'or",
+        "briefing trading",
+    ):
+        assert "trading" in choose(text), text
+    assert "l'or" in market_request("préviens-moi si l'or passe 4150")
+    assert "EUR/USD" in market_request("je vends l'EUR/USD à 1,10 stop 1,105")
+    assert "mode trading" in market_request("que penses-tu de l'or en ce moment ?")
+
+
+def test_the_code_launches_the_pip_value_in_and_out_of_trading_mode(tmp_path):
+    from friday.app.prefetch import pip_request
+
+    assert pip_request("combien vaut un pip sur 2 lots d'or") == (
+        "pip_value", {"instrument": "l'or", "lots": 2.0})  # fmt: skip
+    assert pip_request("valeur du pip pour 0,5 lot de GBP/USD")[1]["lots"] == 0.5
+    assert pip_request("c'est quoi un pip ?") is None  # une question, pas un calcul
+    assert pip_request("2 lots de pipettes") is None
+    journal = TradeJournal(tmp_path / "t.db")
+    trading = Trading(TradingMode(), journal, ContextBuilder(None, journal), FakeJob())
+    prefetch = prefetcher(None, trading, SkillRouter(SKILLS))
+    trading.mode.enabled = True  # en mode trading : le calcul, pas une analyse par Claude
+    assert prefetch("combien vaut un pip sur 2 lots d'or")[0] == "pip_value"
+
+
+def test_a_price_whose_comma_was_lost_is_put_back_to_scale():
+    from friday.trading.instruments import same_scale
+
+    assert same_scale(11650, 1.1205) == pytest.approx(1.165)  # « 1,1650 » lu 11650 (constaté)
+    assert same_scale(41.5, 4216.3) == pytest.approx(4150)
+    assert same_scale(4150, 4216.3) == 4150  # bonne échelle : inchangé
+    assert same_scale(3000, 4216.3) == 3000  # loin, mais pas d'un facteur 10 : inchangé
+
+
+def test_without_claude_the_mode_is_refused_but_tools_stay(tmp_path):
+    journal = TradeJournal(tmp_path / "t.db")
+    trading = Trading(TradingMode(), journal, ContextBuilder(None, journal), None)
+    prefetch = prefetcher(None, trading, SkillRouter(SKILLS))
+    trading.mode.enabled = True  # même forcé : rien ne part vers un Claude absent
+    assert prefetch("que penses-tu de l'or ?") is None
 
 
 # --- calculs déterministes et journal -------------------------------------------------------
@@ -371,6 +432,32 @@ def test_voice_command_toggles_mode_before_the_model(tmp_path, monkeypatch):
     assert listener.reply_done.wait(3)
     assistant.shutdown()
     assert not trading.mode.enabled
+
+
+def test_trading_mode_is_refused_when_claude_is_disabled(tmp_path, monkeypatch):
+    from fakes import RecordingListener
+
+    from friday.app.assistant import Assistant
+    from friday.app.components import Components
+
+    monkeypatch.setattr("friday.voice.ptt.keyboard.hook_key", lambda key, cb: cb)
+    monkeypatch.setattr("friday.voice.ptt.keyboard.unhook", lambda hook: None)
+    journal = TradeJournal(tmp_path / "t.db")
+    trading = Trading(TradingMode(), journal, ContextBuilder(None, journal), None)
+    client = FakeClient(rounds=[["Claude est désactivé."]])
+    listener = RecordingListener()
+
+    def loader(settings, *args, **kwargs):
+        return Components(brain=Brain(settings, client=client), trading=trading)
+
+    assistant = Assistant(SETTINGS, listener, loader=loader)
+    assistant.start()
+    assert listener.ready.wait(3)
+    assistant.submit_text("mode trading")
+    assert listener.reply_done.wait(3)
+    assistant.shutdown()
+    assert not trading.mode.enabled
+    assert "Claude est désactivé" in client.calls[-1]["messages"][-1]["content"]
 
 
 def test_preview_popup_lets_the_user_remove_items_and_decide(tmp_path):

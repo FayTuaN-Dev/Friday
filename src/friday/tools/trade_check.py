@@ -11,7 +11,7 @@ from friday.tools.trading import INSTRUMENT, Prices, value_per_lot
 from friday.trading import Trading, risk_calc
 from friday.trading.calendar import SourceUnavailable
 from friday.trading.checklist import ICONS, Context, Idea, Market
-from friday.trading.instruments import Instrument, chart_price
+from friday.trading.instruments import Instrument, chart_price, same_scale
 from friday.trading.market import MarketUnavailable, fetch
 from friday.trading.plan_checks import evaluate
 from friday.trading.plan_rules import load_rules
@@ -66,13 +66,17 @@ class TradeCheckTool(Tool):
             item = risk_calc.resolve(instrument) if instrument else trading.instrument_for("")
             if item is None:
                 return ToolResult("Quel instrument ? Demande-le.")
+            market = self._market(item)
+            if market is not None:  # virgule perdue par le modèle : remise à l'échelle
+                entry, stop = same_scale(entry, market.price), same_scale(stop, market.price)
+                target = same_scale(target, market.price) if target else target
             idea = Idea(item, direction, entry, stop, target, risk_percent, lots)
             idea.check_sides()
         except ValueError as error:
             return ToolResult(f"Vérification impossible : {error} Dis-le simplement.")
         choice = getattr(self.trading, "choice", None)
         strategy = choice.get(item.symbol) if choice is not None else None
-        verdict = evaluate(idea, self._market(item), self._context(item, entry), self._rules(),
+        verdict = evaluate(idea, market, self._context(item, entry), self._rules(),
                            strategy)  # fmt: skip
         title = f"{direction.capitalize()} {item.name} à {entry:g}, stop {stop:g}"
         items = [{"text": verdict.text().split("\n")[0], "meta": "Calculé sur le PC, sans Claude"}]

@@ -133,9 +133,11 @@ def default_toolbox(
             AnnotateTradeTool(trading.journal), CloseTradeTool(trading.journal),
             TradeStatsTool(trading.journal), OpenJournalTool(), TradeCheckTool(trading),
             BacktestTool(trading),
-            TradingAnalysisTool(trading.builder, trading.job, trading.journal, on_background,
-                                trading.instrument_for, trading.chart_shows),
         ]  # fmt: skip
+        if trading.job is not None:  # l'analyse par Claude (mode trading)
+            tools.append(TradingAnalysisTool(trading.builder, trading.job, trading.journal,
+                                             on_background, trading.instrument_for,
+                                             trading.chart_shows))  # fmt: skip
         from friday.tools.analyses import PastAnalysesTool
         from friday.trading.alerts.watcher import yahoo_price
 
@@ -147,9 +149,9 @@ def default_toolbox(
                 StrategyLab,
             )
 
-            lab = StrategyLab(trading)
-            tools += [CompareStrategiesTool(lab, trading.choice),
-                      ChooseStrategyTool(lab, trading.choice)]  # fmt: skip
+            strategies = StrategyLab(trading)
+            tools += [CompareStrategiesTool(strategies, trading.choice),
+                      ChooseStrategyTool(strategies, trading.choice)]  # fmt: skip
         if trading.translator is not None and trading.choice is not None:
             from friday.tools.plan_translate import TranslatePlanTool
 
