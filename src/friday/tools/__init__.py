@@ -14,6 +14,7 @@ def default_toolbox(
     research=None,
     library=None,
     trading=None,
+    day_log=None,
 ) -> ToolBox:
     """`on_background(tâche, résultat)` : appelé quand une tâche de fond (Claude) se termine.
     `research` : carnet de recherche (ResearchLog) partagé par la recherche et la lecture web."""
@@ -148,6 +149,10 @@ def default_toolbox(
         from friday.tools.memory import ForgetTool, ListMemoriesTool, RememberTool
 
         tools += [RememberTool(memory), ForgetTool(memory), ListMemoriesTool(memory)]
+    if day_log is not None:
+        from friday.tools.day_memory import RecallDayTool
+
+        tools.append(RecallDayTool(day_log))
     if google is not None:
         from friday.tools.google_tools import google_tools
 

@@ -36,6 +36,7 @@ class Components:
     library: object | None = None  # Library (bibliothèque de documents)
     trading: object | None = None  # Trading (mode trading)
     backup: object | None = None  # DailyBackup (sauvegarde quotidienne de data/)
+    day_log: object | None = None  # DayLog (mémoire de la journée)
 
 
 def load_components(
@@ -47,6 +48,11 @@ def load_components(
 ) -> Components:
     client = ollama.Client(host=settings.ollama_host)
     memory = load_memory(settings, client)
+    day_log = None
+    if settings.day_memory:
+        from friday.memory.day_log import DayLog
+
+        day_log = DayLog(DATA_DIR / "journee.db")
     agenda = None
     if settings.agenda_enabled:
         from friday.agenda.store import AgendaStore
@@ -62,7 +68,16 @@ def load_components(
     if briefing:
         contexts["briefing"] = briefing.summary
     toolbox = default_toolbox(
-        settings, memory, on_background, agenda, briefing, google, research, library, trading
+        settings,
+        memory,
+        on_background,
+        agenda,
+        briefing,
+        google,
+        research,
+        library,
+        trading,
+        day_log,
     )
     if (categories := toolbox.find("category_mails")) is not None:
         from friday.tools.mail_sorting import categories_context
@@ -78,7 +93,8 @@ def load_components(
         skill_hints=hints(library, trading),
         skill_gates={"trading": (lambda: trading.mode.enabled) if trading else (lambda: False)},
     )
-    brain.prefetch = prefetcher(library, trading, brain.toolset.router, mail=categories is not None)
+    brain.prefetch = prefetcher(library, trading, brain.toolset.router,
+                                mail=categories is not None, days=day_log is not None)  # fmt: skip
     brain.warmup()
     warn_if_spilling(client, settings.ollama_model, settings.ollama_num_ctx)
     components = Components(
@@ -89,6 +105,7 @@ def load_components(
         google=google,
         library=library,
         trading=trading,
+        day_log=day_log,
     )
 
     if memory and settings.memory_auto:

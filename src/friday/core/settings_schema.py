@@ -89,6 +89,9 @@ SECTIONS = (
         Field("NOTIFICATIONS", "Notifications Windows", "bool", "true",
               "Quand une analyse, une alerte, un rappel ou un briefing arrive et que Friday "
               "n'est pas au premier plan (réduite, derrière TradingView…)."),
+        Field("DAY_MEMORY", "Mémoire de la journée", "bool", "true",
+              "Garde nos échanges 90 jours sur ce PC (data/journee.db) pour répondre à « de "
+              "quoi on a parlé hier ? »."),
         Field("BACKUP_DIR", "Copie des sauvegardes (dossier)", "text", "",
               "Facultatif : un dossier OneDrive ou une clé USB. Les sauvegardes quotidiennes "
               "restent aussi dans data/sauvegardes (les 7 dernières)."),

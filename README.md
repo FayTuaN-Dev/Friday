@@ -65,6 +65,7 @@ uv run friday --cli    # version terminal
 
 - **Mains libres** : dire « **Friday** » (à l'anglaise), « quelle heure est-il ? » d'une traite. « Friday » seul → il répond « Oui ? » et écoute la suite. Juste après une réponse, on peut relancer sans redire son nom. Pendant qu'il parle : « Friday, … » lui coupe la parole, « stop » le fait taire.
 - **Mémoire** : il retient seul ce qui compte (« 🧠 Mémorisé : … »). « Retiens que… », « Oublie que… », « Qu'est-ce que tu sais sur moi ? »
+- **Mémoire de la journée** : « De quoi on a parlé hier ? », « Qu'est-ce que je t'ai demandé lundi ? » — nos échanges sont gardés 90 jours sur le PC (désactivable dans Réglages → Fonctions)
 - **Rappels et listes** : « minuteur de 10 minutes », « rappelle-moi d'appeler maman demain à 18 h », « ajoute du lait à ma liste de courses », « qu'y a-t-il sur ma liste ? ». À l'heure dite : carillon puis annonce vocale.
 - **PC** : « ouvre Spotify », « ferme Discord » (avec confirmation), « ouvre YouTube », « mets le volume à 30 », « coupe le son », « musique suivante », « mets du jazz ».
 - **Claude Code** : « Friday, demande à Claude d'écrire… » → il demande confirmation (« oui », ou bouton), Claude travaille en arrière-plan dans `CLAUDE_WORKSPACE`, et Friday prévient quand c'est fini. Utilise le CLI `claude` connecté au compte Pro, sans clé API.
