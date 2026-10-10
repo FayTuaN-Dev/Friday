@@ -171,7 +171,7 @@ Idées tirées de [jarvis-OS](https://github.com/Grominet95/jarvis-OS) (AGPL-3.0
 | # | Brique | Livrable | Statut |
 |---|---|---|---|
 | J1 | **Mémoire vivante** : un fait redit est renforcé (confirmations, confiance), un fait corrigé est remplacé mais gardé dans l'historique, chaque fait a un thème et sa source ; fiche lisible `data/memoire.md` ; « d'où tu sais que… ? » | Une mémoire qui ne se contredit plus et s'explique | ✅ |
-| J2 | **Rêve nocturne** : la nuit, Friday relit les échanges de la journée (F5) pour en tirer les faits manqués, et prépare un rapport de ménage (souvenirs contradictoires, erreurs répétées) qu'elle propose sans rien appliquer seule | Une mémoire qui s'entretient | ⬜ |
+| J2 | **Rêve nocturne** : la nuit, Friday relit les échanges de la journée (F5) pour en tirer les faits manqués, et prépare un rapport de ménage (souvenirs contradictoires, erreurs répétées) qu'elle propose sans rien appliquer seule | Une mémoire qui s'entretient | ✅ |
 | J3 | **Double clap** pour réveiller Friday (sensibilité réglable) | Un réveil sans mot d'activation | ⬜ |
 | J4 | **Sphère de particules** qui réagit à la voix, séquence de démarrage (auto-test qui défile), widget « En écoute » (Spotify, YouTube… via Windows) | L'effet Jarvis | ⬜ |
 | J5 | **Routines planifiées** (« tous les jours à 7 h… », « le lundi… »), rattrapées si le PC était éteint | Friday agit seule à heure fixe | ⬜ |

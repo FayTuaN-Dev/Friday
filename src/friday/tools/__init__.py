@@ -151,6 +151,11 @@ def default_toolbox(
 
         tools += [RememberTool(memory), ForgetTool(memory), ListMemoriesTool(memory),
                   MemoryOriginTool(memory)]  # fmt: skip
+        if settings.night_dream:
+            from friday.core.config import DATA_DIR
+            from friday.tools.dream_report import DreamReportTool
+
+            tools.append(DreamReportTool(DATA_DIR / "reve"))
     if day_log is not None:
         from friday.tools.day_memory import RecallDayTool
 

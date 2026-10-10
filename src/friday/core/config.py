@@ -76,6 +76,7 @@ class Settings:
     backup_dir: str = ""  # copie des sauvegardes quotidiennes (clé USB, OneDrive…), facultatif
     notifications: bool = True  # notification Windows quand une tâche de fond se termine
     day_memory: bool = True  # mémoire de la journée : les échanges gardés 90 jours (F5)
+    night_dream: bool = True  # rêve nocturne : relire la journée, rapport de ménage (J2)
     trading: TradingSettings = TradingSettings()
 
 
@@ -155,6 +156,7 @@ def load_settings() -> Settings:
         backup_dir=os.getenv("BACKUP_DIR", "").strip(),
         notifications=_bool("NOTIFICATIONS", True),
         day_memory=_bool("DAY_MEMORY", True),
+        night_dream=_bool("NIGHT_DREAM", True),
         trading=TradingSettings(
             enabled=_bool("TRADING_ENABLED", True),
             passages=max(1, min(15, int(os.getenv("TRADING_PASSAGES", "10")))),
