@@ -11,25 +11,13 @@ from friday.ui.desktop.theme.stylesheet import FONT_HUD
 SUBTITLE_CHARS = 220  # la fin de ce que dit Friday
 
 
-def make_scene(kind: str, data: dict, title: str) -> QWidget | None:
-    """Display → scène : « weather » (ciel animé) ou « place » (carte 3D)."""
-    if kind == "weather":
-        from friday.ui.desktop.scenes.weather_scene import WeatherScene
-
-        return WeatherScene(data, title)
-    if kind == "place":
-        from friday.ui.desktop.scenes.map_scene import MapScene
-
-        return MapScene(data, theme.current().accent)
-    return None
-
-
 class SceneLayer(QFrame):
     closed = Signal()
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent, objectName="SceneLayer")
         self.scene: QWidget | None = None
+        self.map = None  # la carte 3D : créée une fois (warm_map), puis réutilisée
         self.grid = QGridLayout(self)
         self.grid.setContentsMargins(0, 0, 0, 0)
         top = QHBoxLayout()
@@ -66,6 +54,30 @@ class SceneLayer(QFrame):
                           border-radius: 12px; padding: 10px 18px; margin: 64px 90px 0 90px; }}
         """)  # fmt: skip
 
+    def scene_for(self, kind: str, data: dict, title: str) -> QWidget | None:
+        """Display → scène : « weather » (ciel animé) ou « place » (carte 3D réutilisée)."""
+        if kind == "weather":
+            from friday.ui.desktop.scenes.weather_scene import WeatherScene
+
+            return WeatherScene(data, title)
+        if kind == "place":
+            self.warm_map()
+            self.map.go(data)
+            return self.map
+        return None
+
+    def warm_map(self) -> None:
+        """Prépare la carte (moteur web, bibliothèque, style) une fois, cachée."""
+        if self.map is None:
+            from friday.ui.desktop.scenes.map_scene import MapScene
+
+            self.map = MapScene(theme.current().accent, self)
+            self.map.hide()
+
+    @property
+    def showing_map(self) -> bool:
+        return self.showing and self.scene is not None and self.scene is self.map
+
     @property
     def showing(self) -> bool:
         return not self.isHidden() and self.scene is not None  # même fenêtre réduite
@@ -74,6 +86,7 @@ class SceneLayer(QFrame):
         self.close_scene(quiet=True)
         self.scene = scene
         self.grid.addWidget(scene, 0, 0)
+        scene.show()
         scene.lower()
         # La scène météo écrit elle-même le lieu : pas de second titre par-dessus
         self.title.setText("" if getattr(scene, "draws_title", False) else title.upper())
@@ -84,7 +97,11 @@ class SceneLayer(QFrame):
     def close_scene(self, quiet: bool = False) -> None:
         if self.scene is not None:
             self.grid.removeWidget(self.scene)
-            self.scene.deleteLater()
+            if getattr(self.scene, "keep", False):  # la carte : cachée, gardée pour la suite
+                self.scene.still()
+                self.scene.hide()
+            else:
+                self.scene.deleteLater()
             self.scene = None
         was_visible = not self.isHidden()
         self.hide()

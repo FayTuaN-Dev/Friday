@@ -10,7 +10,7 @@ from test_desktop import app, make_window  # noqa: F401  (QApplication)
 from friday.tools.base import Display
 from friday.tools.place import ShowPlaceTool, zoom_for
 from friday.tools.popups import CLOSE
-from friday.ui.desktop.scenes.map_scene import page
+from friday.ui.desktop.scenes.map_scene import go_script, page
 from friday.ui.desktop.scenes.weather_scene import WeatherScene, sky_kind
 
 WEATHER = {"current": {"temperature": 14, "feels_like": 12, "label": "pluie faible",
@@ -59,8 +59,10 @@ def test_the_place_is_found_by_the_code():
                                    "name": "Tour Eiffel"}  # fmt: skip
     nothing = SimpleNamespace(get=lambda url, params: Response([]))
     assert "Je ne trouve pas « Atlantide »" in ShowPlaceTool(nothing).run("Atlantide").text
-    html = page(48.8582, 2.2945, 16.3, "#f0a83c")
-    assert '"lat": 48.8582' in html and "tiles.openfreemap.org" in html and "#f0a83c" in html
+    html = page("#f0a83c")
+    assert "tiles.openfreemap.org" in html and "#f0a83c" in html and "pixelRatio: 1" in html
+    assert go_script(result.display.data, "#f0a83c") == (
+        'window.fridayGo && window.fridayGo(48.8582, 2.2945, 16.3, "#f0a83c");')  # fmt: skip
 
 
 def test_scenes_open_and_close(tmp_path):
@@ -91,7 +93,7 @@ def test_fixes_after_the_first_real_try(tmp_path):
     assert city_names("aux Herbiers")[:2] == ["Herbiers", "Les Herbiers"]
     assert city_names("Le Mans") == ["Le Mans"]
     # la rotation automatique s'arrête dès que l'utilisateur touche la carte
-    html = page(48.85, 2.29, 16.3)
+    html = page()
     assert 'for (const name of ["mousedown", "wheel", "touchstart", "dragstart"])' in html
     assert "NavigationControl" in html and "setTimeout(stopSpin, 40000)" in html
     # pendant une scène, la sphère cachée dessous ne s'anime plus
