@@ -156,6 +156,10 @@ def load_components(
         from friday.app.reminders import start_reminders
 
         start_reminders(agenda, lambda: components.speaker, on_background)
+        from friday.agenda.routines import RoutineStore
+        from friday.app.routines import RoutineRunner
+
+        RoutineRunner(RoutineStore(DATA_DIR / "routines.json"), on_background).start()
     if trading is not None and trading.alerts is not None and on_background is not None:
         from friday.app.trading_alerts import start_alerts
 
