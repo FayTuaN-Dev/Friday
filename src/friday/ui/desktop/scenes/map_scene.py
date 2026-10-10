@@ -18,6 +18,11 @@ PAGE = """<!doctype html><html><head><meta charset="utf-8">
 const place = {place};
 const map = new maplibregl.Map({{container: "map", style: "{style}", center: [2.35, 46.6],
   zoom: 4, pitch: 0, bearing: 0, attributionControl: {{compact: true}}}});
+map.addControl(new maplibregl.NavigationControl({{visualizePitch: true}}), "bottom-right");
+let spin = null;
+const stopSpin = () => {{ if (spin) {{ clearInterval(spin); spin = null; }} }};
+// L'utilisateur prend la main : la rotation automatique s'arrête (sinon elle annule ses gestes)
+for (const name of ["mousedown", "wheel", "touchstart", "dragstart"]) map.on(name, stopSpin);
 map.on("load", () => {{
   if (!map.getLayer("friday-3d")) {{
     map.addLayer({{id: "friday-3d", type: "fill-extrusion", source: "openmaptiles",
@@ -32,7 +37,8 @@ map.on("load", () => {{
     bearing: -20, duration: 6000, essential: true}});
   map.once("moveend", () => {{
     let bearing = map.getBearing();
-    setInterval(() => {{ bearing += 0.08; map.setBearing(bearing); }}, 40);
+    spin = setInterval(() => {{ bearing += 0.12; map.setBearing(bearing); }}, 60);
+    setTimeout(stopSpin, 40000);  // 40 s de tour, puis la carte ne bouge plus seule
   }});
 }});
 </script></body></html>"""

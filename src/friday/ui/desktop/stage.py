@@ -77,7 +77,13 @@ class StageMixin:
             return False
         self.place_scene()
         self.scene_layer.show_scene(scene, display.title)
+        self.pause_orb(True)  # la sphère, cachée dessous, ne s'anime plus pour rien
         return True
+
+    def pause_orb(self, paused: bool) -> None:
+        timer = getattr(self.orb, "_timer", None)
+        if timer is not None:
+            timer.stop() if paused else timer.start()
 
     def place_scene(self) -> None:
         """Le calque couvre la fenêtre sous la barre de titre, jusqu'à la barre de saisie."""

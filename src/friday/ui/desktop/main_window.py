@@ -131,6 +131,7 @@ class MainWindow(StageMixin, QMainWindow):
 
         self.shell = shell
         self.scene_layer = SceneLayer(shell)  # scènes plein écran : météo, carte 3D (J7)
+        self.scene_layer.closed.connect(lambda: self.pause_orb(False))
         outer = QVBoxLayout(shell)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)

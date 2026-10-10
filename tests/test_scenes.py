@@ -82,3 +82,21 @@ def test_scenes_open_and_close(tmp_path):
     window.settings = SimpleNamespace(**{**vars(window.settings), "scenes": False})
     window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
     assert not layer.showing  # scènes coupées : la météo reste en petite fenêtre
+
+
+def test_fixes_after_the_first_real_try(tmp_path):
+    from friday.tools.weather import city_names
+
+    # « Herbiers » (sans article) n'existe pas pour le service météo : on essaie « Les … »
+    assert city_names("aux Herbiers")[:2] == ["Herbiers", "Les Herbiers"]
+    assert city_names("Le Mans") == ["Le Mans"]
+    # la rotation automatique s'arrête dès que l'utilisateur touche la carte
+    html = page(48.85, 2.29, 16.3)
+    assert 'for (const name of ["mousedown", "wheel", "touchstart", "dragstart"])' in html
+    assert "NavigationControl" in html and "setTimeout(stopSpin, 40000)" in html
+    # pendant une scène, la sphère cachée dessous ne s'anime plus
+    window = make_window(tmp_path)
+    window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
+    assert not window.orb._timer.isActive()
+    window.scene_layer.close_scene()
+    assert window.orb._timer.isActive()
