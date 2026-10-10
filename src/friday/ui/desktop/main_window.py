@@ -5,7 +5,15 @@ from pathlib import Path
 
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QLabel, QMainWindow, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QVBoxLayout,
+    QWidget,
+)
 
 from friday.app.assistant import Assistant
 from friday.app.events import AssistantState
@@ -13,9 +21,9 @@ from friday.core.config import Settings
 from friday.ui.desktop import native_window, preferences, theme
 from friday.ui.desktop.bridge import QtBridge
 from friday.ui.desktop.popups.manager import PopupManager
+from friday.ui.desktop.stage import ORB_STYLES, BootSignal, StageMixin, make_orb
 from friday.ui.desktop.widgets.chat import ChatView
 from friday.ui.desktop.widgets.frame import ResizableFrame
-from friday.ui.desktop.widgets.holo import HoloOrb
 from friday.ui.desktop.widgets.input_bar import InputBar
 from friday.ui.desktop.widgets.title_bar import TitleBar
 
@@ -28,7 +36,7 @@ def dropped_files(mime) -> list[Path]:
     return [path for path in paths if path.is_file()]
 
 
-class MainWindow(QMainWindow):
+class MainWindow(StageMixin, QMainWindow):
     def __init__(self, settings: Settings, assistant: Assistant | None = None,
                  preferences_path: Path = preferences.PATH) -> None:  # fmt: skip
         super().__init__()
@@ -52,8 +60,14 @@ class MainWindow(QMainWindow):
         self.state = AssistantState.LOADING
 
         self.title_bar = TitleBar(self, self.base)
-        self.orb = HoloOrb()
-        self.orb.setFixedHeight(270)
+        style = preferences.load(preferences_path).get("orb", "sphere")
+        self.orb_style = style if style in ORB_STYLES else "sphere"
+        self.orb = make_orb(self.orb_style)
+        from friday.ui.desktop.widgets.boot_log import BootLog
+
+        self.boot_log = BootLog()  # séquence de démarrage, en surimpression sur la sphère
+        self.boot_signal = BootSignal()
+        self.boot_signal.done.connect(self._show_boot)
         self.status = QLabel(objectName="Status", alignment=Qt.AlignCenter)
         self.info = QLabel(objectName="Info", alignment=Qt.AlignCenter, wordWrap=True)
         self.chat = ChatView()
@@ -83,7 +97,13 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(18, 0, 18, 18)
         layout.setSpacing(4)
-        layout.addWidget(self.orb)
+        self.stage = QWidget()
+        self.stage.setFixedHeight(270)
+        self.stage_grid = QGridLayout(self.stage)
+        self.stage_grid.setContentsMargins(0, 0, 0, 0)
+        self.stage_grid.addWidget(self.orb, 0, 0)
+        self.stage_grid.addWidget(self.boot_log, 0, 0, Qt.AlignLeft | Qt.AlignBottom)
+        layout.addWidget(self.stage)
         layout.addWidget(self.status)
         layout.addWidget(self.info)
         layout.addSpacing(6)
@@ -91,6 +111,13 @@ class MainWindow(QMainWindow):
         layout.addSpacing(8)
         layout.addWidget(self.input)
         centered = QHBoxLayout()
+        from friday.ui.desktop.widgets.now_playing import NowPlayingCard, load_backend
+
+        self.playing = NowPlayingCard(load_backend())  # « En écoute » : fenêtre agrandie
+        if self.playing.poller is not None:
+            self.playing.poller.changed.connect(self._side_panels)
+        centered.addSpacing(18)
+        centered.addWidget(self.playing, 0, Qt.AlignBottom)
         centered.addStretch(1)
         centered.addWidget(content, 100)
         centered.addStretch(1)
@@ -127,8 +154,8 @@ class MainWindow(QMainWindow):
             )
         )
         b.memory.connect(lambda text: self.chat.add_notice(f"🧠 Mémorisé : {text}", "MemoryNotice"))
-        b.mic_level.connect(self.orb.set_mic_level)
-        b.speech_audio.connect(self.orb.play_speech)
+        b.mic_level.connect(lambda level: self.orb.set_mic_level(level))  # suit le style choisi
+        b.speech_audio.connect(lambda audio, rate: self.orb.play_speech(audio, rate))
 
         self.input.submitted.connect(a.submit_text)
         self.input.mic_pressed.connect(a.start_listening)
@@ -145,6 +172,7 @@ class MainWindow(QMainWindow):
         self.title_bar.refresh(palette)
         self.input.refresh(palette)
         self.orb.set_base_color(self.base)
+        self.playing.refresh_style()
         if self.native_corners:  # fine bordure Windows, à la couleur de Friday
             native_window.set_border_color(self, QColor(palette.accent).darker(250))
         self.frame.update()
@@ -232,6 +260,9 @@ class MainWindow(QMainWindow):
 
     def on_ready(self, info: str) -> None:
         self.info.setText(info)
+        import threading
+
+        threading.Thread(target=self._boot_check, daemon=True, name="boot-check").start()
         self.input.setEnabled(True)
         self.input.mic.setEnabled(self.assistant.can_listen)
         self.input.set_voice(self.assistant.voice_on)
@@ -250,11 +281,12 @@ class MainWindow(QMainWindow):
     def changeEvent(self, event) -> None:
         if event.type() == QEvent.WindowStateChange:  # plein écran : plus de marge ni de poignée
             self.frame.set_maximized(self.isMaximized())
-            self.limits.setVisible(self.isMaximized() or self.isFullScreen())
+            self._side_panels()
         super().changeEvent(event)
 
     def closeEvent(self, event) -> None:
         self.popups.close_all()
+        self.playing.close_poller()
         for window in (self.settings_window, self.journal_window):
             if window is not None:
                 window.close()

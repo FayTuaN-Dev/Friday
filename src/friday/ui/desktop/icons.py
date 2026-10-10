@@ -35,6 +35,11 @@ PATHS = {
     "trending": '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>'
     '<polyline points="16 7 22 7 22 13"/>',
     "pulse": '<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+    "play": '<polygon points="6 3 20 12 6 21 6 3"/>',
+    "pause": '<rect x="14" y="4" width="4" height="16" rx="1"/>'
+    '<rect x="6" y="4" width="4" height="16" rx="1"/>',
+    "next": '<polygon points="5 4 15 12 5 20 5 4"/><path d="M19 5v14"/>',
+    "previous": '<polygon points="19 20 9 12 19 4 19 20"/><path d="M5 19V5"/>',
     "book": '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5'
     'a1 1 0 0 1 0-5H20"/>',
 }

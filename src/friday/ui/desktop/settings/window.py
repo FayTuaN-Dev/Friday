@@ -42,7 +42,16 @@ class SettingsWindow(Popup):
         by_name = {form_section.name: form for form_section, form in zip(SECTIONS, self.forms,
                                                                         strict=True)}  # fmt: skip
         pages = [
-            ("Apparence", "palette", AppearancePage(main_window.base, main_window.apply_color)),
+            (
+                "Apparence",
+                "palette",
+                AppearancePage(
+                    main_window.base,
+                    main_window.apply_color,
+                    main_window.orb_style,
+                    main_window.set_orb_style,
+                ),
+            ),
             ("Général", "user", by_name["Général"]),
             ("Voix", "volume", by_name["Voix"]),
             ("Écoute", "mic", by_name["Écoute"]),
