@@ -23,6 +23,8 @@ class HandsFreeListener:
         device: int | str | None = None,
         silence_ms: int = 700,
         heard_log=None,  # HeardLog : diagnostic, garde l'audio des phrases entendues
+        on_clap: Callable[[], None] | None = None,  # double clap entendu (J3)
+        clap_sensitivity: str = "moyenne",
     ) -> None:
         self._transcribe = transcribe
         self._heard_log = heard_log
@@ -32,6 +34,13 @@ class HandsFreeListener:
         self.segmenter = SpeechSegmenter(StreamingVAD(), self._segments_put, silence_ms=silence_ms)
         self._segments: queue.Queue[tuple[np.ndarray, float] | None] = queue.Queue()
         self._paused = threading.Event()
+        self.clap = None
+        if on_clap is not None:
+            from friday.voice.clap import ClapDetector
+
+            # Le réveil parle et attend : jamais dans le fil du micro
+            wake = lambda: threading.Thread(target=on_clap, daemon=True, name="clap").start()  # noqa: E731
+            self.clap = ClapDetector(wake, clap_sensitivity)
         self._stream: sd.InputStream | None = None
 
     def start(self) -> None:
@@ -68,7 +77,10 @@ class HandsFreeListener:
         if self._paused.is_set():
             return
         try:
-            self.segmenter.feed(resample(data[:, 0], self.sample_rate, WHISPER_RATE))
+            block = resample(data[:, 0], self.sample_rate, WHISPER_RATE)
+            if self.clap is not None:
+                self.clap.feed(block)
+            self.segmenter.feed(block)
         except Exception:
             log.exception("Erreur de détection de parole")
 

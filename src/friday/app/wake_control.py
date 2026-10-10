@@ -100,6 +100,16 @@ class WakeControl:
             self.target.interrupt()
             self.target.submit_heard(command)
 
+    def on_clap(self) -> None:
+        """Double clap : comme « Friday » dit seul (« Oui ? », puis la demande sans le nom).
+        Ignoré si une confirmation attend sa réponse : un clap n'est ni oui ni non."""
+        if self.target.awaiting_confirmation:
+            log.info("Double clap ignoré : une confirmation attend sa réponse")
+            return
+        log.info("Double clap : Friday écoute")
+        self.target.interrupt()
+        self.target.acknowledge()
+
     def _is_echo(self, text: str, spoken_at: float) -> bool:
         said = self.target.last_reply_text
         if not said or not self.target.spoke_recently(spoken_at):
