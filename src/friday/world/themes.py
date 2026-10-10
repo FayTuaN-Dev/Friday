@@ -49,6 +49,12 @@ THEMES = (
           ("XAUUSD",), ("USD",), "le dollar et l'or"),
 )  # fmt: skip
 BY_NAME = {t.name: t for t in THEMES}
+# Où placer chaque thème sur le globe (J9b) : (latitude, longitude)
+CENTERS = {"Moyen-Orient": (29.5, 47.5), "pétrole et OPEP": (24.5, 54.0),
+           "Russie et Ukraine": (49.0, 33.0), "Chine et Taïwan": (28.0, 116.0),
+           "Fed et dollar": (40.7, -74.0), "BCE et zone euro": (50.1, 8.7),
+           "commerce mondial": (46.2, 6.1), "Japon": (35.7, 139.7),
+           "Royaume-Uni": (51.5, -0.1), "politique américaine": (38.9, -77.0)}  # fmt: skip
 # Catastrophes (pays GDACS, en anglais) → le thème qu'elles touchent
 DISASTER_THEMES = {"Japan": "Japon", "Iran": "Moyen-Orient", "Saudi Arabia": "Moyen-Orient",
                    "Iraq": "Moyen-Orient", "United Arab Emirates": "Moyen-Orient",
@@ -77,6 +83,24 @@ COUNTRIES = {
     "South Africa": "en Afrique du Sud", "Iceland": "en Islande",
     "Saudi Arabia": "en Arabie saoudite",
     "South Korea": "en Corée du Sud", "Korea, Republic of": "en Corée du Sud",
+    "Germany": "en Allemagne", "Austria": "en Autriche", "Switzerland": "en Suisse",
+    "Belgium": "en Belgique", "Netherlands": "aux Pays-Bas", "Poland": "en Pologne",
+    "Romania": "en Roumanie", "Hungary": "en Hongrie", "Czech Republic": "en Tchéquie",
+    "Czechia": "en Tchéquie", "Slovakia": "en Slovaquie", "Slovenia": "en Slovénie",
+    "Croatia": "en Croatie", "Serbia": "en Serbie", "Bosnia and Herzegovina": "en Bosnie",
+    "Albania": "en Albanie", "Bulgaria": "en Bulgarie", "Moldova": "en Moldavie",
+    "Belarus": "en Biélorussie", "Sweden": "en Suède", "Norway": "en Norvège",
+    "Finland": "en Finlande", "Denmark": "au Danemark", "Ireland": "en Irlande",
+    "United Kingdom": "au Royaume-Uni", "Israel": "en Israël", "Lebanon": "au Liban",
+    "Syria": "en Syrie", "Jordan": "en Jordanie", "Egypt": "en Égypte", "Libya": "en Libye",
+    "Tunisia": "en Tunisie", "Sudan": "au Soudan", "Yemen": "au Yémen", "Oman": "à Oman",
+    "United Arab Emirates": "aux Émirats arabes unis", "Qatar": "au Qatar",
+    "Kazakhstan": "au Kazakhstan", "Mongolia": "en Mongolie", "Sri Lanka": "au Sri Lanka",
+    "Cambodia": "au Cambodge", "Laos": "au Laos", "Solomon Islands": "aux Îles Salomon",
+    "Samoa": "aux Samoa", "Honduras": "au Honduras", "Nicaragua": "au Nicaragua",
+    "El Salvador": "au Salvador", "Costa Rica": "au Costa Rica", "Venezuela": "au Venezuela",
+    "Bolivia": "en Bolivie", "Dominican Republic": "en République dominicaine",
+    "Jamaica": "en Jamaïque", "Puerto Rico": "à Porto Rico", "Bahamas": "aux Bahamas",
 }  # fmt: skip
 
 

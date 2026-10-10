@@ -165,15 +165,15 @@ def test_routing_world_requests():
 
 
 def test_the_code_chooses_market_movers_and_its_instrument():
-    from friday.tools.world import movers_request
+    from friday.tools.world import world_request
 
-    assert movers_request("qu'est-ce qui peut bouger les marchés aujourd'hui ?") == (
+    assert world_request("qu'est-ce qui peut bouger les marchés aujourd'hui ?") == (
         "market_movers", {"instrument": ""})  # fmt: skip
-    assert movers_request("quoi de neuf pour l'or ?") == ("market_movers", {"instrument": "l'or"})
-    assert movers_request("quoi de neuf pour ce soir ?") is None  # pas un marché
-    assert movers_request("quel est le cours de l'or ?") is None
-    assert movers_request("quoi de neuf dans le monde ?") == ("world_news", {})
-    assert movers_request("quel est le plus haut immeuble dans le monde ?") is None
+    assert world_request("quoi de neuf pour l'or ?") == ("market_movers", {"instrument": "l'or"})
+    assert world_request("quoi de neuf pour ce soir ?") is None  # pas un marché
+    assert world_request("quel est le cours de l'or ?") is None
+    assert world_request("quoi de neuf dans le monde ?") == ("world_news", {})
+    assert world_request("quel est le plus haut immeuble dans le monde ?") is None
 
 
 def test_titles_are_easy_to_repeat():
@@ -206,3 +206,27 @@ def test_a_prefetched_ready_made_sentence_is_said_without_the_model():
                   prefetch=lambda q: ("world_news", {}))  # fmt: skip
     said = "".join(e for e in brain.reply("quoi de neuf ?") if isinstance(e, str))
     assert said == "Je n'ai aucun titre international récent."
+
+
+def test_the_globe_shows_themes_and_disasters():
+    from friday.tools.world import ShowWorldTool, world_request
+    from friday.ui.desktop.scenes.map_scene import page, world_script
+    from friday.world.globe import globe
+
+    spoken, data = globe(world(), [by_symbol("EURUSD")])
+    kinds = {p["label"]: p["kind"] for p in data["points"]}
+    assert kinds["Russie et Ukraine"] == "mine"  # touche l'EUR/USD : couleur de l'interface
+    assert kinds["Moyen-Orient"] == "theme" and kinds["Séisme 7,2"] == "orange"
+    assert spoken == (  # Russie-Ukraine, Moyen-Orient, pétrole, Japon (le séisme)
+        "Dis EXACTEMENT : « Voici le monde en ce moment : 4 sujets dans l'actualité, dont 1 "
+        "pour EUR/USD, plus 1 catastrophe en cours. »")  # fmt: skip
+    result = ShowWorldTool(world(), lambda: [by_symbol("EURUSD")]).run()
+    assert result.display.kind == "world" and result.display.data == data
+    assert world_script(data).startswith("window.fridayWorld && window.fridayWorld([{")
+    html = page("#f0a83c")
+    assert "maplibre-gl@5" in html and 'type: "globe"' in html  # MapLibre 5 : le globe
+    assert "__" not in html.replace("__proto__", "")  # tout est remplacé
+    assert "setCallouts(points)" in html and "spinGlobe()" in html  # étiquettes, rotation
+    assert world_request("montre-moi ce qui se passe dans le monde") == ("show_world", {})
+    empty = World(lambda: [], lambda: [], now=lambda: NOW)
+    assert "Rien de marquant" in globe(empty, [])[0]

@@ -101,7 +101,7 @@ class StageMixin:
         from friday.app.events import AssistantState
 
         if self.scene_layer.showing_map and state is AssistantState.IDLE:
-            self.scene_layer.map.move()
+            self.scene_layer.map.animate()
 
     def pause_orb(self, paused: bool) -> None:
         timer = getattr(self.orb, "_timer", None)

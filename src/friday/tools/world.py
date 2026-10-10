@@ -17,16 +17,23 @@ ABOUT = ("quoi de neuf pour", "quoi de neuf sur", "quoi de neuf cote", "l actual
          "l actu de", "les nouvelles de")  # + un instrument  # fmt: skip
 
 
+# MONTRER le monde (J9b) : le globe plein écran
+SHOW = ("montre moi le monde", "montre le monde", "affiche le monde", "montre moi le globe",
+        "affiche le globe", "carte du monde", "montre moi ce qui se passe dans le monde",
+        "fais moi voir le monde", "montre moi la situation dans le monde")  # fmt: skip
 WORLD = ("quoi de neuf dans le monde", "se passe dans le monde", "nouvelles du monde",
          "actualite internationale", "actualites internationales", "infos internationales",
          "info internationale", "actu internationale", "point sur le monde")  # fmt: skip
 
 
-def movers_request(text: str) -> tuple[str, dict] | None:
-    """« qu'est-ce qui peut bouger les marchés ? », « quoi de neuf pour l'or ? » →
-    market_movers, avec l'instrument choisi par le code (constaté : qwen inventait EUR/USD,
-    ou donnait le cours de l'or)."""
+def world_request(text: str) -> tuple[str, dict] | None:
+    """Les demandes de la veille monde, reconnues par le code : « montre-moi le monde » →
+    show_world ; « qu'est-ce qui peut bouger les marchés ? », « quoi de neuf pour l'or ? » →
+    market_movers, avec l'instrument (constaté : qwen inventait EUR/USD, ou donnait le cours
+    de l'or) ; « quoi de neuf dans le monde ? » → world_news."""
     padded = f" {normalize(text)} "
+    if any(f" {w}" in padded for w in SHOW):
+        return ("show_world", {})
     found = detect(text)
     if any(f" {w}" in padded for w in MOVERS) or (found and any(f" {w}" in padded for w in ABOUT)):
         return ("market_movers", {"instrument": found.name if found else ""})
@@ -95,3 +102,29 @@ class MarketMoversTool(Tool):
             return ToolResult(self.world.movers(instruments or None))
         except WorldUnavailable as error:
             return ToolResult(f"Dis EXACTEMENT : « {error} »")
+
+
+class ShowWorldTool(Tool):
+    name = "show_world"
+    description = (
+        "MONTRER le monde sur un globe plein écran : thèmes de l'actualité et catastrophes en "
+        "cours (« montre-moi ce qui se passe dans le monde », « affiche le globe »)."
+    )
+    parameters = {}
+
+    def __init__(self, world: World,
+                 mine: Callable[[], list[Instrument]] | None = None) -> None:  # fmt: skip
+        self.world = world
+        self.mine = mine or (lambda: my_instruments(None))
+
+    def label(self, args: dict) -> str:
+        return "🌍 Globe"
+
+    def run(self) -> ToolResult:
+        from friday.world.globe import globe
+
+        try:
+            spoken, data = globe(self.world, [i for i in self.mine() if i is not None])
+        except WorldUnavailable as error:
+            return ToolResult(f"Dis EXACTEMENT : « {error} »")
+        return ToolResult(spoken, Display("world", "Le monde en ce moment", data))

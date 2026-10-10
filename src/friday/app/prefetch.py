@@ -120,9 +120,9 @@ def prefetcher(
             if asks_categories(text):  # la liste, lue par le code (le modèle se trompait)
                 return ("category_mails", {})
         if world:
-            from friday.tools.world import movers_request
+            from friday.tools.world import world_request
 
-            if asked := movers_request(text):  # l'instrument : choisi par le code
+            if asked := world_request(text):  # l'outil et l'instrument : choisis par le code
                 return asked
         if trading:  # avec ou sans mode trading (une routine « briefing trading » aussi)
             if asked := pip_request(text):

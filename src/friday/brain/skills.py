@@ -60,17 +60,19 @@ SKILLS = (
            "montre-moi des images de chats", "qui a gagné le match hier soir",
            "lis-moi cet article", "montre-moi la tour Eiffel")),
     Skill("monde", "actualité internationale, catastrophes, ce qui peut bouger les marchés",
-          ("world_news", "market_movers"),
+          ("world_news", "market_movers", "show_world"),
           """- world_news : le point sur le monde (« quoi de neuf dans le monde ? », « les infos
   internationales », « il y a eu un séisme ? »). Répète la phrase telle quelle.
 - market_movers : ce qui, dans l'actualité, peut bouger les marchés (« qu'est-ce qui peut
   bouger les marchés ? », « quoi de neuf pour l'or ? »). Répète la phrase telle quelle.
+- show_world : MONTRER le monde sur un globe plein écran (« montre-moi ce qui se passe dans
+  le monde »). Répète la phrase telle quelle.
 - Pour un sujet précis (« les dernières nouvelles sur Apple »), c'est web_search.""",
           ("dans le monde", "actualite internationale", "actualites internationales",
            "infos internationales", "info internationale", "nouvelles du monde", "geopoliti",
            "bouger les marches", "bouge les marches", "bouger mes marches", "fait bouger",
            "seisme", "tremblement de terre", "catastrophe", "cyclone", "ouragan", "typhon",
-           "eruption", "volcan", "inondation"),
+           "eruption", "volcan", "inondation", "globe", "carte du monde"),
           ("quoi de neuf dans le monde", "qu'est-ce qui peut bouger les marchés aujourd'hui",
            "il y a eu un séisme ?", "les infos internationales")),
     Skill("screen", "voir l'écran de l'utilisateur",
