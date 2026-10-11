@@ -8,6 +8,7 @@ bloque la fenêtre un instant, ce qui hachait la voix quand c'était fait pendan
 parlait."""
 
 import json
+import logging
 import time
 
 from PySide6.QtCore import QTimer, QUrl
@@ -17,6 +18,8 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 from friday.ui.desktop.scenes.map_page import BACKGROUND, page
 
 __all__ = ["MapScene", "go_script", "page", "world_script"]
+
+log = logging.getLogger(__name__)
 
 # La carte est prête à être vue : style chargé, tuiles reçues, caméra immobile (U8)
 READY_JS = ("typeof map !== 'undefined' && map.loaded() && map.areTilesLoaded() "
@@ -33,6 +36,20 @@ def go_script(data: dict, accent: str) -> str:
     """Le JavaScript qui place la carte sur un lieu."""
     args = ", ".join(json.dumps(v) for v in (data["lat"], data["lon"], data["zoom"], accent))
     return f"window.fridayGo && window.fridayGo({args});"
+
+
+def lower_web_priority() -> None:
+    """Les processus du moteur web de Friday en priorité « inférieure à la normale ». Constaté :
+    la carte qui se charge (ses tuiles, son rendu) et la voix (fabriquée sur le processeur)
+    se disputaient la machine : voix hachée. Windows sert maintenant la voix d'abord."""
+    try:
+        import psutil
+
+        for child in psutil.Process().children(recursive=True):
+            if "qtwebengine" in child.name().lower():
+                child.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+    except Exception as error:  # rien de grave : la carte marche quand même
+        log.debug("Priorité du moteur web inchangée : %s", error)
 
 
 class MapScene(QWidget):
@@ -52,6 +69,8 @@ class MapScene(QWidget):
         self.view.loadFinished.connect(self._loaded)
         self.view.setHtml(page(accent), QUrl("https://friday.local/"))
         layout.addWidget(self.view)
+        # Le moteur web (processus à part) passe après la voix et Friday (U8)
+        QTimer.singleShot(3000, lower_web_priority)
 
     def _loaded(self, ok: bool) -> None:
         self.ready = ok

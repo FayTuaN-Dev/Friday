@@ -3,6 +3,7 @@
 import logging
 import queue
 import threading
+import time
 from collections.abc import Callable
 from typing import Protocol
 
@@ -13,6 +14,9 @@ from friday.voice.text import apply_pronunciations, clean_for_speech
 log = logging.getLogger(__name__)
 
 PlayFn = Callable[[np.ndarray, int], None]
+# Fabriquer une phrase prend d'ordinaire 10 à 20 % de sa durée ; au-delà de 60 %, le
+# processeur est trop pris (constaté : voix hachée à l'arrivée des scènes) : on le note
+SLOW_SYNTH = 0.6
 
 
 class TTS(Protocol):
@@ -88,7 +92,12 @@ class Speaker:
             gen, text = self._texts.get()
             try:
                 if gen == self._generation:
+                    start = time.monotonic()
                     audio = self.tts.synthesize(text)
+                    spent, lasts = time.monotonic() - start, audio.size / self.tts.sample_rate
+                    if lasts and spent > SLOW_SYNTH * lasts:  # le processeur est trop pris
+                        log.warning("Voix lente : %.1f s pour fabriquer %.1f s de parole (%r)",
+                                    spent, lasts, text[:40])  # fmt: skip
                     if gen == self._generation and audio.size:
                         self._audio.put((gen, audio))
             except Exception:

@@ -5,7 +5,7 @@ ressenti, le vent, l'humidité et les prévisions des 7 jours. Données : l'outi
 
 Léger à dessiner (U8) : le ciel, les nuages et les textes sont des images faites une fois
 (sky_paint.py) ; à chaque image, on les recopie et l'on ajoute étoiles et pluie en quelques
-appels groupés. Sous la conversation (assombrie), rien n'est redessiné."""
+appels groupés."""
 
 import math
 import random
@@ -89,8 +89,7 @@ class WeatherScene(QWidget):
             if self.rng.random() < dt * 0.25:
                 self.flash = 1.0
         if self.isVisible():
-            # Sous la conversation (assombrie), rien ne change : Qt n'a pas à redessiner le chat
-            self.update(0, 0, self.width(), self.height() - self.insets[1] + 30)
+            self.update()
 
     # --- Dessin ---
 

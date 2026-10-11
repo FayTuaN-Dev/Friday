@@ -85,6 +85,9 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.settings_window = None  # fenêtre des réglages (ouverte à la demande)
         self.journal_window = None  # journal de trading (ouvert à la demande)
         self._build_layout()
+        from friday.ui.desktop.freeze_watch import FreezeWatch
+
+        self.freeze_watch = FreezeWatch(self)  # « Interface figée … ms » dans le journal
 
         self._connect()
         self.apply_color(self.base, save=False)

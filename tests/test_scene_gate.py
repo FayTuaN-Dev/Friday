@@ -55,3 +55,35 @@ def test_other_displays_and_a_missing_scene_never_block(monkeypatch):
     gate.wait()
     gate.wait()  # puis plus d'attente pour les phrases suivantes
     assert 0.15 < time.monotonic() - start < 0.4
+
+
+def test_slow_voice_and_frozen_window_are_logged(caplog):
+    """Pour relier un à-coup ressenti à sa cause : voix fabriquée trop lentement (processeur
+    trop pris), interface figée."""
+    import logging
+
+    import numpy as np
+
+    from friday.voice.speaker import Speaker
+
+    class SlowTTS:
+        sample_rate = 1000
+
+        def synthesize(self, text):
+            time.sleep(0.15)  # 0,15 s pour 0,2 s de parole : trop lent
+            return np.zeros(200, dtype=np.float32)
+
+    caplog.set_level(logging.WARNING)
+    speaker = Speaker(SlowTTS(), play=lambda audio, rate: None, stop_playback=lambda: None)
+    speaker.say("Monsieur, la météo.")
+    speaker.wait()
+    assert "Voix lente" in caplog.text and "pour fabriquer 0.2 s de parole" in caplog.text
+
+    from test_desktop import app  # noqa: F401  (QApplication)
+
+    from friday.ui.desktop.freeze_watch import FreezeWatch
+
+    watch = FreezeWatch()
+    watch._last -= 0.6  # 600 ms sans nouvelles : l'interface était figée
+    watch._tick()
+    assert "Interface figée" in caplog.text and watch.worst > 400
