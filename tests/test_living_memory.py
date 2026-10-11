@@ -120,3 +120,25 @@ def test_old_memories_get_a_theme():
              SimpleNamespace(id=2, text="L'utilisateur aime le jazz.")]  # fmt: skip
     assert categorize(Client(), "qwen3:8b", known) == {1: "famille et proches", 2: "autre"}
     assert categorize(Client(), "qwen3:8b", []) == {}
+
+
+def test_the_memory_sheet_opens_on_request(tmp_path):
+    """Constaté : « ouvre data/memoire.md » → le Bloc-notes vide et « je n'ai pas accès »."""
+    from friday.tools.memory_sheet import OpenMemorySheetTool, asks_sheet
+
+    for said in ("Ouvre data/memoire.md", "ouvre ta fiche mémoire", "montre-moi ta fiche mémoire",
+                 "affiche le fichier de ta mémoire"):  # fmt: skip
+        assert asks_sheet(said), said
+        assert prefetcher(None, None, None, memory=True)(said) == ("open_memory_sheet", {})
+    assert not asks_sheet("qu'est-ce que tu sais sur moi ?")
+    assert not asks_sheet("ouvre le Bloc-notes")
+    memory, opened = service(tmp_path), []
+    memory.remember("L'utilisateur s'appelle Valentin", "demande")
+    said = OpenMemorySheetTool(memory, open_file=opened.append).run().text
+    assert (
+        opened == [str(memory.mirror)]
+        and "J'ouvre ma fiche mémoire : 1 souvenir, classé par" in said
+    )
+    (tmp_path / "x").mkdir()
+    empty = OpenMemorySheetTool(service(tmp_path / "x", mirror=False), open_file=opened.append)
+    assert "n'existe pas encore" in empty.run().text and len(opened) == 1
