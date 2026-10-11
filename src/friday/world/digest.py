@@ -26,6 +26,10 @@ RECENT = timedelta(hours=24)
 MAX_TITLES, MAX_DISASTERS, MAX_THEMES = 4, 3, 3
 MAX_CHARS = 120  # un titre lu à voix haute
 ORDER = {"Red": 0, "Orange": 1, "Green": 2}
+# Un récapitulatif (« la semaine en images ») cite tout et ne parle de rien : en dernier
+ROUNDUP = re.compile(r"\b(?:en images|la semaine|en bref|resume de)\b")
+# Émojis et pictogrammes des titres : ni lus ni affichés
+SYMBOLS = re.compile(r"[^\w\s,.;:!?'’()\-–—…%€$&/+]")
 ICONS = {"EQ": "🌐", "TC": "🌀", "FL": "🌊", "VO": "🌋", "WF": "🔥", "DR": "☀️"}
 
 
@@ -45,9 +49,20 @@ def _title(h: Headline) -> str:
     répétait plus une phrase pleine de guillemets imbriqués (il la résumait, constaté)."""
     title = re.sub(r"^(?:en direct|live)\s*[,:-]\s*", "", h.title, flags=re.I)
     title = re.sub(r"[«»“”\"]\s?", "", title).rstrip(" .")
+    title = " ".join(SYMBOLS.sub(" ", title).split())  # « 🔴 Donald Trump… » (France 24)
     if len(title) > MAX_CHARS:
         title = title[:MAX_CHARS].rsplit(" ", 1)[0].rstrip(" ,;:") + "…"
     return title[:1].upper() + title[1:]
+
+
+def _cap(text: str) -> str:
+    return text[:1].upper() + text[1:]  # « politique américaine » en début de phrase
+
+
+def _said(text: str) -> str:
+    """La phrase à répéter, sans « …. » après un titre coupé."""
+    text = f"{text}. Ce n'est ni un signal ni un conseil.".replace("….", "…")
+    return f"Dis EXACTEMENT : « {text} »"
 
 
 class World:
@@ -121,10 +136,17 @@ class World:
     def themes(self, instruments: list[Instrument] | None) -> list[tuple[Theme, list[str]]]:
         """Les thèmes du moment qui touchent ces instruments (tous si None), chacun avec ses
         titres et catastrophes, les plus présents d'abord."""
-        found: dict[str, tuple[Theme, list[str]]] = {}
+        ranked: dict[str, tuple[Theme, list[tuple[int, str]]]] = {}
         for h in self.headlines():
+            # D'abord les titres qui parlent du thème, puis ceux où il n'est que dans le résumé
+            # (constaté : « …la semaine en images » donné pour le Moyen-Orient et pour l'or)
+            in_title = {t.name for t in themes_of(h.title)}
+            roundup = bool(ROUNDUP.search(normalize(h.title)))
             for theme in themes_of(f"{h.title} {h.summary}"):
-                found.setdefault(theme.name, (theme, []))[1].append(_title(h))
+                rank = 2 if roundup else 0 if theme.name in in_title else 1
+                ranked.setdefault(theme.name, (theme, []))[1].append((rank, _title(h)))
+        found = {name: (theme, [title for _, title in sorted(items, key=lambda i: i[0])])
+                 for name, (theme, items) in ranked.items()}  # fmt: skip
         try:
             for d in self.disasters():
                 if theme := disaster_theme(d):
@@ -138,20 +160,33 @@ class World:
         ]
         return sorted(kept, key=lambda pair: -len(pair[1]))
 
-    def movers(self, instruments: list[Instrument] | None) -> str:
-        """Ce qui peut bouger les marchés de l'utilisateur, d'après l'actualité."""
+    def movers(self, instruments: list[Instrument] | None, named: bool = False) -> str:
+        """Ce qui peut bouger les marchés de l'utilisateur, d'après l'actualité ; `named` :
+        un instrument nommé (« quoi de neuf pour l'or ? »), la réponse est centrée sur lui."""
         who = names(instruments) if instruments else "les marchés"
         themes = self.themes(instruments)[:MAX_THEMES]
         if not themes:
             return (f"Dis EXACTEMENT : « Rien de marquant pour {who} dans l'actualité "
                     "internationale des dernières 24 h. »")  # fmt: skip
+        if named and instruments:  # « quoi de neuf pour l'or ? » : lui seul
+            return self._about(instruments[0], themes)
         parts, used = [], set()
         for theme, items in themes:  # un titre différent pour chaque thème
             item = next((i for i in items if i not in used), items[0])
             used.add(item)
-            parts.append(f"{theme.name}, pour {theme.moves} : {item}")
-        return (f"Dis EXACTEMENT : « Ce qui peut bouger {who}. " + ". ".join(parts)
-                + ". Ce n'est ni un signal ni un conseil. »")  # fmt: skip
+            parts.append(f"{_cap(theme.name)}, pour {theme.moves} : {item}")
+        return _said(f"Ce qui peut bouger {who}. " + ". ".join(parts))
+
+    @staticmethod
+    def _about(instrument: Instrument, themes: list[tuple[Theme, list[str]]]) -> str:
+        """Centré sur un instrument : deux titres par thème (constaté : la même réponse que
+        « qu'est-ce qui peut bouger les marchés ? », « pour le pétrole et l'or » compris)."""
+        parts, used = [], set()
+        for theme, items in themes:
+            fresh = [i for i in items if i not in used][:2] or items[:1]
+            used.update(fresh)
+            parts.append(f"{_cap(theme.name)} : " + " ; ".join(fresh))
+        return _said(f"Pour {instrument.name}, à surveiller dans l'actualité. " + ". ".join(parts))
 
     def context(self, instrument: Instrument) -> str:
         """Le bloc joint aux analyses de Claude (titres de tiers liés à l'instrument)."""
