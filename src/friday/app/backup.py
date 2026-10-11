@@ -22,9 +22,9 @@ log = logging.getLogger(__name__)
 SKIP = {"cache", "bibliotheque", "models", "voices", "trading_claude", "sauvegardes"}
 SKIP_FILES = {
     "library.db",  # se reconstruit depuis la bibliothèque
-    # Clés de connexion Google : jamais copiées (la copie peut aller sur OneDrive) ; perdues,
-    # il suffit de reconnecter le compte une fois
-    "google_token.json", "google_credentials.json", ".gitkeep",
+    # Clés de connexion (Google, Spotify) : jamais copiées (la copie peut aller sur
+    # OneDrive) ; perdues, il suffit de reconnecter le compte une fois
+    "google_token.json", "google_credentials.json", "spotify_token.json", ".gitkeep",
 }  # fmt: skip
 KEEP = 7
 EVERY = timedelta(hours=24)

@@ -110,14 +110,20 @@ SKILLS = (
 - open_website : ouvrir un site dans le navigateur.
 - set_volume : régler, monter, baisser ou couper le son, de tout le PC ou d'une seule
   application (« app »). Jamais media_control pour le volume.
-- media_control : lancer la lecture, pause, piste suivante ou précédente (Spotify, YouTube…).
-- play_music : chercher une musique ou une playlist dans Spotify (ouvre la recherche).""",
+- media_control : reprendre la lecture, pause, piste suivante ou précédente (Spotify,
+  YouTube…), SANS rien choisir.
+- play_music : LANCER une musique précise sur Spotify : playlist (« lance Nova », « ma
+  playlist chill »), album (« mets l'album Discovery »), artiste (« mets du Daft Punk »),
+  titre. Donne la demande telle quelle dans query. Tu peux lancer de la musique : ne dis
+  jamais le contraire. Répète la phrase donnée telle quelle.""",
           ("ouvre", "ferme", "lance", "quitte", "demarre", "appli", "logiciel", "programme",
            "volume", "son ", "le son", "muet", "monte", "baisse", "musique", "chanson",
            "spotify", "playlist", "pause", "reprends", "suivant", "precedent", "youtube",
-           "navigateur", "site", "discord", "steam", "chrome"),
+           "navigateur", "site", "discord", "steam", "chrome", "album", "morceau", "artiste",
+           "ecouter", "mets du ", "mets de la ", "mets des ", "mets moi du", "mets moi de la",
+           "joue ", "un peu de "),
           ("ouvre Spotify", "mets le volume à 30", "ferme Discord", "musique suivante",
-           "lance YouTube")),
+           "lance YouTube", "mets du Daft Punk", "mets l'album Discovery")),
     Skill("reminders", "minuteurs, rappels, notes et listes de Friday",
           ("set_timer", "set_reminder", "list_reminders", "cancel_reminder",
            "add_note", "list_notes", "remove_note"),
