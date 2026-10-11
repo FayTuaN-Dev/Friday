@@ -6,7 +6,7 @@ U1 : dès que la conversation commence, le cœur se fait plus petit (la place va
 reprend sa taille avec « Nouvelle conversation », ou après une minute de veille (la
 conversation reste affichée), et se réduit de nouveau au message suivant."""
 
-from PySide6.QtCore import QEasingCurve, QObject, QPoint, QTimer, QVariantAnimation, Signal
+from PySide6.QtCore import QEasingCurve, QObject, QTimer, QVariantAnimation, Signal
 from PySide6.QtWidgets import QWidget
 
 from friday.ui.desktop import preferences
@@ -15,6 +15,7 @@ from friday.ui.desktop.widgets.holo import HoloOrb
 ORB_STYLES = ("sphere", "holo")  # sphère de particules (J4) ou noyau holographique
 STAGE_FULL, STAGE_COMPACT = 270, 150  # hauteur du cœur : en veille, en conversation
 COMPACT_MS = 450
+PREWARM_MS = 300  # un ciel de la météo préparé au repos toutes les 0,3 s
 REGROW_MS = 60_000  # une minute de veille : le cœur reprend sa taille
 
 
@@ -56,7 +57,7 @@ class StageMixin:
         if compact == self.compact:
             return
         self.compact = compact
-        self.info.setVisible(not compact)
+        self.info.setVisible(not compact and not getattr(self, "scene_mode", False))
         animation = getattr(self, "_stage_animation", None)
         if animation is None:
             animation = self._stage_animation = QVariantAnimation(self)
@@ -112,14 +113,15 @@ class StageMixin:
         if display.kind == CLOSE:
             self.scene_layer.close_scene()
             return False  # les pop-ups se ferment aussi
+        gate = getattr(self.assistant, "scene_gate", None)
         if display.kind == "weather" and not self.settings.scenes:
             return False
         scene = self.scene_layer.scene_for(display.kind, display.data, display.title)
         if scene is None:
+            if gate is not None:
+                gate.ready()  # pas de scène : Friday parle sans attendre
             return False
-        self.place_scene()
-        self.scene_layer.show_scene(scene, display.title)
-        self.pause_orb(True)  # la sphère, cachée dessous, ne s'anime plus pour rien
+        self.enter_scene(scene, display.title)  # en fond, Friday par-dessus (U8)
         return True
 
     def warm_map_when_idle(self) -> None:
@@ -133,8 +135,27 @@ class StageMixin:
             return
         if self.state is AssistantState.IDLE:
             self.scene_layer.warm_map()
+            from friday.ui.desktop.scenes.weather_scene import CODES
+
+            self._skies = [(kind, day) for kind in CODES for day in (True, False)]
+            QTimer.singleShot(PREWARM_MS, self.warm_skies_when_idle)
         else:
             QTimer.singleShot(3000, self.warm_map_when_idle)
+
+    def warm_skies_when_idle(self) -> None:
+        """Les ciels de la météo, fabriqués d'avance un par un, seulement au repos."""
+        from PySide6.QtCore import QTimer
+
+        from friday.app.events import AssistantState
+
+        if not getattr(self, "_skies", None):
+            return
+        if self.state is AssistantState.IDLE and not self.scene_layer.showing:
+            from friday.ui.desktop.scenes.weather_scene import prewarm
+
+            kind, day = self._skies.pop()
+            prewarm(kind, day, self.shell.width(), self.shell.height())
+        QTimer.singleShot(PREWARM_MS, self.warm_skies_when_idle)
 
     def scene_follows(self, state) -> None:
         """La carte s'anime quand Friday a fini de parler, et se met en pause quand elle
@@ -153,14 +174,12 @@ class StageMixin:
         if timer is not None:
             timer.stop() if paused else timer.start()
 
-    def place_scene(self) -> None:
-        """Le calque couvre la fenêtre sous la barre de titre, jusqu'à la barre de saisie."""
-        top = self.title_bar.geometry().bottom() + 1
-        bottom = self.input.mapTo(self.shell, QPoint(0, 0)).y() - 12
-        self.scene_layer.setGeometry(0, top, self.shell.width(), max(100, bottom - top))
-
     def _side_panels(self, *_args) -> None:
-        """Limites Claude et « En écoute » : seulement fenêtre agrandie ou plein écran."""
-        wide = self.isMaximized() or self.isFullScreen()
+        """Limites Claude et « En écoute » : seulement fenêtre agrandie ou plein écran, et
+        jamais pendant une scène (constaté : réaffichés par la musique qui change ou un
+        redimensionnement, ils couvraient la carte et le bouton « Retour »)."""
+        wide = (self.isMaximized() or self.isFullScreen()) and not getattr(
+            self, "scene_mode", False
+        )
         self.limits.setVisible(wide)
         self.playing.setVisible(wide and self.playing.has_track)

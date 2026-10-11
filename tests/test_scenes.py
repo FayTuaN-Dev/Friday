@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QKeyEvent
+from PySide6.QtTest import QTest
 from test_desktop import app, make_window  # noqa: F401  (QApplication)
 
 from friday.tools.base import Display
@@ -70,16 +71,29 @@ def test_scenes_open_and_close(tmp_path):
     window.resize(1000, 700)
     window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
     layer = window.scene_layer
+    # U8 : fondu par le noir. Le voile couvre d'abord la fenêtre ; dessous, la scène et la
+    # mise en page se posent d'un coup ; le voile s'efface quand elle est prête
+    assert not layer.showing and not window.assistant.scene_gate.opened
+    QTest.qWait(100)
+    assert 0 < window.veil.alpha < 255  # le voile monte
+    QTest.qWait(900)
     assert layer.showing and isinstance(layer.scene, WeatherScene)
     assert layer.title.text() == ""  # la scène écrit déjà le lieu
-    layer.start_subtitle()
-    layer.add_subtitle("Il pleut un peu ")
-    layer.add_subtitle("aux Herbiers.")
-    assert layer.subtitle.text() == "Il pleut un peu aux Herbiers."
+    assert window.veil.alpha == 0 and window.assistant.scene_gate.opened  # Friday peut parler
+    assert not window.limits.isVisible() and not window.playing.isVisible()
+    assert window.scene_mode and layer.geometry() == window.shell.rect()
+    assert window.stage.isHidden() and not window.chat.isHidden() and not window.input.isHidden()
+    assert layer.state.text().startswith("●  ")  # l'état de Friday, en haut de la scène
+    assert window.chat.maximumHeight() == int(window.shell.height() * 0.36)
+    assert layer.scene.insets[1] > 0  # la météo écrit au-dessus de la conversation
     window._on_display(Display(CLOSE, "", {"which": "all"}))  # « ferme », « reviens »
-    assert not layer.showing
+    QTest.qWait(700)  # le voile couvre, la sphère revient dessous, le voile s'efface
+    assert not layer.showing and not window.scene_mode and not window.stage.isHidden()
+    assert window.content.mask().isEmpty()  # la souris revient à toute la fenêtre
     window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
+    QTest.qWait(700)
     window.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_Escape, Qt.NoModifier))
+    QTest.qWait(700)
     assert not layer.showing
     window.settings = SimpleNamespace(**{**vars(window.settings), "scenes": False})
     window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
@@ -99,6 +113,45 @@ def test_fixes_after_the_first_real_try(tmp_path):
     # pendant une scène, la sphère cachée dessous ne s'anime plus
     window = make_window(tmp_path)
     window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
+    QTest.qWait(700)  # la scène est en place
     assert not window.orb._timer.isActive()
     window.scene_layer.close_scene()
+    QTest.qWait(700)
     assert window.orb._timer.isActive()
+
+
+def test_skies_are_made_ahead_while_friday_rests():
+    """Constaté : 290 ms de gel à l'affichage de la météo, juste quand Friday parlait. Les
+    ciels sont fabriqués au repos ; à l'affichage, tout est déjà prêt."""
+    import time
+
+    from friday.ui.desktop.scenes import sky_paint
+    from friday.ui.desktop.scenes.weather_scene import prewarm
+
+    prewarm("orage", True, 640, 480)
+    before = sky_paint._cloud.cache_info().misses
+    data = {**WEATHER, "current": {**WEATHER["current"], "code": 95, "is_day": True}}
+    scene = WeatherScene(data, "Les Herbiers")
+    scene.resize(640, 480)
+    start = time.perf_counter()
+    scene._layers()
+    assert sky_paint._cloud.cache_info().misses == before  # aucun nuage à refaire
+    assert time.perf_counter() - start < 0.05
+
+
+def test_side_panels_stay_hidden_during_a_scene(tmp_path):
+    """Constaté (fenêtre agrandie) : limites Claude et « En écoute » réaffichés par la musique
+    qui change, par-dessus la carte et le bouton « Retour »."""
+    window = make_window(tmp_path)
+    window.showMaximized()
+    window.playing.track = object()  # une musique joue
+    window._side_panels()
+    assert window.limits.isVisible() and window.playing.isVisible()
+    window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
+    QTest.qWait(1000)
+    window._side_panels()  # la musique change pendant la scène
+    assert not window.limits.isVisible() and not window.playing.isVisible()
+    window.scene_layer.close_scene()
+    QTest.qWait(700)
+    assert window.limits.isVisible() and window.playing.isVisible()  # de retour avec la sphère
+    window.close()

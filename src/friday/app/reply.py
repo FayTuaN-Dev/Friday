@@ -5,6 +5,7 @@ import threading
 from collections.abc import Callable, Iterable, Iterator
 
 from friday.app.events import AssistantListener
+from friday.app.scene_gate import SceneGate
 from friday.brain.events import (
     BrainEvent,
     ConfirmationRequest,
@@ -31,8 +32,10 @@ class Reply:
         speaker: Speaker | None,
         interrupted: threading.Event,
         on_confirm: Callable[[ConfirmationRequest], None] = lambda request: request.answer(False),
+        scene_gate: SceneGate | None = None,
     ) -> None:
         self.listener = listener
+        self.scene_gate = scene_gate  # la voix attend que la scène soit affichée (U8)
         self.on_confirm = on_confirm  # enregistre la question en attente de « oui » / « non »
         self.speaker = speaker
         self.interrupted = interrupted
@@ -64,6 +67,8 @@ class Reply:
                 self._say([event.question])
                 self.on_confirm(event)
             elif isinstance(event, ToolFinished) and event.result.display:
+                if self.scene_gate is not None:
+                    self.scene_gate.expect(event.result.display)
                 self.listener.on_display(event.result.display)
 
         self._say(self._splitter.flush())
@@ -75,5 +80,7 @@ class Reply:
         if not self.speaker:
             return
         for sentence in sentences:
+            if self.scene_gate is not None:
+                self.scene_gate.wait()  # immédiat, sauf pendant qu'une scène se met en place
             self.speaker.say(sentence)
             self.spoken += f" {sentence}"
