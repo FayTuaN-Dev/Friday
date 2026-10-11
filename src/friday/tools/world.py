@@ -99,7 +99,7 @@ class MarketMoversTool(Tool):
         found = detect(instrument) or by_symbol(instrument) if instrument else None
         instruments = [found] if found else [i for i in self.mine() if i is not None]
         try:
-            return ToolResult(self.world.movers(instruments or None))
+            return ToolResult(self.world.movers(instruments or None, named=found is not None))
         except WorldUnavailable as error:
             return ToolResult(f"Dis EXACTEMENT : « {error} »")
 

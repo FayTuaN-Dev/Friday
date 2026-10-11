@@ -230,3 +230,42 @@ def test_the_globe_shows_themes_and_disasters():
     assert world_request("montre-moi ce qui se passe dans le monde") == ("show_world", {})
     empty = World(lambda: [], lambda: [], now=lambda: NOW)
     assert "Rien de marquant" in globe(empty, [])[0]
+
+
+ROUNDUP_RSS = """<rss><channel>
+<item><title>Colère lycéenne, trois ans du 7-Octobre : la semaine en images</title>
+<pubDate>Sun, 11 Oct 2026 08:30:00 GMT</pubDate><description>Gaza, Israël…</description></item>
+<item><title>Gaza : nouvelles frappes israéliennes</title>
+<pubDate>Sun, 11 Oct 2026 07:30:00 GMT</pubDate><description>Le Hamas…</description></item>
+<item><title>Le prix du baril recule</title>
+<pubDate>Sun, 11 Oct 2026 07:00:00 GMT</pubDate><description>Israël et l'Iran…</description></item>
+</channel></rss>"""
+
+
+def test_a_named_instrument_gets_its_own_answer():
+    """Constaté : « quoi de neuf pour l'or ? » = la réponse de « qu'est-ce qui peut bouger les
+    marchés ? », avec un récapitulatif « la semaine en images » comme titre."""
+    gold = by_symbol("XAUUSD")
+    news = world(items=(), rss=ROUNDUP_RSS)
+    said = news.movers([gold], named=True)
+    assert said.startswith("Dis EXACTEMENT : « Pour l'or, à surveiller dans l'actualité. ")
+    middle_east = said.split("Moyen-Orient : ")[1]
+    assert middle_east.startswith("Gaza : nouvelles frappes israéliennes ; Le prix du baril")
+    assert "en images" not in said  # deux vrais titres passent avant le récapitulatif
+    assert "pour le pétrole et l'or" not in said
+    general = news.movers([gold])  # ses marchés, sans en nommer un : la phrase habituelle
+    assert general.startswith("Dis EXACTEMENT : « Ce qui peut bouger l'or. ")
+    tool = MarketMoversTool(news, lambda: [gold, by_symbol("EURUSD")])
+    assert "Pour l'or, à surveiller" in tool.run("or").text
+    assert "Ce qui peut bouger l'or et EUR/USD" in tool.run().text
+
+
+def test_emojis_and_cut_titles_read_cleanly():
+    """Constaté : « 🔴 Donald Trump affirme… » (France 24) ; « …. » après un titre coupé."""
+    from friday.world.digest import _title
+
+    head = Headline(NOW, "🔴 Donald Trump affirme qu'un accord est proche", "", "France 24")
+    assert _title(head) == "Donald Trump affirme qu'un accord est proche"
+    rss = RSS.replace("L'Iran menace de fermer le détroit d'Ormuz", "L'Iran " + "très " * 40)
+    said = world(items=(), rss=rss).movers([by_symbol("USOIL")], named=True)
+    assert "…." not in said and "… Ce n'est ni un signal" in said
