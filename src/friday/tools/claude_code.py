@@ -20,6 +20,7 @@ INSTRUCTIONS = (
     "Termine par un compte rendu court : ce que tu as fait et les fichiers créés ou modifiés."
 )
 LLM_MAX_CHARS = 2500
+JUST_DONE = 300  # secondes : « annule » juste après la fin → « trop tard », pas « aucune tâche »
 # acceptEdits : peut créer et modifier des fichiers du dossier, pas lancer de commandes
 DEFAULT_OPTIONS = ("--permission-mode", "acceptEdits")
 
@@ -47,6 +48,8 @@ class ClaudeCodeJob:
         self.options, self.instructions = options, instructions
         self.task: str | None = None
         self._process: subprocess.Popen | None = None
+        # Dernière tâche finie : (consigne, instant de fin, fichiers créés ou modifiés)
+        self.last: tuple[str, float, list[str]] | None = None
 
     @property
     def busy(self) -> bool:
@@ -140,6 +143,7 @@ class ClaudeCodeTool(Tool):
         finally:
             self.job.task = None
         files = outcome.get("files", [])
+        self.job.last = (task, time.monotonic(), files)
         text = (
             f"Claude Code a terminé la tâche « {task} » "
             f"({'réussie' if outcome['ok'] else 'échec'}). Son compte rendu :\n"
@@ -160,8 +164,8 @@ class CancelClaudeTool(Tool):
     )
     parameters = {}
 
-    def __init__(self, job: ClaudeCodeJob) -> None:
-        self.job = job
+    def __init__(self, job: ClaudeCodeJob, clock: Callable[[], float] = time.monotonic) -> None:
+        self.job, self.clock = job, clock
 
     def label(self, args: dict) -> str:
         return "🤖 Arrêt de Claude Code"
@@ -170,4 +174,13 @@ class CancelClaudeTool(Tool):
         task = self.job.task
         if task and self.job.cancel():
             return ToolResult(f"La tâche « {task} » a été arrêtée.")
+        last = self.job.last
+        if last and self.clock() - last[1] < JUST_DONE:
+            # Constaté : fini 9 s avant « annule », annoncé 10 s après (« aucune tâche »)
+            done, ago, files = last[0], round(self.clock() - last[1]), ", ".join(last[2])
+            return ToolResult(
+                f"Trop tard pour annuler : Claude a déjà terminé « {done} » il y a {ago} s"
+                + (f" (fichiers : {files})" if files else "")
+                + ". Dis-le en une phrase ; propose de supprimer ces fichiers s'il n'en veut pas."
+            )
         return ToolResult("Claude n'avait aucune tâche en cours.")

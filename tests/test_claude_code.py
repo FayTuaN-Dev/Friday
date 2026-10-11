@@ -172,7 +172,7 @@ def test_job_handles_missing_cli_and_bad_output(monkeypatch, tmp_path):
 class FakeJob:
     def __init__(self, workspace="W"):
         self.workspace, self.task, self.release = workspace, None, threading.Event()
-        self.cancelled = False
+        self.cancelled, self.last = False, None
 
     @property
     def busy(self):
@@ -203,6 +203,26 @@ def test_tool_runs_in_background_and_reports_when_done():
     assert task == "Écris a.py" and "a.py" in result.text
     assert result.display.kind == "claude" and not job.busy
     assert "confie à Claude" in tool.confirmation({"task": "Écris a.py"})
+
+
+def test_cancel_just_after_the_end_says_it_is_too_late():
+    """Constaté : fini 9 s avant « annule », annoncé 10 s après ; Friday disait « aucune tâche »."""
+    done, job, now = [], FakeJob(), [100.0]
+    tool = ClaudeCodeTool(job, lambda task, result: done.append(task))
+    cancel = CancelClaudeTool(job, clock=lambda: now[0])
+    assert "aucune tâche" in cancel.run().text  # rien lancé
+    job.release.set()
+    tool.run("Écris a.py")
+    for _ in range(50):
+        if done:
+            break
+        time.sleep(0.05)
+    now[0] = job.last[1] + 9
+    job.cancel = lambda: False  # le processus est déjà fini
+    said = cancel.run().text
+    assert "Trop tard" in said and "il y a 9 s" in said and "a.py" in said
+    now[0] = job.last[1] + 600  # bien plus tard : plus rien à signaler
+    assert "aucune tâche" in cancel.run().text
 
 
 def test_assistant_confirms_by_voice_then_announces_completion():
