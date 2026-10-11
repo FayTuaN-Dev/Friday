@@ -153,5 +153,8 @@ def test_side_panels_stay_hidden_during_a_scene(tmp_path):
     assert not window.limits.isVisible() and not window.playing.isVisible()
     window.scene_layer.close_scene()
     QTest.qWait(700)
-    assert window.limits.isVisible() and window.playing.isVisible()  # de retour avec la sphère
+    # de retour avec la sphère (« En écoute » seulement si une musique joue encore : sur la
+    # CI, le lecteur réel se rafraîchit pendant le test et n'en trouve aucune)
+    assert window.limits.isVisible()
+    assert window.playing.isVisible() == window.playing.has_track
     window.close()
