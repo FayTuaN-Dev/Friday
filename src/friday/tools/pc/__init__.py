@@ -6,7 +6,18 @@ import threading
 from friday.tools.base import Tool
 
 
-def pc_tools() -> list[Tool]:
+def spotify_player(settings):
+    """Spotify par son API, si une application est réglée (SPOTIFY_CLIENT_ID) ; sinon None."""
+    if settings is None or not getattr(settings, "spotify_client_id", ""):
+        return None
+    from friday.core.config import DATA_DIR
+    from friday.spotify.auth import SpotifyAccount
+    from friday.spotify.player import Spotify
+
+    return Spotify(SpotifyAccount(settings.spotify_client_id, DATA_DIR / "spotify_token.json"))
+
+
+def pc_tools(settings=None) -> list[Tool]:
     if sys.platform != "win32":
         return []
     from friday.tools.pc.apps import CloseAppTool, OpenAppTool
@@ -28,5 +39,5 @@ def pc_tools() -> list[Tool]:
         OpenWebsiteTool(),
         VolumeTool(),
         MediaTool(),
-        PlayMusicTool(_LazySpotify()),
+        PlayMusicTool(_LazySpotify(), spotify_player(settings)),
     ]

@@ -158,6 +158,9 @@ src/friday/
 │   ├── config.py          BriefingConfig : activé, plage horaire, rubriques (voix ou réglages)
 │   ├── sections.py        contenu de chaque rubrique (None = rien à dire : silence)
 │   └── briefing.py        Briefing : quand le faire, collecte en parallèle, gestion des rubriques
+├── spotify/               Spotify par son API (Premium) : connexion PKCE sans secret (auth.py,
+│                          data/spotify_token.json, hors sauvegardes), choix de ce qu'on lance
+│                          (matching.py : ses playlists d'abord), lecture sur l'appli du PC
 ├── google/                compte Google de l'utilisateur
 │   ├── auth.py            GoogleAccount : autorisation OAuth (navigateur), clé dans data/
 │   ├── days.py            « jeudi », « le 12 novembre », « cette semaine » → dates (pas le LLM)

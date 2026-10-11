@@ -90,7 +90,7 @@ def default_toolbox(
     if settings.pc_control:
         from friday.tools.pc import pc_tools
 
-        tools += pc_tools()
+        tools += pc_tools(settings)
     if settings.claude_enabled and on_background is not None:
         from friday.tools.claude_code import CancelClaudeTool, ClaudeCodeJob, ClaudeCodeTool
 

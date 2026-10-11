@@ -82,6 +82,7 @@ class Settings:
     scenes: bool = True  # météo en scène plein écran plutôt qu'en fenêtre (J7)
     world: bool = True  # veille monde : actualité internationale, catastrophes (J9)
     world_alerts: bool = True  # notification discrète pour un événement majeur (J9)
+    spotify_client_id: str = ""  # application developer.spotify.com : lecture directe (Premium)
     trading: TradingSettings = TradingSettings()
 
 
@@ -167,6 +168,7 @@ def load_settings() -> Settings:
         scenes=_bool("SCENES", True),
         world=_bool("WORLD", True),
         world_alerts=_bool("WORLD_ALERTS", True),
+        spotify_client_id=os.getenv("SPOTIFY_CLIENT_ID", "").strip(),
         trading=TradingSettings(
             enabled=_bool("TRADING_ENABLED", True),
             passages=max(1, min(15, int(os.getenv("TRADING_PASSAGES", "10")))),

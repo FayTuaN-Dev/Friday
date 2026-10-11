@@ -91,15 +91,10 @@ Assistant personnel vocal de bureau : on lui parle, il répond à voix haute et 
 
 ## Notes pour plus tard
 
-- **Spotify : lancer une playlist précise** (« lance Nova », « ma playlist chill ») : aujourd'hui Friday ouvre Spotify ou une recherche puis appuie sur lecture, sans lancer la playlist demandée (constaté le 10/10/2026).
-
 - **Recherche web plus fiable** : les moteurs gratuits (via `ddgs`) limitent parfois les requêtes
   d'une même connexion. Si ça devient gênant, ajouter un fournisseur avec clé gratuite en secours :
   Brave Search API (2 000 recherches/mois) ou Tavily (1 000/mois, pensé pour les assistants IA).
   Choix actuel : s'en passer tant que possible.
-- **Lancer directement une playlist Spotify** (« mets le mix Nova ») : impossible sans l'API
-  Spotify (application développeur gratuite + connexion au compte). Aujourd'hui Friday ouvre la
-  recherche et il faut cliquer sur le résultat.
 - **Friday hors du PC** (bot Telegram…) : demanderait que le PC reste allumé en permanence, ce
   qui n'est pas le cas. Projet futur.
 - **Meilleure voix** : Kokoro (local) ou Edge TTS (gratuit, en ligne) à essayer ; pas d'API payante.
@@ -163,6 +158,7 @@ Choisies en tenant compte du PC (qwen3:8b sur RTX 3070 8 Go) : rien de trop lour
 | F4 | **Mails** : la vraie liste des catégories donnée au modèle (« quelles catégories ai-je ? » ne marchait que 5 fois sur 8) | Tri des mails fiable | ✅ |
 | F5 | **Mémoire de la journée** : résumé des conversations du jour gardé (« de quoi on a parlé hier ? ») | Continuité d'un jour à l'autre | ✅ |
 | F6 | **Friday sur le téléphone** (à étudier : accès privé depuis le réseau local, sans service payant) | Parler à Friday hors du bureau | ⬜ |
+| F8 | **Spotify direct** (API, compte Premium) : « lance Nova », « mets l'album Discovery », « mets du Daft Punk » → la bonne playlist (les tiennes d'abord), l'album, l'artiste ou le titre se lance sur l'appli du PC (ouverte si besoin) ; sans réglage, l'ancienne recherche reste | Plus besoin de cliquer sur le résultat | ✅ |
 | F7 | **Limites Claude à l'écran** : fenêtre agrandie, une barre pour ce qu'il reste de la session (5 h) et de la semaine, avec la remise à zéro ; chiffres relayés par la ligne d'état de Claude Code | Savoir d'un coup d'œil ce qu'il reste avant d'envoyer une analyse | ✅ |
 | 9 | Finitions : icône près de l'horloge, démarrage avec Windows, `.exe` | Produit fini | ⬜ (reporté) |
 
@@ -178,7 +174,7 @@ Idées tirées de [jarvis-OS](https://github.com/Grominet95/jarvis-OS) (AGPL-3.0
 | J3 | **Double clap** pour réveiller Friday (sensibilité réglable) | Un réveil sans mot d'activation | ✅ |
 | J4 | **Sphère de particules** qui réagit à la voix, séquence de démarrage (auto-test qui défile), widget « En écoute » (Spotify, YouTube… via Windows) | L'effet Jarvis | ✅ |
 | J5 | **Routines planifiées** (« tous les jours à 7 h… », « le lundi… »), rattrapées si le PC était éteint | Friday agit seule à heure fixe | ✅ |
-| J6 | **Friday sur le téléphone** : bot Telegram réservé à l'utilisateur, ou Tailscale (privé) — remplace F6 | Parler à Friday hors du bureau | ⬜ |
+| J6 | **Friday sur le téléphone** : bot Telegram réservé à l'utilisateur, ou Tailscale (privé) — remplace F6 | Parler à Friday hors du bureau | ⏸️ (en pause : le PC n'est pas allumé en mon absence) |
 | J7 | **Scènes plein écran** : météo animée, carte 3D d'un lieu (« montre-moi la tour Eiffel »), retour à la sphère | Des réponses qui se voient | ✅ |
 | J8 | **Atelier de compétences** : Claude écrit une nouvelle compétence, Friday la teste, l'inspecte (droits demandés) et l'installe après validation de l'utilisateur | Friday apprend de nouveaux outils | ✅ |
 | J9 | **Veille monde** (inspirée de World Monitor, réécrite) : titres internationaux (Le Monde, France 24) et catastrophes en cours (GDACS) ; « quoi de neuf dans le monde ? », « qu'est-ce qui peut bouger les marchés ? » relié à tes instruments par une grille fixe ; bloc « monde » joint aux analyses de Claude et ligne du briefing trading ; notification discrète pour un événement majeur ; phrases toutes faites dites telles quelles | Voir ce qui bouge les marchés | ✅ |

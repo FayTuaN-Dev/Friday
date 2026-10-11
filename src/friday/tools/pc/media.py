@@ -42,20 +42,30 @@ class MediaTool(Tool):
 class PlayMusicTool(Tool):
     name = "play_music"
     description = (
-        "Cherche une musique, un artiste ou une playlist dans Spotify (ou sur YouTube si "
-        "Spotify n'est pas installé). La recherche s'ouvre ; il reste à lancer la lecture."
+        "Lance une musique précise sur Spotify : une playlist (y compris celles de "
+        "l'utilisateur), un album, un artiste ou un titre (« lance Nova », « mets l'album "
+        "Discovery », « mets du Daft Punk »). Sans compte Spotify relié : ouvre la recherche."
     )
-    parameters = {"query": {"type": "string", "description": "Titre, artiste, style, playlist"}}
+    parameters = {
+        "query": {"type": "string", "description": "Ce qu'il demande, tel quel (« playlist Nova »)"}
+    }
     required = ("query",)
 
-    def __init__(self, has_spotify: bool, open_uri=os.startfile, open_url=webbrowser.open):
-        self.has_spotify = has_spotify
+    def __init__(self, has_spotify: bool, spotify=None, open_uri=os.startfile,
+                 open_url=webbrowser.open):  # fmt: skip
+        """`spotify` : Spotify par son API (spotify/player.py), ou None."""
+        self.has_spotify, self.spotify = has_spotify, spotify
         self.open_uri, self.open_url = open_uri, open_url
 
     def label(self, args: dict) -> str:
         return f"🎵 Musique : {args.get('query', '')}"
 
     def run(self, query: str) -> ToolResult:
+        if self.spotify is not None:
+            from friday.tools.pc.spotify_play import play_with_api
+
+            if (said := play_with_api(self.spotify, query)) is not None:
+                return ToolResult(said)
         if self.has_spotify:
             self.open_uri(f"spotify:search:{quote(query)}")
             return ToolResult(
