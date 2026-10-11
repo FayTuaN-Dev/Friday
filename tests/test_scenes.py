@@ -72,12 +72,16 @@ def test_scenes_open_and_close(tmp_path):
     layer = window.scene_layer
     assert layer.showing and isinstance(layer.scene, WeatherScene)
     assert layer.title.text() == ""  # la scène écrit déjà le lieu
-    layer.start_subtitle()
-    layer.add_subtitle("Il pleut un peu ")
-    layer.add_subtitle("aux Herbiers.")
-    assert layer.subtitle.text() == "Il pleut un peu aux Herbiers."
+    # U8 : la scène en fond de toute la fenêtre, Friday par-dessus (conversation en bas)
+    app.processEvents()
+    assert window.scene_mode and layer.geometry() == window.shell.rect()
+    assert window.stage.isHidden() and not window.chat.isHidden() and not window.input.isHidden()
+    assert layer.state.text().startswith("●  ")  # l'état de Friday, en haut de la scène
+    assert window.chat.maximumHeight() == int(window.shell.height() * 0.36)
+    assert layer.scene.insets[1] > 0  # la météo écrit au-dessus de la conversation
     window._on_display(Display(CLOSE, "", {"which": "all"}))  # « ferme », « reviens »
-    assert not layer.showing
+    assert not layer.showing and not window.scene_mode and not window.stage.isHidden()
+    assert window.content.mask().isEmpty()  # la souris revient à toute la fenêtre
     window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
     window.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_Escape, Qt.NoModifier))
     assert not layer.showing

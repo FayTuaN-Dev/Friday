@@ -65,6 +65,13 @@ class MapScene(QWidget):
         """Le globe de la veille monde (J9b)."""
         self._run(world_script(data))
 
+    def set_insets(self, top: int, bottom: int) -> None:
+        """La conversation couvre le bas : le lieu (ou le globe) se centre au-dessus."""
+        if self.ready:
+            self.view.page().runJavaScript(
+                f"window.fridayPad && window.fridayPad({top}, {bottom});"
+            )
+
     def animate(self) -> None:
         """Friday a fini de parler : vol et rotation."""
         if self.ready:

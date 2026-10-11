@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QSizePolicy,
+    QSpacerItem,
     QVBoxLayout,
     QWidget,
 )
@@ -21,6 +23,7 @@ from friday.core.config import Settings
 from friday.ui.desktop import native_window, preferences, theme
 from friday.ui.desktop.bridge import QtBridge
 from friday.ui.desktop.popups.manager import PopupManager
+from friday.ui.desktop.scenes.backdrop import BackdropMixin
 from friday.ui.desktop.stage import ORB_STYLES, STAGE_FULL, BootSignal, StageMixin, make_orb
 from friday.ui.desktop.widgets.chat import ChatView
 from friday.ui.desktop.widgets.frame import ResizableFrame
@@ -36,7 +39,7 @@ def dropped_files(mime) -> list[Path]:
     return [path for path in paths if path.is_file()]
 
 
-class MainWindow(StageMixin, QMainWindow):
+class MainWindow(BackdropMixin, StageMixin, QMainWindow):
     def __init__(self, settings: Settings, assistant: Assistant | None = None,
                  preferences_path: Path = preferences.PATH) -> None:  # fmt: skip
         super().__init__()
@@ -97,6 +100,10 @@ class MainWindow(StageMixin, QMainWindow):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(18, 0, 18, 18)
         layout.setSpacing(4)
+        self.content = content
+        # Pendant une scène (U8), ce ressort pousse la conversation en bas de la fenêtre
+        self.scene_spacer = QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Fixed)
+        layout.addSpacerItem(self.scene_spacer)
         self.stage = QWidget()
         self.stage.setFixedHeight(STAGE_FULL)
         self.stage_grid = QGridLayout(self.stage)
@@ -131,7 +138,7 @@ class MainWindow(StageMixin, QMainWindow):
 
         self.shell = shell
         self.scene_layer = SceneLayer(shell)  # scènes plein écran : météo, carte 3D (J7)
-        self.scene_layer.closed.connect(lambda: self.pause_orb(False))
+        self.scene_layer.closed.connect(lambda: self.set_scene_mode(False))
         outer = QVBoxLayout(shell)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
@@ -150,9 +157,7 @@ class MainWindow(StageMixin, QMainWindow):
         b.user_message.connect(lambda *_: self.set_compact(True))  # place à la conversation
         b.reply_start.connect(lambda: self.set_compact(True))
         b.reply_start.connect(self.chat.start_reply)
-        b.reply_start.connect(self.scene_layer.start_subtitle)
         b.reply_chunk.connect(self.chat.append_reply)
-        b.reply_chunk.connect(self.scene_layer.add_subtitle)
         b.reply_end.connect(self.chat.end_reply)
         b.notice.connect(self.chat.add_notice)
         b.tool.connect(self.chat.add_tool)
@@ -285,7 +290,12 @@ class MainWindow(StageMixin, QMainWindow):
         self.regrow_when_idle(state)
         self.orb.set_state(state)
         self.status.setText(state.value.upper())
-        self.status.setStyleSheet(f"color: {theme.current().states[state]};")
+        self.status.setStyleSheet(f"color: {self.status_color()};")
+        if self.scene_mode:  # la sphère est cachée : l'état s'affiche en haut de la scène
+            self.scene_layer.show_state(self.status.text(), self.status_color())
+
+    def status_color(self) -> str:
+        return theme.current().states[self.state]
 
     def _reset(self) -> None:
         self.chat.clear()

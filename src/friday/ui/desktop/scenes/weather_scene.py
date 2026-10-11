@@ -70,8 +70,13 @@ class WeatherScene(QWidget):
         count = {"pluie": 260, "orage": 320, "neige": 180}.get(self.kind, 0)
         self.drops = [[rng.random(), rng.random(), rng.uniform(0.6, 1.0)] for _ in range(count)]
         self.time, self.flash = 0.0, 0.0
+        self.insets = (0, 0)  # (haut, bas) cachés par Friday quand la scène est en fond (U8)
         self._timer = QTimer(self, interval=1000 // FPS, timeout=self._tick)
         self._timer.start()
+
+    def set_insets(self, top: int, bottom: int) -> None:
+        self.insets = (top, bottom)
+        self.update()
 
     def _tick(self) -> None:
         dt = 1 / FPS
@@ -167,25 +172,34 @@ class WeatherScene(QWidget):
         current, days = self.data.get("current", {}), self.data.get("days", [])
         light = QColor(255, 255, 255, 235)
         soft = QColor(255, 255, 255, 170)
+        # Tout tient dans la partie visible (sous la barre de titre, au-dessus de Friday), posé
+        # de haut en bas : lieu, température, détails, prévisions (s'il reste la place)
+        top, bottom = self.insets
+        limit = h - bottom - 12
         p.setPen(soft)
         p.setFont(font(15, 4))
-        p.drawText(QRectF(40, 30, w - 80, 30), Qt.AlignLeft, self.place.upper())
+        p.drawText(QRectF(40, top + 24, w - 80, 30), Qt.AlignLeft, self.place.upper())
+        size = max(70, min(170, (limit - top) * 0.3))
         p.setPen(light)
-        p.setFont(font(int(min(w, h) * 0.2)))
-        p.drawText(QRectF(36, h * 0.38, w * 0.6, h * 0.3), Qt.AlignLeft | Qt.AlignBottom,
-                   f"{current.get('temperature', '—')}°")  # fmt: skip
+        p.setFont(font(int(min(w * 0.2, size * 0.85))))
+        temperature = f"{current.get('temperature', '—')}°"
+        p.drawText(QRectF(36, top + 58, w * 0.6, size), Qt.AlignLeft | Qt.AlignBottom, temperature)
         p.setFont(font(17, 1))
         p.setPen(soft)
         details = (f"{current.get('label', '')} · ressenti {current.get('feels_like', '—')}° · "
                    f"vent {current.get('wind', '—')} km/h · humidité "
                    f"{current.get('humidity', '—')} %")  # fmt: skip
-        p.drawText(QRectF(42, h * 0.68, w - 84, 30), Qt.AlignLeft, details)
-        self._forecast(p, w, h, days[:7])
+        box = QRectF(42, top + 64 + size, w - 84, 60)
+        used = p.boundingRect(box, Qt.AlignLeft | Qt.TextWordWrap, details)
+        p.drawText(box, Qt.AlignLeft | Qt.TextWordWrap, details)
+        if used.bottom() + 14 + 100 <= limit:  # sinon : la conversation cacherait le bandeau
+            self._forecast(p, w, used.bottom() + 14, days[:7])
 
-    def _forecast(self, p: QPainter, w: int, h: int, days: list[dict]) -> None:
+    def _forecast(self, p: QPainter, w: int, y: float, days: list[dict]) -> None:
+        """Le bandeau des jours suivants, à partir de la hauteur `y`."""
         if not days:
             return
-        band = QRectF(30, h - 128, w - 60, 100)
+        band = QRectF(30, y, w - 60, 100)
         p.setPen(Qt.NoPen)
         p.setBrush(QColor(0, 0, 0, 70))
         p.drawRoundedRect(band, 14, 14)

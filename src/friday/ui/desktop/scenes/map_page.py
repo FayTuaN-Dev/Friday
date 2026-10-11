@@ -14,6 +14,7 @@ HEAD = """<!doctype html><html><head><meta charset="utf-8">
 #stars,#map,#leaders,#callouts{position:absolute;inset:0;width:100%;height:100%}
 #map{background:transparent}
 .maplibregl-ctrl-attrib{opacity:.55;font-size:10px}
+.maplibregl-ctrl-top-right{top:96px}
 __GLOBE_CSS__</style></head>
 <body><canvas id="stars"></canvas><div id="map"></div><svg id="leaders"></svg>
 <div id="callouts"></div><script>
@@ -23,7 +24,9 @@ PLACE_JS = """
 // Rendu à la résolution de base (pas ×1,5 sur un écran agrandi) : moitié moins de calcul
 const map = new maplibregl.Map({container: "map", style: "__STYLE__", center: [2.35, 46.6],
   zoom: 4, pixelRatio: 1, fadeDuration: 0, attributionControl: {compact: true}});
-map.addControl(new maplibregl.NavigationControl({visualizePitch: true}), "bottom-right");
+map.addControl(new maplibregl.NavigationControl({visualizePitch: true}), "top-right");
+// U8 : la conversation de Friday couvre le bas de la carte ; on centre au-dessus
+window.fridayPad = (top, bottom) => map.setPadding({top: top, bottom: bottom, left: 0, right: 0});
 let spin = null, marker = null, place = null, stopTimer = null, mode = "place", ready = false;
 const later = [];  // en attente du style (chargé après la page)
 const whenReady = (fn) => { if (ready) fn(); else later.push(fn); };

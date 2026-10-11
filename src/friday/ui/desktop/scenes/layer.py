@@ -1,14 +1,39 @@
-"""Le calque des scènes plein écran (J7) : il recouvre la fenêtre entre la barre de titre et
-la barre de saisie (qui reste utilisable), avec un bouton « Retour » et, en sous-titre, ce
-que Friday dit. « Reviens », « ferme », Échap ou le bouton ramènent à la sphère."""
+"""Le calque des scènes (J7, U8) : la météo, la carte 3D ou le globe deviennent le FOND de
+toute la fenêtre ; Friday (sa conversation, la barre de saisie) reste par-dessus, en bas
+(voir backdrop.py). En haut : le titre de la scène, l'état de Friday et « Retour ». Deux
+dégradés sombres (haut et bas) gardent le texte lisible sur un ciel clair.
+« Reviens », « ferme », Échap ou le bouton ramènent à la sphère."""
 
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QColor, QLinearGradient, QPainter
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QWidget
 
 from friday.ui.desktop import theme
 from friday.ui.desktop.theme.stylesheet import FONT_HUD
 
-SUBTITLE_CHARS = 220  # la fin de ce que dit Friday
+TOP_SHADE, BOTTOM_SHADE = 0.22, 0.5  # part de la hauteur assombrie en haut, en bas
+
+
+class Shade(QWidget):
+    """Assombrit le haut (barre de titre) et le bas (conversation) de la scène ; la souris
+    passe au travers."""
+
+    def __init__(self, parent: QWidget) -> None:
+        super().__init__(parent)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+
+    def paintEvent(self, _event) -> None:
+        h, bg = self.height(), QColor(theme.current().bg)
+        p = QPainter(self)
+        for start, end, strong in ((0, h * TOP_SHADE, 0), (h * (1 - BOTTOM_SHADE), h, 1)):
+            g = QLinearGradient(0, start, 0, end)
+            solid, clear = QColor(bg), QColor(bg)
+            solid.setAlpha(150 if strong == 0 else 225)
+            clear.setAlpha(0)
+            g.setColorAt(0, clear if strong else solid)
+            g.setColorAt(1, solid if strong else clear)
+            p.fillRect(0, int(start), self.width(), int(end - start) + 1, g)
+        p.end()
 
 
 class SceneLayer(QFrame):
@@ -18,23 +43,25 @@ class SceneLayer(QFrame):
         super().__init__(parent, objectName="SceneLayer")
         self.scene: QWidget | None = None
         self.map = None  # la carte 3D : créée une fois (warm_map), puis réutilisée
+        self.insets = (0, 0)  # (haut, bas) : la partie de la scène cachée par Friday
         self.grid = QGridLayout(self)
         self.grid.setContentsMargins(0, 0, 0, 0)
-        top = QHBoxLayout()
-        top.setContentsMargins(18, 12, 16, 0)
+        self.shade = Shade(self)
+        self.grid.addWidget(self.shade, 0, 0)
+        self.top_row = QHBoxLayout()
+        self.top_row.setContentsMargins(18, 0, 16, 0)
         self.title = QLabel(objectName="SceneTitle")
+        self.state = QLabel(objectName="SceneState")  # « ● PARLE » : la sphère est cachée
         self.back = QPushButton("RETOUR  ✕", objectName="SceneBack", cursor=Qt.PointingHandCursor)
         self.back.clicked.connect(self.close_scene)
-        top.addWidget(self.title)
-        top.addStretch()
-        top.addWidget(self.back)
+        self.top_row.addWidget(self.title)
+        self.top_row.addSpacing(12)
+        self.top_row.addWidget(self.state)
+        self.top_row.addStretch()
+        self.top_row.addWidget(self.back)
         self.top = QWidget()
-        self.top.setLayout(top)
-        self.subtitle = QLabel(objectName="SceneSubtitle", wordWrap=True, alignment=Qt.AlignCenter)
-        self.subtitle.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.top.setLayout(self.top_row)
         self.grid.addWidget(self.top, 0, 0, Qt.AlignTop)
-        self.grid.addWidget(self.subtitle, 0, 0, Qt.AlignTop)  # sous le titre
-        self._said = ""
         self.refresh_style()
         self.hide()
 
@@ -44,15 +71,28 @@ class SceneLayer(QFrame):
         #SceneLayer {{ background: {p.bg}; }}
         #SceneTitle {{ font-family: "{FONT_HUD}"; font-size: 12px; letter-spacing: 3px;
                        color: {p.accent}; background: transparent; }}
+        #SceneState {{ font-family: "{FONT_HUD}"; font-size: 10px; letter-spacing: 2px;
+                       background: rgba(0, 0, 0, 110); border-radius: 10px;
+                       padding: 3px 10px; }}
         #SceneBack {{ font-family: "{FONT_HUD}"; font-size: 11px; letter-spacing: 2px;
                       color: {p.accent}; background: rgba(0, 0, 0, 120);
                       border: 1px solid {p.accent_glow}; border-radius: 14px;
                       padding: 0; min-width: 124px; max-width: 124px;
                       min-height: 32px; max-height: 32px; }}
         #SceneBack:hover {{ background: {p.accent_soft}; }}
-        #SceneSubtitle {{ color: white; font-size: 15px; background: rgba(0, 0, 0, 110);
-                          border-radius: 12px; padding: 10px 18px; margin: 64px 90px 0 90px; }}
         """)  # fmt: skip
+
+    def show_state(self, text: str, color: str) -> None:
+        self.state.setText(f"●  {text.upper()}")
+        self.state.setStyleSheet(f"color: {color};")
+
+    def set_insets(self, top: int, bottom: int) -> None:
+        """La barre de titre en haut, la conversation en bas : la scène place son sujet
+        (texte de la météo, lieu de la carte) entre les deux."""
+        self.insets = (top, bottom)
+        self.top_row.setContentsMargins(18, top + 6, 16, 0)
+        if self.scene is not None and hasattr(self.scene, "set_insets"):
+            self.scene.set_insets(top + 50, bottom)  # sous la ligne « titre · Retour »
 
     def scene_for(self, kind: str, data: dict, title: str) -> QWidget | None:
         """Display → scène : « weather » (ciel animé), « place » (carte 3D réutilisée) ou
@@ -88,12 +128,13 @@ class SceneLayer(QFrame):
         self.scene = scene
         self.grid.addWidget(scene, 0, 0)
         scene.show()
-        scene.lower()
+        scene.lower()  # sous les dégradés et la ligne du haut
         # La scène météo écrit elle-même le lieu : pas de second titre par-dessus
-        self.title.setText("" if getattr(scene, "draws_title", False) else title.upper())
-        self.subtitle.hide()
+        # « Tour Eiffel — 75007, France » : le nom suffit (la place est comptée en haut)
+        name = title.split(" — ")[0]
+        self.title.setText("" if getattr(scene, "draws_title", False) else name.upper())
+        self.set_insets(*self.insets)
         self.show()
-        self.raise_()
 
     def close_scene(self, quiet: bool = False) -> None:
         if self.scene is not None:
@@ -108,16 +149,3 @@ class SceneLayer(QFrame):
         self.hide()
         if was_visible and not quiet:
             self.closed.emit()
-
-    def start_subtitle(self) -> None:
-        self._said = ""
-
-    def add_subtitle(self, chunk: str) -> None:
-        """Ce que dit Friday, en bas de la scène (la fin seulement, si c'est long)."""
-        if not self.showing:
-            return
-        self._said += chunk
-        text = " ".join(self._said.split())
-        self.subtitle.setText(text if len(text) <= SUBTITLE_CHARS
-                              else "…" + text[-SUBTITLE_CHARS:].split(" ", 1)[-1])  # fmt: skip
-        self.subtitle.setVisible(bool(text))

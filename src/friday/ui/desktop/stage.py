@@ -6,7 +6,7 @@ U1 : dès que la conversation commence, le cœur se fait plus petit (la place va
 reprend sa taille avec « Nouvelle conversation », ou après une minute de veille (la
 conversation reste affichée), et se réduit de nouveau au message suivant."""
 
-from PySide6.QtCore import QEasingCurve, QObject, QPoint, QTimer, QVariantAnimation, Signal
+from PySide6.QtCore import QEasingCurve, QObject, QTimer, QVariantAnimation, Signal
 from PySide6.QtWidgets import QWidget
 
 from friday.ui.desktop import preferences
@@ -56,7 +56,7 @@ class StageMixin:
         if compact == self.compact:
             return
         self.compact = compact
-        self.info.setVisible(not compact)
+        self.info.setVisible(not compact and not getattr(self, "scene_mode", False))
         animation = getattr(self, "_stage_animation", None)
         if animation is None:
             animation = self._stage_animation = QVariantAnimation(self)
@@ -117,9 +117,8 @@ class StageMixin:
         scene = self.scene_layer.scene_for(display.kind, display.data, display.title)
         if scene is None:
             return False
-        self.place_scene()
         self.scene_layer.show_scene(scene, display.title)
-        self.pause_orb(True)  # la sphère, cachée dessous, ne s'anime plus pour rien
+        self.set_scene_mode(True)  # la scène en fond, Friday par-dessus (U8)
         return True
 
     def warm_map_when_idle(self) -> None:
@@ -152,12 +151,6 @@ class StageMixin:
         timer = getattr(self.orb, "_timer", None)
         if timer is not None:
             timer.stop() if paused else timer.start()
-
-    def place_scene(self) -> None:
-        """Le calque couvre la fenêtre sous la barre de titre, jusqu'à la barre de saisie."""
-        top = self.title_bar.geometry().bottom() + 1
-        bottom = self.input.mapTo(self.shell, QPoint(0, 0)).y() - 12
-        self.scene_layer.setGeometry(0, top, self.shell.width(), max(100, bottom - top))
 
     def _side_panels(self, *_args) -> None:
         """Limites Claude et « En écoute » : seulement fenêtre agrandie ou plein écran."""
