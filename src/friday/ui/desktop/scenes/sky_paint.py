@@ -4,6 +4,8 @@ sa lune, chaque nuage, et les textes. Constaté : tout redessiner 30 fois par se
 peindre, privait la voix de son fil (coupures). Une image se recopie en une fraction de ms.
 """
 
+from functools import lru_cache
+
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPixmap, QRadialGradient
 
@@ -36,6 +38,7 @@ def _canvas(w: int, h: int) -> tuple[QPixmap, QPainter]:
     return pixmap, painter
 
 
+@lru_cache(maxsize=32)  # préchargé au repos (prewarm) : rien à fabriquer à l'affichage
 def background(kind: str, day: bool, w: int, h: int) -> QPixmap:
     """Le dégradé du ciel, avec le soleil ou la lune par beau temps."""
     pixmap, p = _canvas(w, h)
@@ -61,6 +64,11 @@ def background(kind: str, day: bool, w: int, h: int) -> QPixmap:
 
 def cloud_sprite(kind: str, day: bool, r: float) -> QPixmap:
     """Un nuage de rayon `r` (quatre bouffées en dégradé), centré dans son image."""
+    return _cloud(kind, day, int(r))
+
+
+@lru_cache(maxsize=512)
+def _cloud(kind: str, day: bool, r: int) -> QPixmap:
     shade = {"orage": 70, "pluie": 120, "couvert": 170}.get(kind, 235)
     if not day:
         shade = int(shade * 0.35)

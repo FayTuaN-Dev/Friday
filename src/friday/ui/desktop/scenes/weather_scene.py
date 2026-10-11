@@ -154,3 +154,19 @@ class WeatherScene(QWidget):
             else:
                 p.setPen(QPen(QColor(190, 210, 235, int(150 * size)), 1.2))
                 p.drawLines(items)
+
+
+CODES = {"clair": 0, "nuageux": 2, "couvert": 3, "brouillard": 45, "pluie": 61, "neige": 73,
+         "orage": 95}  # un code météo par ciel  # fmt: skip
+
+
+def prewarm(kind: str, day: bool, w: int, h: int) -> None:
+    """Fabrique d'avance le ciel et les nuages de ce temps-là à cette taille (gardés en
+    mémoire par sky_paint), et charge les polices : constaté, 290 ms de gel à l'affichage de
+    la météo, juste quand Friday commençait à parler. Appelé au repos, un ciel à la fois."""
+    data = {"current": {"code": CODES[kind], "is_day": day, "temperature": 0}, "days": []}
+    scene = WeatherScene(data, "")
+    scene._timer.stop()
+    scene.resize(w, h)
+    scene._layers()
+    scene.deleteLater()

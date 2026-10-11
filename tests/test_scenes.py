@@ -118,3 +118,22 @@ def test_fixes_after_the_first_real_try(tmp_path):
     window.scene_layer.close_scene()
     QTest.qWait(700)
     assert window.orb._timer.isActive()
+
+
+def test_skies_are_made_ahead_while_friday_rests():
+    """Constaté : 290 ms de gel à l'affichage de la météo, juste quand Friday parlait. Les
+    ciels sont fabriqués au repos ; à l'affichage, tout est déjà prêt."""
+    import time
+
+    from friday.ui.desktop.scenes import sky_paint
+    from friday.ui.desktop.scenes.weather_scene import prewarm
+
+    prewarm("orage", True, 640, 480)
+    before = sky_paint._cloud.cache_info().misses
+    data = {**WEATHER, "current": {**WEATHER["current"], "code": 95, "is_day": True}}
+    scene = WeatherScene(data, "Les Herbiers")
+    scene.resize(640, 480)
+    start = time.perf_counter()
+    scene._layers()
+    assert sky_paint._cloud.cache_info().misses == before  # aucun nuage à refaire
+    assert time.perf_counter() - start < 0.05

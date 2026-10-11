@@ -15,6 +15,7 @@ from friday.ui.desktop.widgets.holo import HoloOrb
 ORB_STYLES = ("sphere", "holo")  # sphère de particules (J4) ou noyau holographique
 STAGE_FULL, STAGE_COMPACT = 270, 150  # hauteur du cœur : en veille, en conversation
 COMPACT_MS = 450
+PREWARM_MS = 300  # un ciel de la météo préparé au repos toutes les 0,3 s
 REGROW_MS = 60_000  # une minute de veille : le cœur reprend sa taille
 
 
@@ -134,8 +135,27 @@ class StageMixin:
             return
         if self.state is AssistantState.IDLE:
             self.scene_layer.warm_map()
+            from friday.ui.desktop.scenes.weather_scene import CODES
+
+            self._skies = [(kind, day) for kind in CODES for day in (True, False)]
+            QTimer.singleShot(PREWARM_MS, self.warm_skies_when_idle)
         else:
             QTimer.singleShot(3000, self.warm_map_when_idle)
+
+    def warm_skies_when_idle(self) -> None:
+        """Les ciels de la météo, fabriqués d'avance un par un, seulement au repos."""
+        from PySide6.QtCore import QTimer
+
+        from friday.app.events import AssistantState
+
+        if not getattr(self, "_skies", None):
+            return
+        if self.state is AssistantState.IDLE and not self.scene_layer.showing:
+            from friday.ui.desktop.scenes.weather_scene import prewarm
+
+            kind, day = self._skies.pop()
+            prewarm(kind, day, self.shell.width(), self.shell.height())
+        QTimer.singleShot(PREWARM_MS, self.warm_skies_when_idle)
 
     def scene_follows(self, state) -> None:
         """La carte s'anime quand Friday a fini de parler, et se met en pause quand elle
