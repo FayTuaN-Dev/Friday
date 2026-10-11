@@ -85,7 +85,7 @@ def default_toolbox(
 
         tools += [
             ReadFileTool(), ReadClipboardTool(), CopyToClipboardTool(),
-            SearchFilesTool(FileFinder(search_folders())), OpenFileTool(),
+            SearchFilesTool(finder := FileFinder(search_folders())), OpenFileTool(finder),
         ]  # fmt: skip
     if settings.pc_control:
         from friday.tools.pc import pc_tools

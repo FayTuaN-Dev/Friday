@@ -1,4 +1,5 @@
-"""Outils : chercher un fichier (Documents, Bureau, Téléchargements, Images) et l'ouvrir."""
+"""Outils : chercher un fichier (Documents, Bureau, Téléchargements, Images, Musique) et
+l'ouvrir."""
 
 from pathlib import Path
 
@@ -22,7 +23,7 @@ class SearchFilesTool(Tool):
     name = "search_files"
     description = (
         "Cherche des fichiers de l'utilisateur par leur nom, dans Documents, Bureau, "
-        "Téléchargements et Images (« trouve mon devis de mars », « où est ma photo de "
+        "Téléchargements, Images et Musique (« trouve mon devis de mars », « où est ma photo de "
         "vacances ? », « mes derniers PDF »). Ensuite : read_file pour le lire, open_file "
         "pour l'ouvrir."
     )
@@ -108,12 +109,27 @@ class OpenFileTool(Tool):
     }
     required = ("path",)
 
+    def __init__(self, finder: FileFinder | None = None) -> None:
+        """`finder` : pour retrouver un fichier dont le chemin donné n'existe pas."""
+        self.finder = finder
+
     def label(self, args: dict) -> str:
         verb = "Dossier de" if args.get("reveal") else "Ouverture :"
         return f"📂 {verb} {clean_path(args.get('path', '')).name}"
 
     def run(self, path: str, reveal: bool = False) -> ToolResult:
         target = clean_path(path)
+        if not target.exists() and self.finder is not None:
+            # Constaté : « lance panda.png dans le dossier Download » → « /Download/panda.png »
+            # inventé par qwen, au lieu de chercher d'abord
+            same = [e for e in self.finder.find(target.stem, limit=20)
+                    if e.path.name.lower() == target.name.lower()]  # fmt: skip
+            if len(same) > 1:
+                places = "\n".join(f"- {e.path}" for e in same[:SHOWN])
+                return ToolResult(f"Plusieurs fichiers « {target.name} » :\n{places}\nDemande "
+                                  "lequel ouvrir (dis seulement les dossiers).")  # fmt: skip
+            if same:
+                target = same[0].path
         try:
             (reveal_file if reveal else open_file)(target)
         except CannotOpen as error:
