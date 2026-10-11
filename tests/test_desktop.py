@@ -234,3 +234,30 @@ def test_the_core_shrinks_during_a_conversation():
     QTest.qWait(600)
     assert not w.compact and w.stage.height() == STAGE_FULL and not w.info.isHidden()
     w.close()
+
+
+def test_the_core_regrows_after_a_quiet_minute(monkeypatch):
+    """Une minute de veille : le cœur reprend sa taille (la conversation reste) ; il se
+    réduit de nouveau au message suivant ; toute activité annule l'attente."""
+    from PySide6.QtTest import QTest
+
+    from friday.ui.desktop import stage
+
+    monkeypatch.setattr(stage, "REGROW_MS", 100)
+    w = make_window()
+    w.bridge.on_ready("")
+    w.bridge.on_user_message("Bonjour", True)
+    w.bridge.on_state(AssistantState.SPEAKING)
+    QTest.qWait(250)
+    assert w.compact  # elle parle : on n'attend pas
+    w.bridge.on_state(AssistantState.IDLE)
+    w.bridge.on_state(AssistantState.LISTENING)  # activité : attente annulée
+    QTest.qWait(250)
+    assert w.compact
+    w.bridge.on_state(AssistantState.IDLE)
+    QTest.qWait(800)
+    assert not w.compact and w.chat._bubbles  # grand, conversation gardée
+    w.bridge.on_user_message("Et demain ?", True)
+    QTest.qWait(600)
+    assert w.compact
+    w.close()

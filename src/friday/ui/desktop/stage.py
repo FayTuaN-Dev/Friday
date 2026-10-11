@@ -3,9 +3,10 @@ noyau holographique, changé à chaud), l'auto-test du démarrage en surimpressi
 panneaux latéraux de la fenêtre agrandie (limites Claude, « En écoute »).
 
 U1 : dès que la conversation commence, le cœur se fait plus petit (la place va au chat) ; il
-reprend sa taille avec « Nouvelle conversation »."""
+reprend sa taille avec « Nouvelle conversation », ou après une minute de veille (la
+conversation reste affichée), et se réduit de nouveau au message suivant."""
 
-from PySide6.QtCore import QEasingCurve, QObject, QPoint, QVariantAnimation, Signal
+from PySide6.QtCore import QEasingCurve, QObject, QPoint, QTimer, QVariantAnimation, Signal
 from PySide6.QtWidgets import QWidget
 
 from friday.ui.desktop import preferences
@@ -14,6 +15,7 @@ from friday.ui.desktop.widgets.holo import HoloOrb
 ORB_STYLES = ("sphere", "holo")  # sphère de particules (J4) ou noyau holographique
 STAGE_FULL, STAGE_COMPACT = 270, 150  # hauteur du cœur : en veille, en conversation
 COMPACT_MS = 450
+REGROW_MS = 60_000  # une minute de veille : le cœur reprend sa taille
 
 
 def make_orb(style: str) -> QWidget:
@@ -34,6 +36,19 @@ class StageMixin:
     """Méthodes de MainWindow pour la scène (lit orb, stage_grid, boot_log, playing…)."""
 
     compact = False
+
+    def regrow_when_idle(self, state) -> None:
+        """En veille, réduit : le cœur reprend sa taille au bout d'une minute ; toute
+        activité (écoute, réflexion, parole) annule l'attente."""
+        from friday.app.events import AssistantState
+
+        timer = getattr(self, "_regrow_timer", None)
+        if timer is None:
+            timer = self._regrow_timer = QTimer(self, singleShot=True)
+            timer.timeout.connect(lambda: self.set_compact(False))
+        timer.stop()
+        if state == AssistantState.IDLE and self.compact:
+            timer.start(REGROW_MS)
 
     def set_compact(self, compact: bool) -> None:
         """Cœur réduit (conversation) ou en grand (veille), en douceur ; la ligne d'infos

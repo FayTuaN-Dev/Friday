@@ -282,6 +282,7 @@ class MainWindow(StageMixin, QMainWindow):
     def show_state(self, state: AssistantState) -> None:
         self.state = state
         self.scene_follows(state)
+        self.regrow_when_idle(state)
         self.orb.set_state(state)
         self.status.setText(state.value.upper())
         self.status.setStyleSheet(f"color: {theme.current().states[state]};")
