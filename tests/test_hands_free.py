@@ -157,6 +157,20 @@ def test_answering_friday_with_her_own_words_is_not_an_echo():
     assert target.calls[-1] == ("submit", "Oui, retire l'agenda du briefing.")
 
 
+def test_an_answer_glued_to_her_echo_is_kept():
+    """Cas réel : « Avez-vous besoin que je vous aide à organiser votre voyage ? Non merci »
+    (fin de sa phrase captée, puis la réponse) était jeté en entier comme un écho."""
+    control, target, _ = make_control()
+    target.last_reply_text = ("Je retiens que vous allez à Nantes samedi. Avez-vous besoin "
+                              "que je vous aide à organiser votre voyage ?")  # fmt: skip
+    control.open_follow_up()
+    control.on_heard("Avez-vous besoin que je vous aide à organiser votre voyage ?  Non merci")
+    assert target.calls[-1] == ("submit", "Non merci")
+    control.open_follow_up()
+    control.on_heard("Avez-vous besoin que je vous aide à organiser votre voyage ?")
+    assert target.calls[-1] == ("submit", "Non merci")  # l'écho seul : toujours ignoré
+
+
 def test_named_request_is_not_an_echo_even_while_speaking():
     control, target, _ = make_control()
     target.last_reply_text = "Voici les rubriques de votre briefing : votre agenda."

@@ -166,11 +166,23 @@ function layoutCallouts() {
   }
 }
 
+// La rotation partage la carte graphique avec l'écoute (Whisper) et qwen : constaté, un globe
+// tournant sans fin divisait la vitesse de qwen par 3 et retardait l'écoute de 45 s. Elle
+// s'arrête donc au bout de 45 s en tout, et se met en pause quand Friday écoute ou réfléchit.
+const SPIN_SECONDS = 45;
+let spinLeft = 0, handsOn = false;
+for (const name of ["mousedown", "wheel", "touchstart", "dragstart"]) {
+  map.on(name, () => { handsOn = true; });  // l'utilisateur a la main : plus de reprise auto
+}
+
 function spinGlobe() {  // tourne sur lui-même (3° par seconde), les halos « respirent »
   clearTimeout(stopTimer);  // le minuteur de la carte des lieux n'arrête pas le globe
+  if (handsOn || spinLeft <= 0) return;
   const c = map.getCenter();
   let lng = c.lng, breath = 0;
   animate((dt, now) => {
+    spinLeft -= dt;
+    if (spinLeft <= 0) { stopSpin(); return; }
     lng += 3 * dt;
     map.setCenter([lng, c.lat]);
     if (now - breath > 100) {  // 10 fois par seconde suffit à l'œil, et coûte bien moins
@@ -194,6 +206,8 @@ window.fridayWorld = (points) => whenReady(() => {
   const zoom = 1.6 + Math.log2(map.getContainer().clientHeight * 0.75 / 460);
   map.jumpTo({center: [20, 30], zoom: Math.max(1, zoom), pitch: 0, bearing: 0});
   setCallouts(points);
+  spinLeft = SPIN_SECONDS;
+  handsOn = false;
   spinGlobe();
 });
 """

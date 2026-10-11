@@ -65,7 +65,9 @@ window.fridayGo = (lat, lon, zoom, accent) => whenReady(() => {
 });
 // Friday a fini de parler : petit vol vers le lieu, puis lente rotation (40 s au plus)
 window.fridayMove = () => {
-  if (spin || mode !== "place" || !place) return;  // le globe tourne déjà tout seul
+  if (spin) return;
+  if (mode === "world") { spinGlobe(); return; }  // reprend, s'il lui reste du temps
+  if (!place) return;
   map.flyTo({center: [place.lon, place.lat], zoom: place.zoom,
     pitch: place.zoom > 13 ? 62 : 35, bearing: -20, duration: 3500, essential: true});
   map.once("moveend", () => {

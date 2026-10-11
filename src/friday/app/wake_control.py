@@ -1,6 +1,7 @@
 """Décide quoi faire d'une phrase entendue en continu (mains libres)."""
 
 import logging
+import re
 import time
 from collections.abc import Callable
 from typing import Protocol
@@ -65,9 +66,13 @@ class WakeControl:
         """`spoken_at` : quand la phrase a COMMENCÉ (une longue phrase commencée dans la
         fenêtre de relance compte, même si sa transcription se termine après)."""
         spoken_at = self._clock() if spoken_at is None else spoken_at
-        if self._is_echo(text, spoken_at):
+        rest = self._without_echo(text, spoken_at)
+        if not rest or self._is_echo(rest, spoken_at):
             log.info("Ignoré (écho de la voix de Friday) : %s", text)
             return
+        if rest != text:  # « …votre voyage ? Non merci » : la fin de sa phrase, puis la réponse
+            log.info("Écho retiré, reste : %s", rest)
+            text = rest
 
         # « Je lance ? » en attente : la réponse n'a pas besoin du nom.
         if self.target.awaiting_confirmation:
@@ -109,6 +114,18 @@ class WakeControl:
         log.info("Double clap : Friday écoute")
         self.target.interrupt()
         self.target.acknowledge()
+
+    def _without_echo(self, text: str, spoken_at: float) -> str:
+        """Retire du début les phrases qui répètent ce que Friday vient de dire (constaté :
+        « Avez-vous besoin que je vous aide ? Non merci » était jeté en entier)."""
+        said = self.target.last_reply_text
+        if not said or not self.target.spoke_recently(spoken_at):
+            return text
+        parts = [p for p in re.split(r"(?<=[.?!…])\s+", text.strip()) if p]
+        while (len(parts) > 1 and split_wake_word(parts[0], self.pattern) is None
+               and similarity(parts[0], said) >= ECHO_SIMILARITY):  # fmt: skip
+            parts.pop(0)
+        return " ".join(parts)
 
     def _is_echo(self, text: str, spoken_at: float) -> bool:
         said = self.target.last_reply_text
