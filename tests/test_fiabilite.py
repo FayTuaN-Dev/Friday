@@ -37,6 +37,45 @@ def test_the_model_is_reloaded_when_speed_collapses_twice():
     assert reloads == [1, 1]
 
 
+def test_a_collapsed_reading_speed_reloads_at_once():
+    """Constaté après le regard sur l'écran : lecture à 140 jetons/s, écriture presque normale."""
+    reloads = []
+    watch = SpeedWatch(lambda: reloads.append(1), background=False)
+
+    def read(tokens, seconds, written=60):
+        return SimpleNamespace(prompt_eval_count=tokens, prompt_eval_duration=int(seconds * 1e9),
+                               eval_count=written, eval_duration=int(1.5e9))  # fmt: skip
+
+    watch.record(read(5000, 2))  # 2 500 jetons/s : normal
+    watch.record(read(6000, 0.1))  # déjà en cache : très rapide, normal aussi
+    watch.record(read(300, 3))  # trop peu lu pour juger
+    assert reloads == []
+    watch.record(read(6127, 34))  # 180 jetons/s : effondré, rechargé d'un coup
+    assert reloads == [1]
+    watch.record(read(6127, 34))
+    assert reloads == [1]  # pas deux rechargements en 10 min
+
+
+def test_waits_for_the_vision_model_to_leave_the_card():
+    from friday.brain.vram import wait_unloaded
+
+    class Client:
+        def __init__(self, polls):
+            self.polls = polls
+
+        def ps(self):
+            self.polls -= 1
+            names = ["qwen3-vl:4b-instruct"] if self.polls > 0 else []
+            return SimpleNamespace(models=[SimpleNamespace(model=n) for n in names])
+
+    naps = []
+    assert wait_unloaded(Client(3), "qwen3-vl:4b-instruct", sleep=naps.append)
+    assert len(naps) == 2
+    assert not wait_unloaded(Client(100), "qwen3-vl:4b-instruct", timeout=1, sleep=naps.append)
+    assert wait_unloaded(Client(100), "qwen3:8b", sleep=naps.append)  # autre modèle : libre
+    assert not wait_unloaded(object(), "qwen3:8b")  # Ollama injoignable : on n'attend pas
+
+
 def fill(data):
     db = sqlite3.connect(data / "trading.db")
     db.execute("CREATE TABLE trades (id INTEGER, pair TEXT)")

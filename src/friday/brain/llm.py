@@ -24,6 +24,7 @@ from friday.brain.speed_watch import SpeedWatch
 from friday.brain.summary import Summarizer
 from friday.brain.thinking import needs_thinking
 from friday.brain.toolset import LOAD_SKILL, Toolset
+from friday.brain.vram import wait_unloaded
 from friday.core.config import Settings
 from friday.tools.base import ToolBox, ToolResult
 
@@ -89,6 +90,7 @@ class Brain:
     def reload_model(self) -> None:
         """Décharge le modèle de la mémoire vidéo puis le recharge (vitesse effondrée)."""
         self.client.chat(model=self.settings.ollama_model, messages=[], keep_alive=0)
+        wait_unloaded(self.client, self.settings.ollama_model)  # sinon, rechargé à l'étroit
         self.warmup()
 
     def warmup(self) -> None:

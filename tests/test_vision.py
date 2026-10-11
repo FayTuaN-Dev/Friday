@@ -37,6 +37,7 @@ def test_reader_sends_image_and_frees_video_memory():
     call = client.calls[0]
     assert "0x80070070" in text
     assert call["messages"][0]["images"] == [b"png"] and call["keep_alive"] == 0
+    assert call["options"]["num_predict"] == 600  # constaté : 9 000 caractères en 35 s
     assert "c'est quoi cette erreur ?" in call["messages"][0]["content"]
 
 
