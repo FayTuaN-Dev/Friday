@@ -15,10 +15,10 @@ MAX_ALL = 3000  # « tous » : plafond de sécurité
 class SortMailsTool(Tool):
     name = "sort_mails"
     description = (
-        "Trie les mails de la boîte de réception par thème (jeux, trading, banque, achats…) en "
-        "leur posant une étiquette « Friday/… » visible dans Gmail ; ne supprime et ne déplace "
-        "rien. count : nombre de derniers mails (50 par défaut), ou 0 pour TOUS (« range tous "
-        "mes mails ») : le tri se fait alors en arrière-plan."
+        "Trie les mails reçus (boîte de réception et archivés) par thème (jeux, trading, "
+        "banque, achats…) en leur posant une étiquette « Friday/… » visible dans Gmail ; ne "
+        "supprime et ne déplace rien. count : nombre de derniers mails (50 par défaut), ou 0 "
+        "pour TOUS (« range tous mes mails ») : le tri se fait alors en arrière-plan."
     )
     parameters = {"count": {"type": "integer", "description": "50 par défaut ; 0 = tous"}}
     timeout = 300  # lecture des mails + classement par le modèle

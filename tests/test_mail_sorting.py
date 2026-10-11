@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from friday.google.gmail import Mail
 from friday.google.mailbox import Mailbox
 from friday.google.sorter import CATEGORIES, Classifier, MailSorter, find_category
@@ -209,3 +211,37 @@ def test_the_real_category_list_is_given_and_asked_by_the_code():
     prefetch = prefetcher(None, None, None, mail=True)
     assert prefetch("quelles catégories ai-je ?") == ("category_mails", {})
     assert prefetcher(None, None, None)("quelles catégories ai-je ?") is None  # sans Gmail
+
+
+def test_sorting_covers_archived_mails_too():
+    """Constaté : 19 mails dans la boîte de réception, 103 en tout ; le tri n'en voyait que 19."""
+    from friday.google.sorter import EVERYWHERE
+
+    queries = []
+    box = FakeMailbox({"m1": {"INBOX"}, "m2": set()}, {})
+    original = box.ids
+    box.ids = lambda query="", label_id=None, limit=500: queries.append(query) or original(
+        query, label_id, limit)  # fmt: skip
+    totals = MailSorter(box, lambda mails, extra=(): ["Jeux"] * len(mails)).sort_inbox(10)
+    assert queries == [EVERYWHERE] and "in:inbox" not in EVERYWHERE and totals["Jeux"] == 2
+
+
+@pytest.mark.parametrize(
+    ("said", "query"),
+    [
+        ("Friday, mets les mails RollerCoin à la corbeille.", "rollercoin"),
+        ("Supprime les mails d'Apex Trader", "apex trader"),
+        ("mets à la corbeille les mails de chez Disney+", "disney"),
+        ("mets les pubs à la corbeille", None),
+        ("mets les mails jeux à la corbeille", None),  # une catégorie : au modèle
+        ("supprime tous les mails sauf administratif", None),
+        ("mets ce mail à la corbeille", None),
+        ("lis-moi les mails de Julie", None),  # pas une suppression
+    ],
+)
+def test_trashing_a_sender_is_chosen_by_code(said, query):
+    """Constaté : « les mails RollerCoin » → qwen devinait des catégories et en ratait."""
+    from friday.tools.mail_trash import trash_request
+
+    found = trash_request(said)
+    assert (found and found[1]["query"]) == query

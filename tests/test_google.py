@@ -265,3 +265,18 @@ def test_latest_mails_skip_promotions():
     messages.store = {"p1": promo, **messages.store}  # la promo est la plus récente
     assert [m.id for m in gmail.latest(5)] == ["m1"]
     assert gmail.latest(5)[0].unread
+
+
+def test_new_mails_lists_every_unread_and_says_the_total():
+    """Constaté : « que 5 mails non lus » alors qu'il y en avait 10, promotions comprises."""
+    gmail, messages = gmail_with()
+    promo = {**messages.store["m1"], "id": "p1", "labelIds": ["INBOX", "UNREAD",
+                                                              "CATEGORY_PROMOTIONS"]}  # fmt: skip
+    messages.store = {"p1": promo, **messages.store}
+    gmail.unread_total = lambda: 12
+    result = CheckMailTool(gmail).run(only_unread=True)
+    assert "12 mails non lus au total" in result.text
+    assert "[id : p1]" in result.text  # une promo non lue reste un non lu
+    gmail.unread_total = lambda: 1
+    assert "au total" not in CheckMailTool(gmail).run(only_unread=True).text
+    assert gmail.unread_total is not None and Gmail(lambda: object()).unread_total() is None

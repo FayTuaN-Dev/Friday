@@ -1,5 +1,6 @@
 """Tri des mails par type : qwen3 classe chaque mail (expéditeur, sujet, extrait), Friday pose
-l'étiquette « Friday/<catégorie> ». Rien n'est enlevé de la boîte de réception."""
+l'étiquette « Friday/<catégorie> ». Tous les mails reçus, archivés compris ; rien n'est
+enlevé de la boîte de réception."""
 
 import json
 import logging
@@ -17,6 +18,9 @@ CATEGORIES = (
     "Voyages & transports", "Sport & santé", "Loisirs & culture", "Réseaux sociaux",
     "Personnel", "Autres",
 )  # fmt: skip
+# Toute la boîte, archivés compris (constaté : 19 mails dans la boîte de réception, 103 en
+# tout ; le tri n'en voyait que 19, et la corbeille par catégorie ratait les autres).
+EVERYWHERE = "-in:trash -in:spam -in:sent -in:draft -in:chats"
 CHUNK = 20  # mails classés par appel au modèle
 PACKET = 100  # mails lus, classés puis étiquetés à la fois
 
@@ -77,13 +81,13 @@ class MailSorter:
         self.classify = classify
 
     def sort_inbox(self, count: int) -> Counter:
-        """Classe les `count` derniers mails de la boîte pas encore triés, par paquets
+        """Classe les `count` derniers mails reçus (archivés compris) pas encore triés, par paquets
         (lire, classer, étiqueter) : ce qui est fait reste fait si Friday s'arrête en route.
         Renvoie le compte par catégorie."""
         existing = self.mailbox.category_labels()
         already = set(existing.values())
         custom = tuple(name for name in existing if name not in CATEGORIES)
-        ids = self.mailbox.ids("in:inbox", limit=count)
+        ids = self.mailbox.ids(EVERYWHERE, limit=count)
         totals: Counter = Counter()
         for start in range(0, len(ids), PACKET):
             mails = [m for m in self.mailbox.metadata(ids[start : start + PACKET])
