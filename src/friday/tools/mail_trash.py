@@ -1,6 +1,8 @@
 """Outil : mettre des mails à la corbeille (récupérables 30 jours), TOUJOURS après une
 confirmation qui donne le nombre de mails et des exemples ; seuls ces mails-là sont touchés."""
 
+import re
+
 from friday.google.mailbox import Mailbox
 from friday.google.sorter import find_category
 from friday.tools.base import Tool, ToolResult
@@ -115,3 +117,34 @@ class TrashMailsTool(Tool):
             )
 
         return guarded(trash)
+
+
+# « Mets les mails RollerCoin à la corbeille » : l'expéditeur, trouvé par le code. Constaté :
+# qwen devinait des catégories (« IA & tech, Trading & crypto ») et ratait ceux rangés en Jeux.
+TRASH_WORDS = ("corbeille", "supprime", "efface", "jette", "vire", "debarrasse")
+MAIL_WORD = re.compile(r"\b(?:mails?|courriels?|messages?|newsletters?)\b")
+FILLER = re.compile(r"\b(?:a|dans) la corbeille\b|\b(?:stp|svp|s il te plait|merci)\b")
+LEADING = re.compile(r"^(?:de chez |de la |de l |du |des |de |d |venant de |envoyes? par )")
+GENERIC = {"pub", "pubs", "publicite", "publicites", "promo", "promos", "promotion",
+           "promotions", "spam", "spams", "tous", "toutes", "tout", "lus", "non", "vieux",
+           "anciens", "ce", "cet", "celui", "ces", "categorie", "categories", "sauf", "et",
+           "inutiles", "ci", "la", "le", "les", "lu"}  # fmt: skip
+
+
+def trash_request(text: str) -> tuple[str, dict] | None:
+    """(« trash_mails », {"query": "rollercoin"}) si la demande vise un expéditeur ou une marque
+    qui n'est pas une catégorie ; None sinon (catégories, « tout sauf… » : au modèle)."""
+    from friday.google.sorter import CATEGORIES
+    from friday.voice.wake import normalize
+
+    said = normalize(text)
+    found = MAIL_WORD.search(said)
+    if found is None or not any(word in said for word in TRASH_WORDS):
+        return None
+    who = LEADING.sub("", FILLER.sub(" ", said[found.end() :]).strip()).strip()
+    words = who.split()
+    if not words or len(words) > 3 or GENERIC & set(words):
+        return None
+    if find_category(who, list(CATEGORIES)) is not None:
+        return None
+    return ("trash_mails", {"query": who})

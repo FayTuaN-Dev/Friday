@@ -1,5 +1,7 @@
 from types import SimpleNamespace
 
+import pytest
+
 from friday.google.gmail import Mail
 from friday.google.mailbox import Mailbox
 from friday.google.sorter import CATEGORIES, Classifier, MailSorter, find_category
@@ -222,3 +224,24 @@ def test_sorting_covers_archived_mails_too():
         query, label_id, limit)  # fmt: skip
     totals = MailSorter(box, lambda mails, extra=(): ["Jeux"] * len(mails)).sort_inbox(10)
     assert queries == [EVERYWHERE] and "in:inbox" not in EVERYWHERE and totals["Jeux"] == 2
+
+
+@pytest.mark.parametrize(
+    ("said", "query"),
+    [
+        ("Friday, mets les mails RollerCoin à la corbeille.", "rollercoin"),
+        ("Supprime les mails d'Apex Trader", "apex trader"),
+        ("mets à la corbeille les mails de chez Disney+", "disney"),
+        ("mets les pubs à la corbeille", None),
+        ("mets les mails jeux à la corbeille", None),  # une catégorie : au modèle
+        ("supprime tous les mails sauf administratif", None),
+        ("mets ce mail à la corbeille", None),
+        ("lis-moi les mails de Julie", None),  # pas une suppression
+    ],
+)
+def test_trashing_a_sender_is_chosen_by_code(said, query):
+    """Constaté : « les mails RollerCoin » → qwen devinait des catégories et en ratait."""
+    from friday.tools.mail_trash import trash_request
+
+    found = trash_request(said)
+    assert (found and found[1]["query"]) == query

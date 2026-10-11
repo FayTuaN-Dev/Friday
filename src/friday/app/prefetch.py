@@ -119,6 +119,10 @@ def prefetcher(
 
             if asks_categories(text):  # la liste, lue par le code (le modèle se trompait)
                 return ("category_mails", {})
+            from friday.tools.mail_trash import trash_request
+
+            if asked := trash_request(text):  # un expéditeur, pas des catégories devinées
+                return asked
         if world:
             from friday.tools.world import world_request
 
