@@ -1,14 +1,21 @@
 """La scène de la fenêtre principale (J4) : le cœur de Friday (sphère de particules ou
 noyau holographique, changé à chaud), l'auto-test du démarrage en surimpression, et les
-panneaux latéraux de la fenêtre agrandie (limites Claude, « En écoute »)."""
+panneaux latéraux de la fenêtre agrandie (limites Claude, « En écoute »).
 
-from PySide6.QtCore import QObject, QPoint, Signal
+U1 : dès que la conversation commence, le cœur se fait plus petit (la place va au chat) ; il
+reprend sa taille avec « Nouvelle conversation », ou après une minute de veille (la
+conversation reste affichée), et se réduit de nouveau au message suivant."""
+
+from PySide6.QtCore import QEasingCurve, QObject, QPoint, QTimer, QVariantAnimation, Signal
 from PySide6.QtWidgets import QWidget
 
 from friday.ui.desktop import preferences
 from friday.ui.desktop.widgets.holo import HoloOrb
 
 ORB_STYLES = ("sphere", "holo")  # sphère de particules (J4) ou noyau holographique
+STAGE_FULL, STAGE_COMPACT = 270, 150  # hauteur du cœur : en veille, en conversation
+COMPACT_MS = 450
+REGROW_MS = 60_000  # une minute de veille : le cœur reprend sa taille
 
 
 def make_orb(style: str) -> QWidget:
@@ -27,6 +34,39 @@ class BootSignal(QObject):
 
 class StageMixin:
     """Méthodes de MainWindow pour la scène (lit orb, stage_grid, boot_log, playing…)."""
+
+    compact = False
+
+    def regrow_when_idle(self, state) -> None:
+        """En veille, réduit : le cœur reprend sa taille au bout d'une minute ; toute
+        activité (écoute, réflexion, parole) annule l'attente."""
+        from friday.app.events import AssistantState
+
+        timer = getattr(self, "_regrow_timer", None)
+        if timer is None:
+            timer = self._regrow_timer = QTimer(self, singleShot=True)
+            timer.timeout.connect(lambda: self.set_compact(False))
+        timer.stop()
+        if state == AssistantState.IDLE and self.compact:
+            timer.start(REGROW_MS)
+
+    def set_compact(self, compact: bool) -> None:
+        """Cœur réduit (conversation) ou en grand (veille), en douceur ; la ligne d'infos
+        (« Cerveau : … ») ne sert qu'au début et s'efface en mode réduit."""
+        if compact == self.compact:
+            return
+        self.compact = compact
+        self.info.setVisible(not compact)
+        animation = getattr(self, "_stage_animation", None)
+        if animation is None:
+            animation = self._stage_animation = QVariantAnimation(self)
+            animation.setDuration(COMPACT_MS)
+            animation.setEasingCurve(QEasingCurve.InOutCubic)
+            animation.valueChanged.connect(lambda h: self.stage.setFixedHeight(int(h)))
+        animation.stop()
+        animation.setStartValue(self.stage.height())
+        animation.setEndValue(STAGE_COMPACT if compact else STAGE_FULL)
+        animation.start()
 
     def set_orb_style(self, style: str) -> None:
         """Sphère de particules ou noyau holographique, changé à chaud et gardé."""
