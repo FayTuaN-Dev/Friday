@@ -4,7 +4,8 @@ Certains mixeurs virtuels (SteelSeries Sonar…) verrouillent le volume généra
 le réglage est accepté mais annulé un instant plus tard. On le détecte (une fois), et l'on
 règle alors le volume de chaque application, comme le mélangeur de volume de Windows.
 Sonar répartit les applications sur plusieurs sorties (Gaming, Chat, Media…) : on les
-parcourt toutes.
+parcourt toutes. Sonar remet aussi ces volumes à 100 % (constaté) : quand il tourne, le
+réglage passe par Sonar lui-même (tools/pc/sonar.py).
 """
 
 import logging
@@ -14,6 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from friday.tools.base import Tool, ToolResult
+from friday.tools.pc.sonar import NAMES, Sonar, SonarUnavailable, channel_of
 from friday.voice.wake import normalize
 
 log = logging.getLogger(__name__)
@@ -32,6 +34,7 @@ class AppAudio:
     name: str  # « Spotify »
     pid: int
     control: Any
+    device: str = ""  # la sortie Windows (« SteelSeries Sonar - Media (…) »)
 
     def get(self) -> float:
         return self.control.GetMasterVolume()
@@ -44,8 +47,34 @@ class AppAudio:
 
 
 class Volume:
-    def __init__(self) -> None:
+    def __init__(self, find_sonar=None) -> None:
         self._locked: bool | None = None  # inconnu tant qu'on n'a pas testé
+        # Cherché à chaque fois : GG peut être fermé ou relancé
+        self._find_sonar = find_sonar or (lambda: Sonar.find())
+
+    def _by_sonar(self, app: str | None, action) -> str | None:
+        """Règle par Sonar s'il tourne : le master, ou les sorties de l'application ; None si
+        Sonar n'est pas là (ou ne gère pas cette application) : réglage Windows."""
+        sonar = self._find_sonar()
+        if sonar is None:
+            return None
+        try:
+            if not app:
+                action(sonar, "master")
+                return "volume général, dans Sonar"
+            targets = self._targets(app)
+            channels = sorted({c for t in targets if (c := channel_of(t.device))})
+            if not channels:
+                return None
+            for channel in channels:
+                action(sonar, channel)
+            outputs = ", ".join(NAMES[c] for c in channels)
+            apps = ", ".join(sorted({t.name for t in targets}))
+            return (f"sortie {outputs} de Sonar, où joue {apps} : les autres applications de "
+                    "cette sortie changent aussi")  # fmt: skip
+        except SonarUnavailable as error:
+            log.warning("%s : réglage par Windows", error)
+            return None
 
     def _endpoint(self):
         import comtypes
@@ -79,7 +108,14 @@ class Volume:
                 except psutil.Error:
                     continue
                 if normalize(name) not in SYSTEM_AUDIO:
-                    found.append(AppAudio(name, pid, control.QueryInterface(ISimpleAudioVolume)))
+                    found.append(
+                        AppAudio(
+                            name,
+                            pid,
+                            control.QueryInterface(ISimpleAudioVolume),
+                            getattr(device, "FriendlyName", "") or "",
+                        )
+                    )
         return found
 
     def locked(self) -> bool:
@@ -110,6 +146,9 @@ class Volume:
         return apps
 
     def get(self, app: str | None = None) -> int:
+        levels: list[int] = []
+        if self._by_sonar(app, lambda sonar, channel: levels.append(sonar.get(channel))):
+            return max(levels)
         if app or self.locked():
             return round(max(a.get() for a in self._targets(app)) * 100)
         return round(self._endpoint().GetMasterVolumeLevelScalar() * 100)
@@ -117,6 +156,8 @@ class Volume:
     def set(self, level: int, app: str | None = None) -> str:
         """Renvoie ce qui a été réglé ; lève RuntimeError si rien n'a pu l'être."""
         value = max(0, min(100, level)) / 100
+        if where := self._by_sonar(app, lambda sonar, channel: sonar.set(level, channel)):
+            return where
         if not app and not self.locked():
             self._endpoint().SetMasterVolumeLevelScalar(value, None)
             return "volume général"
@@ -126,6 +167,8 @@ class Volume:
         return f"volume de {', '.join(sorted({t.name for t in targets}))}"
 
     def mute(self, muted: bool, app: str | None = None) -> str:
+        if where := self._by_sonar(app, lambda sonar, channel: sonar.mute(muted, channel)):
+            return where.replace("volume", "son")
         if not app:
             endpoint = self._endpoint()
             endpoint.SetMute(int(muted), None)
