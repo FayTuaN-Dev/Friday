@@ -12,7 +12,7 @@ from friday.ui.desktop import preferences
 from friday.ui.desktop.widgets.holo import HoloOrb
 
 ORB_STYLES = ("sphere", "holo")  # sphère de particules (J4) ou noyau holographique
-STAGE_FULL, STAGE_COMPACT = 270, 110  # hauteur du cœur : en veille, en conversation
+STAGE_FULL, STAGE_COMPACT = 270, 150  # hauteur du cœur : en veille, en conversation
 COMPACT_MS = 450
 
 

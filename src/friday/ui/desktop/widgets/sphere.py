@@ -19,6 +19,7 @@ from friday.ui.desktop.widgets.holo.orb import FPS, speech_envelope
 POINTS = 2600
 LAYERS = 5  # profondeurs dessinées de l'arrière vers l'avant
 FULL_SIZE = 97  # rayon en pixels de la sphère en grand (cœur de 270 px de haut)
+MIN_POINTS = 600  # en petit : assez de points pour rester une sphère
 CONVERGE_SECONDS = 2.2
 SPHERE_FPS = 30  # ~13 ms par image : 30 images/s suffisent et ménagent le processeur
 # État → (vitesse de rotation, tourbillon, amplitude des vagues au repos)
@@ -150,6 +151,14 @@ class ParticleSphere(QWidget):
         a = self.turn
         c, s = math.cos(a), math.sin(a)
         pts = self.positions()
+        # Réduite (U1) : moins de points, pour garder la densité du grand format. Constaté :
+        # tous les points serrés, leur lumière s'additionnait et la sphère éblouissait.
+        # Toujours les mêmes points (tirés une fois) : rien ne clignote.
+        scale = min(1.0, size / FULL_SIZE)
+        if scale < 1.0:
+            if getattr(self, "_order", None) is None or len(self._order) != len(pts):
+                self._order = np.random.default_rng(7).permutation(len(pts))
+            pts = pts[self._order[: max(MIN_POINTS, int(len(pts) * scale * scale))]]
         x = pts[:, 0] * c + pts[:, 2] * s  # rotation autour de l'axe vertical
         z = -pts[:, 0] * s + pts[:, 2] * c
         y = pts[:, 1] * 0.96 + z * 0.12  # légèrement penchée vers l'avant
@@ -159,21 +168,20 @@ class ParticleSphere(QWidget):
         painter.setCompositionMode(QPainter.CompositionMode_Plus)  # lumière additive
         r, g, b = self.color
         halo = QRadialGradient(cx, cy, size * 1.5)
-        glow = int(28 + 40 * self.level) * min(1.0, self.progress + 0.3)
+        glow = int(28 + 40 * self.level) * min(1.0, self.progress + 0.3) * (0.5 + 0.5 * scale)
         halo.setColorAt(0, QColor(r, g, b, int(glow)))
         halo.setColorAt(1, QColor(r, g, b, 0))
         painter.fillRect(self.rect(), halo)
         fade = 0.35 + 0.65 * self.progress
-        # Réduite (U1) : des points plus fins et plus discrets, sinon ils se fondent en boule
-        scale = min(1.0, size / FULL_SIZE)
         layer = np.minimum((depth * LAYERS).astype(int), LAYERS - 1)
         for n in range(LAYERS):
             mask = layer == n
             if not mask.any():
                 continue
             near = (n + 0.5) / LAYERS
-            alpha = int((40 + 190 * near) * fade * (0.85 + 0.3 * self.level) * (0.4 + 0.6 * scale))
-            painter.setPen(QPen(QColor(r, g, b, min(255, alpha)), (1.0 + 1.6 * near) * scale,
+            alpha = int((40 + 190 * near) * fade * (0.85 + 0.3 * self.level) * (0.7 + 0.3 * scale))
+            width = (1.0 + 1.6 * near) * (0.6 + 0.4 * scale)
+            painter.setPen(QPen(QColor(r, g, b, min(255, alpha)), width,
                                 Qt.SolidLine, Qt.RoundCap))  # fmt: skip
             xs, ys = cx + x[mask] * size, cy - y[mask] * size
             painter.drawPoints([QPointF(px, py) for px, py in zip(xs, ys, strict=True)])
