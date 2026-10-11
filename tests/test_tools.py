@@ -1,3 +1,4 @@
+import pytest
 from fakes import SETTINGS, EchoTool, FakeClient, tool_call
 
 from friday.brain.conversation import TOOL_RESULT_KEEP_CHARS, Conversation
@@ -149,3 +150,28 @@ def test_toolbox_gives_up_on_slow_tools_and_on_interruption():
     assert "pas répondu à temps" in box.run("slow", {}, timeout=0.3).text
     assert "Interrompu" in box.run("slow", {}, cancelled=lambda: True).text
     assert time.monotonic() - start < 2
+
+
+@pytest.mark.parametrize(
+    ("said", "url"),
+    [
+        ("lis-moi cette page https://aniimotools.dev/fr/map/lost-sanctum/#plan-32",
+         "https://aniimotools.dev/fr/map/lost-sanctum/#plan-32"),
+        ("résume https://www.lemonde.fr/international/article.html.",
+         "https://www.lemonde.fr/international/article.html"),
+        ("que dit aniimotools.dev/fr/map ?", "https://aniimotools.dev/fr/map"),
+        ("résume www.apple.com", "https://www.apple.com"),
+        ("ouvre https://youtube.com", None),  # ouvrir : open_website, au modèle
+        ("lis-moi le résultat 3", None),
+        ("il est 14.30", None),
+        ("[Texte copié par l'utilisateur :\nvoir https://exemple.fr/page\n]\nrésume ça", None),
+    ],
+)  # fmt: skip
+def test_a_link_in_the_request_is_the_page_read(said, url):
+    """Constaté : un lien donné → qwen lisait le résultat « 3 » de la recherche d'avant."""
+    from friday.app.prefetch import prefetcher
+    from friday.tools.web_page import link_request
+
+    expected = ("read_webpage", {"url": url}) if url else None
+    assert link_request(said) == expected
+    assert prefetcher(None, None, None, web=True)(said) == expected

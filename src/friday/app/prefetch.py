@@ -94,6 +94,7 @@ def prefetcher(
     memory: bool = False,
     world: bool = False,
     music: bool = False,
+    web: bool = False,
 ):
     """Outil lancé d'office avant de répondre. Plans, stratégies et briefing trading : choisis
     par le code. Mode trading : une question d'analyse part dans le paquet pour Claude (après
@@ -127,6 +128,11 @@ def prefetcher(
             from friday.tools.mail_trash import trash_request
 
             if asked := trash_request(text):  # un expéditeur, pas des catégories devinées
+                return asked
+        if web:
+            from friday.tools.web_page import link_request
+
+            if asked := link_request(text):  # le lien donné, pas un numéro de résultat
                 return asked
         if music:
             from friday.spotify.matching import music_request
