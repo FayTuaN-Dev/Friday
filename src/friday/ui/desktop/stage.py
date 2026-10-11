@@ -120,8 +120,7 @@ class StageMixin:
             if gate is not None:
                 gate.ready()  # pas de scène : Friday parle sans attendre
             return False
-        self.scene_layer.show_scene(scene, display.title)
-        self.set_scene_mode(True)  # la scène en fond, Friday par-dessus (U8)
+        self.enter_scene(scene, display.title)  # en fond, Friday par-dessus (U8)
         return True
 
     def warm_map_when_idle(self) -> None:

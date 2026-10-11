@@ -138,7 +138,10 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
 
         self.shell = shell
         self.scene_layer = SceneLayer(shell)  # scènes plein écran : météo, carte 3D (J7)
-        self.scene_layer.closed.connect(lambda: self.set_scene_mode(False))
+        self.scene_layer.closing.connect(self.leave_scene)
+        from friday.ui.desktop.scenes.layer import Curtain
+
+        self.veil = Curtain(shell)  # fondu par le noir autour des scènes (U8)
         outer = QVBoxLayout(shell)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)

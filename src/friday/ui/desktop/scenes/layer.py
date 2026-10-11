@@ -4,7 +4,7 @@ toute la fenêtre ; Friday (sa conversation, la barre de saisie) reste par-dessu
 dégradés sombres (haut et bas) gardent le texte lisible sur un ciel clair.
 « Reviens », « ferme », Échap ou le bouton ramènent à la sphère."""
 
-from PySide6.QtCore import Qt, QVariantAnimation, Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor, QLinearGradient, QPainter
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QWidget
 
@@ -12,7 +12,6 @@ from friday.ui.desktop import theme
 from friday.ui.desktop.theme.stylesheet import FONT_HUD
 
 TOP_SHADE, BOTTOM_SHADE = 0.22, 0.5  # part de la hauteur assombrie en haut, en bas
-CLOSE_MS = 280  # le voile retombe avant le retour à la sphère
 
 
 class Shade(QWidget):
@@ -38,13 +37,14 @@ class Shade(QWidget):
 
 
 class Curtain(QWidget):
-    """Un voile de la couleur de Friday devant la scène : elle se prépare derrière (tuiles de
-    la carte, premier dessin), puis le voile s'efface en fondu."""
+    """Le voile de la couleur de Friday (backdrop.py) : il couvre la fenêtre le temps de
+    changer la mise en page et de préparer la scène, puis s'efface en fondu."""
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent)
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
-        self.alpha = 255
+        self.alpha = 0
+        self.hide()
 
     def set_alpha(self, alpha: float) -> None:
         self.alpha = int(alpha)
@@ -60,7 +60,7 @@ class Curtain(QWidget):
 
 
 class SceneLayer(QFrame):
-    closed = Signal()
+    closing = Signal()  # « Retour », Échap, « reviens » : la fenêtre fait la transition
 
     def __init__(self, parent: QWidget) -> None:
         super().__init__(parent, objectName="SceneLayer")
@@ -71,8 +71,6 @@ class SceneLayer(QFrame):
         self.grid.setContentsMargins(0, 0, 0, 0)
         self.shade = Shade(self)
         self.grid.addWidget(self.shade, 0, 0)
-        self.curtain = Curtain(self)
-        self.grid.addWidget(self.curtain, 0, 0)
         self.top_row = QHBoxLayout()
         self.top_row.setContentsMargins(18, 0, 16, 0)
         self.title = QLabel(objectName="SceneTitle")
@@ -149,17 +147,11 @@ class SceneLayer(QFrame):
         return not self.isHidden() and self.scene is not None  # même fenêtre réduite
 
     def show_scene(self, scene: QWidget, title: str) -> None:
-        if getattr(self, "_fading", None) is not None:  # une fermeture en cours : annulée
-            self._fading.stop()
-            self._fading = None
         self.close_scene(quiet=True)
         self.scene = scene
         self.grid.addWidget(scene, 0, 0)
         scene.show()
-        scene.lower()  # sous les dégradés, le voile et la ligne du haut
-        self.curtain.set_alpha(255)
-        self.curtain.raise_()
-        self.top.raise_()
+        scene.lower()  # sous les dégradés et la ligne du haut
         # La scène météo écrit elle-même le lieu : pas de second titre par-dessus
         # « Tour Eiffel — 75007, France » : le nom suffit (la place est comptée en haut)
         name = title.split(" — ")[0]
@@ -168,23 +160,12 @@ class SceneLayer(QFrame):
         self.show()
 
     def close_scene(self, quiet: bool = False) -> None:
-        """Le voile retombe sur la scène (fondu), puis elle s'en va ; `quiet` : tout de suite
-        (une autre scène la remplace)."""
-        if quiet or self.isHidden() or self.scene is None:
-            self._close(quiet)
+        """`quiet` : tout de suite (sous le voile, ou une autre scène la remplace) ; sinon la
+        fenêtre fait la transition (signal `closing`), puis rappelle avec `quiet`."""
+        if not quiet:
+            if self.showing:
+                self.closing.emit()
             return
-        if getattr(self, "_fading", None) is not None:
-            return  # déjà en train de se fermer
-        self._fading = QVariantAnimation(self, startValue=float(self.curtain.alpha),
-                                         endValue=255.0, duration=CLOSE_MS)  # fmt: skip
-        self._fading.valueChanged.connect(self.curtain.set_alpha)
-        self._fading.finished.connect(lambda: self._close(False))
-        self.curtain.raise_()
-        self.top.raise_()
-        self._fading.start()
-
-    def _close(self, quiet: bool) -> None:
-        self._fading = None
         if self.scene is not None:
             self.grid.removeWidget(self.scene)
             if getattr(self.scene, "keep", False):  # la carte : cachée, gardée pour la suite
@@ -193,7 +174,4 @@ class SceneLayer(QFrame):
             else:
                 self.scene.deleteLater()
             self.scene = None
-        was_visible = not self.isHidden()
         self.hide()
-        if was_visible and not quiet:
-            self.closed.emit()

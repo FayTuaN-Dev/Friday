@@ -8,12 +8,13 @@ import math
 import time
 
 import numpy as np
-from PySide6.QtCore import QPointF, Qt, QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor, QPainter, QPen, QRadialGradient
 from PySide6.QtWidgets import QWidget
 
 from friday.app.events import AssistantState
 from friday.ui.desktop import theme
+from friday.ui.desktop.widgets.fast_points import PointBuffer
 from friday.ui.desktop.widgets.holo.orb import FPS, speech_envelope
 
 POINTS = 2600
@@ -52,6 +53,7 @@ class ParticleSphere(QWidget):
     def __init__(self, parent: QWidget | None = None, seed: int = 5) -> None:
         super().__init__(parent)
         self.setMinimumSize(80, 80)  # réduit en conversation (U1)
+        self._buffers = [PointBuffer() for _ in range(LAYERS)]  # points de chaque profondeur
         rng = np.random.default_rng(seed)
         self.targets = fibonacci_sphere(POINTS)
         self.spawn = rng.normal(0, 1.4, (POINTS, 3))  # le nuage du démarrage
@@ -184,5 +186,5 @@ class ParticleSphere(QWidget):
             painter.setPen(QPen(QColor(r, g, b, min(255, alpha)), width,
                                 Qt.SolidLine, Qt.RoundCap))  # fmt: skip
             xs, ys = cx + x[mask] * size, cy - y[mask] * size
-            painter.drawPoints([QPointF(px, py) for px, py in zip(xs, ys, strict=True)])
+            painter.drawPoints(self._buffers[n].fill(xs, ys))  # sans boucle Python
         painter.end()

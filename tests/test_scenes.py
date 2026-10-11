@@ -71,13 +71,15 @@ def test_scenes_open_and_close(tmp_path):
     window.resize(1000, 700)
     window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
     layer = window.scene_layer
+    # U8 : fondu par le noir. Le voile couvre d'abord la fenêtre ; dessous, la scène et la
+    # mise en page se posent d'un coup ; le voile s'efface quand elle est prête
+    assert not layer.showing and not window.assistant.scene_gate.opened
+    QTest.qWait(100)
+    assert 0 < window.veil.alpha < 255  # le voile monte
+    QTest.qWait(900)
     assert layer.showing and isinstance(layer.scene, WeatherScene)
     assert layer.title.text() == ""  # la scène écrit déjà le lieu
-    # U8 : la scène en fond de toute la fenêtre, Friday par-dessus (conversation en bas) ;
-    # elle se prépare derrière un voile, qui s'efface une fois la conversation en place
-    assert layer.curtain.alpha == 255
-    QTest.qWait(1200)
-    assert layer.curtain.alpha == 0 and window.assistant.scene_gate.opened
+    assert window.veil.alpha == 0 and window.assistant.scene_gate.opened  # Friday peut parler
     assert not window.limits.isVisible() and not window.playing.isVisible()
     assert window.scene_mode and layer.geometry() == window.shell.rect()
     assert window.stage.isHidden() and not window.chat.isHidden() and not window.input.isHidden()
@@ -85,12 +87,13 @@ def test_scenes_open_and_close(tmp_path):
     assert window.chat.maximumHeight() == int(window.shell.height() * 0.36)
     assert layer.scene.insets[1] > 0  # la météo écrit au-dessus de la conversation
     window._on_display(Display(CLOSE, "", {"which": "all"}))  # « ferme », « reviens »
-    QTest.qWait(400)  # le voile retombe, puis la sphère revient
+    QTest.qWait(700)  # le voile couvre, la sphère revient dessous, le voile s'efface
     assert not layer.showing and not window.scene_mode and not window.stage.isHidden()
     assert window.content.mask().isEmpty()  # la souris revient à toute la fenêtre
     window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
+    QTest.qWait(700)
     window.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_Escape, Qt.NoModifier))
-    QTest.qWait(400)
+    QTest.qWait(700)
     assert not layer.showing
     window.settings = SimpleNamespace(**{**vars(window.settings), "scenes": False})
     window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
@@ -110,8 +113,8 @@ def test_fixes_after_the_first_real_try(tmp_path):
     # pendant une scène, la sphère cachée dessous ne s'anime plus
     window = make_window(tmp_path)
     window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
-    QTest.qWait(600)  # la sphère s'est repliée
+    QTest.qWait(700)  # la scène est en place
     assert not window.orb._timer.isActive()
     window.scene_layer.close_scene()
-    QTest.qWait(400)
+    QTest.qWait(700)
     assert window.orb._timer.isActive()
