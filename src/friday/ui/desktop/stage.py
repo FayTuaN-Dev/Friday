@@ -97,10 +97,15 @@ class StageMixin:
             QTimer.singleShot(3000, self.warm_map_when_idle)
 
     def scene_follows(self, state) -> None:
-        """La carte ne s'anime qu'une fois que Friday a fini de parler."""
+        """La carte s'anime quand Friday a fini de parler, et se met en pause quand elle
+        écoute ou réfléchit : l'animation prendrait la carte graphique à Whisper et à qwen."""
         from friday.app.events import AssistantState
 
-        if self.scene_layer.showing_map and state is AssistantState.IDLE:
+        if not self.scene_layer.showing_map:
+            return
+        if state in (AssistantState.LISTENING, AssistantState.THINKING):
+            self.scene_layer.map.still()
+        elif state is AssistantState.IDLE:
             self.scene_layer.map.animate()
 
     def pause_orb(self, paused: bool) -> None:
