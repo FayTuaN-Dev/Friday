@@ -137,3 +137,21 @@ def test_skies_are_made_ahead_while_friday_rests():
     scene._layers()
     assert sky_paint._cloud.cache_info().misses == before  # aucun nuage à refaire
     assert time.perf_counter() - start < 0.05
+
+
+def test_side_panels_stay_hidden_during_a_scene(tmp_path):
+    """Constaté (fenêtre agrandie) : limites Claude et « En écoute » réaffichés par la musique
+    qui change, par-dessus la carte et le bouton « Retour »."""
+    window = make_window(tmp_path)
+    window.showMaximized()
+    window.playing.track = object()  # une musique joue
+    window._side_panels()
+    assert window.limits.isVisible() and window.playing.isVisible()
+    window._on_display(Display("weather", "Les Herbiers (France)", WEATHER))
+    QTest.qWait(1000)
+    window._side_panels()  # la musique change pendant la scène
+    assert not window.limits.isVisible() and not window.playing.isVisible()
+    window.scene_layer.close_scene()
+    QTest.qWait(700)
+    assert window.limits.isVisible() and window.playing.isVisible()  # de retour avec la sphère
+    window.close()

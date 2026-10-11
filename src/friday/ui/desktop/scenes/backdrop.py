@@ -87,8 +87,7 @@ class BackdropMixin:
         policy = QSizePolicy.Expanding if on else QSizePolicy.Fixed
         self.scene_spacer.changeSize(0, 0, QSizePolicy.Minimum, policy)  # pousse le chat en bas
         if on:
-            self.limits.setVisible(False)  # limites Claude, « En écoute » : la scène prend tout
-            self.playing.setVisible(False)
+            self._side_panels()  # limites Claude, « En écoute » : cachés, la scène prend tout
             self.scene_layer.show_state(self.status.text(), self.status_color())
             self.chat.setMaximumHeight(int(self.shell.height() * CHAT_SHARE))
         else:
