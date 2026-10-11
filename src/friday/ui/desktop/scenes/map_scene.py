@@ -8,14 +8,20 @@ bloque la fenêtre un instant, ce qui hachait la voix quand c'était fait pendan
 parlait."""
 
 import json
+import time
 
-from PySide6.QtCore import QUrl
+from PySide6.QtCore import QTimer, QUrl
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from friday.ui.desktop.scenes.map_page import BACKGROUND, page
 
 __all__ = ["MapScene", "go_script", "page", "world_script"]
+
+# La carte est prête à être vue : style chargé, tuiles reçues, caméra immobile (U8)
+READY_JS = ("typeof map !== 'undefined' && map.loaded() && map.areTilesLoaded() "
+            "&& !map.isMoving()")  # fmt: skip
+POLL_MS = 120
 
 
 def world_script(data: dict) -> str:
@@ -71,6 +77,22 @@ class MapScene(QWidget):
             self.view.page().runJavaScript(
                 f"window.fridayPad && window.fridayPad({top}, {bottom});"
             )
+
+    def when_shown(self, callback, timeout: float = 4.0) -> None:
+        """Appelle `callback` quand la carte est prête à être vue (page chargée, tuiles
+        reçues, caméra immobile), ou au bout de `timeout` secondes."""
+        deadline = time.monotonic() + timeout
+
+        def check(done=False) -> None:
+            if done or time.monotonic() > deadline:
+                callback()
+            elif not self.ready:
+                QTimer.singleShot(POLL_MS, check)
+            else:
+                QTimer.singleShot(POLL_MS, lambda: self.view.page().runJavaScript(
+                    READY_JS, 0, lambda ok: check(bool(ok))))  # fmt: skip
+
+        check()
 
     def animate(self) -> None:
         """Friday a fini de parler : vol et rotation."""

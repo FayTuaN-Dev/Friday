@@ -112,10 +112,13 @@ class StageMixin:
         if display.kind == CLOSE:
             self.scene_layer.close_scene()
             return False  # les pop-ups se ferment aussi
+        gate = getattr(self.assistant, "scene_gate", None)
         if display.kind == "weather" and not self.settings.scenes:
             return False
         scene = self.scene_layer.scene_for(display.kind, display.data, display.title)
         if scene is None:
+            if gate is not None:
+                gate.ready()  # pas de scène : Friday parle sans attendre
             return False
         self.scene_layer.show_scene(scene, display.title)
         self.set_scene_mode(True)  # la scène en fond, Friday par-dessus (U8)

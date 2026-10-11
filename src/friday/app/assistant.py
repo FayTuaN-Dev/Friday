@@ -19,6 +19,7 @@ from friday.app.components import Components, describe, load_components
 from friday.app.confirmations import ConfirmationGate
 from friday.app.events import AssistantListener, AssistantState
 from friday.app.reply import Reply
+from friday.app.scene_gate import SceneGate
 from friday.app.stall_watch import StallWatch
 from friday.app.voice_inputs import VoiceInputs
 from friday.brain.llm import BrainError
@@ -50,6 +51,9 @@ class Assistant:
         self, settings: Settings, listener: AssistantListener, loader: Loader = load_components
     ) -> None:
         self.settings = settings
+        # Météo (si les scènes sont activées), lieu, globe : la voix attend le fond (U8)
+        kinds = {"place", "world"} | ({"weather"} if getattr(settings, "scenes", False) else set())
+        self.scene_gate = SceneGate(kinds)
         self.listener = listener
         self._loader = loader
         self.components: Components | None = None
@@ -241,7 +245,8 @@ class Assistant:
         self.set_state(AssistantState.THINKING)
         speaker = self.components.speaker if self.voice_on else None
         interrupted = False
-        self._reply = Reply(self.listener, speaker, self._interrupted, self.confirm.ask)
+        self._reply = Reply(self.listener, speaker, self._interrupted, self.confirm.ask,
+                            self.scene_gate)  # fmt: skip
         self.listener.on_reply_start()
         stream = self.components.brain.reply(text, self._interrupted.is_set)
         try:

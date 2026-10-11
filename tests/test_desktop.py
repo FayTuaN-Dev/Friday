@@ -11,12 +11,20 @@ from friday.ui.desktop.widgets.holo import speech_envelope
 app = QApplication.instance() or QApplication([])
 
 
+class StubGate:
+    opened = False
+
+    def ready(self):
+        self.opened = True
+
+
 class StubAssistant:
     can_listen = True
     voice_on = True
 
     def __init__(self):
         self.sent = []
+        self.scene_gate = StubGate()
 
     def submit_text(self, text):
         self.sent.append(text)
