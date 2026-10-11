@@ -41,7 +41,7 @@ def speech_envelope(audio: np.ndarray, sample_rate: int) -> np.ndarray:
 class HoloOrb(HoloLayers, QWidget):
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.setMinimumSize(200, 200)
+        self.setMinimumSize(80, 80)  # réduit en conversation (U1)
         self.scene = HoloScene()
         self.rng = random.Random(3)
         self.state = AssistantState.LOADING

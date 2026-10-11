@@ -21,7 +21,7 @@ from friday.core.config import Settings
 from friday.ui.desktop import native_window, preferences, theme
 from friday.ui.desktop.bridge import QtBridge
 from friday.ui.desktop.popups.manager import PopupManager
-from friday.ui.desktop.stage import ORB_STYLES, BootSignal, StageMixin, make_orb
+from friday.ui.desktop.stage import ORB_STYLES, STAGE_FULL, BootSignal, StageMixin, make_orb
 from friday.ui.desktop.widgets.chat import ChatView
 from friday.ui.desktop.widgets.frame import ResizableFrame
 from friday.ui.desktop.widgets.input_bar import InputBar
@@ -98,7 +98,7 @@ class MainWindow(StageMixin, QMainWindow):
         layout.setContentsMargins(18, 0, 18, 18)
         layout.setSpacing(4)
         self.stage = QWidget()
-        self.stage.setFixedHeight(270)
+        self.stage.setFixedHeight(STAGE_FULL)
         self.stage_grid = QGridLayout(self.stage)
         self.stage_grid.setContentsMargins(0, 0, 0, 0)
         self.stage_grid.addWidget(self.orb, 0, 0)
@@ -147,6 +147,8 @@ class MainWindow(StageMixin, QMainWindow):
         b.ready.connect(self.on_ready)
         b.state.connect(self.show_state)
         b.user_message.connect(self.chat.add_user)
+        b.user_message.connect(lambda *_: self.set_compact(True))  # place à la conversation
+        b.reply_start.connect(lambda: self.set_compact(True))
         b.reply_start.connect(self.chat.start_reply)
         b.reply_start.connect(self.scene_layer.start_subtitle)
         b.reply_chunk.connect(self.chat.append_reply)
@@ -169,7 +171,6 @@ class MainWindow(StageMixin, QMainWindow):
         self.input.mic_released.connect(a.stop_listening)
         self.input.voice_toggled.connect(lambda: self.input.set_voice(a.toggle_voice()))
         self.input.reset_clicked.connect(self._reset)
-        self.title_bar.color_menu.color_chosen.connect(self.apply_color)
         self.title_bar.settings_button.clicked.connect(self.open_settings)
 
     def apply_color(self, base: QColor, save: bool = True) -> None:
@@ -287,6 +288,7 @@ class MainWindow(StageMixin, QMainWindow):
 
     def _reset(self) -> None:
         self.chat.clear()
+        self.set_compact(False)
         self.assistant.reset()
 
     def resizeEvent(self, event) -> None:

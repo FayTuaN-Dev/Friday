@@ -1,4 +1,5 @@
-"""Barre de titre maison : couleur à gauche, nom au centre, réduire / agrandir / fermer à droite.
+"""Barre de titre maison : réglages à gauche, nom au centre, réduire / agrandir / fermer à
+droite (la couleur se choisit dans les réglages).
 On déplace la fenêtre en l'attrapant ; un double-clic l'agrandit ou la restaure."""
 
 from PySide6.QtCore import QSize, Qt
@@ -7,7 +8,6 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from friday.ui.desktop.icons import icon
 from friday.ui.desktop.theme import Palette
-from friday.ui.desktop.widgets.color_menu import ColorMenu
 
 TITLE = "F.R.I.D.A.Y."
 
@@ -21,10 +21,7 @@ class TitleBar(QWidget):
         row.setContentsMargins(12, 8, 10, 0)
         row.setSpacing(2)
 
-        self.color_button = self._button("Couleur de Friday", "TitleButton")
         self.settings_button = self._button("Réglages", "TitleButton")
-        self.color_menu = ColorMenu(base, self)
-        self.color_button.clicked.connect(self._open_color_menu)
         self.minimize = self._button("Réduire", "TitleButton", window.showMinimized)
         self.maximize = self._button("Agrandir", "TitleButton", self.toggle_maximized)
         self.close_button = self._button("Fermer", "CloseButton", window.close)
@@ -35,7 +32,6 @@ class TitleBar(QWidget):
         left = QWidget()
         left_row = QHBoxLayout(left)
         left_row.setContentsMargins(0, 0, 0, 0)
-        left_row.addWidget(self.color_button)
         left_row.addWidget(self.settings_button)
         left_row.addStretch()
         right = QWidget()
@@ -69,14 +65,10 @@ class TitleBar(QWidget):
         self.title.style().polish(self.title)
 
     def refresh(self, palette: Palette) -> None:
-        self.color_button.setIcon(icon("palette", palette.accent, 16))
         self.settings_button.setIcon(icon("settings", palette.accent, 16))
         self.minimize.setIcon(icon("minimize", palette.muted, 15))
         self.maximize.setIcon(icon("maximize", palette.muted, 15))
         self.close_button.setIcon(icon("close", palette.muted, 15))
-
-    def _open_color_menu(self) -> None:
-        self.color_menu.exec(self.color_button.mapToGlobal(self.color_button.rect().bottomLeft()))
 
     def toggle_maximized(self) -> None:
         if self._window.isMaximized():

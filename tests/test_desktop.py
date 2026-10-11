@@ -214,3 +214,23 @@ def test_friday_can_close_her_popups():
     app.processEvents()
     assert w.popups.popups == []
     w.close()
+
+
+def test_the_core_shrinks_during_a_conversation():
+    """U1 : la place va au chat dès le premier message ; « Nouvelle conversation » la rend."""
+    from PySide6.QtTest import QTest
+
+    from friday.ui.desktop.stage import STAGE_COMPACT, STAGE_FULL
+
+    w = make_window()
+    w.bridge.on_ready("Cerveau : qwen3:8b")
+    app.processEvents()
+    assert not w.compact and w.stage.height() == STAGE_FULL
+    assert not hasattr(w.title_bar, "color_button")  # la couleur : dans les réglages
+    w.bridge.on_user_message("Bonjour", True)
+    QTest.qWait(600)
+    assert w.compact and w.stage.height() == STAGE_COMPACT and w.info.isHidden()
+    w._reset()
+    QTest.qWait(600)
+    assert not w.compact and w.stage.height() == STAGE_FULL and not w.info.isHidden()
+    w.close()

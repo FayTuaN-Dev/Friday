@@ -18,6 +18,7 @@ from friday.ui.desktop.widgets.holo.orb import FPS, speech_envelope
 
 POINTS = 2600
 LAYERS = 5  # profondeurs dessinées de l'arrière vers l'avant
+FULL_SIZE = 97  # rayon en pixels de la sphère en grand (cœur de 270 px de haut)
 CONVERGE_SECONDS = 2.2
 SPHERE_FPS = 30  # ~13 ms par image : 30 images/s suffisent et ménagent le processeur
 # État → (vitesse de rotation, tourbillon, amplitude des vagues au repos)
@@ -49,7 +50,7 @@ def converge(progress: float, delays: np.ndarray) -> np.ndarray:
 class ParticleSphere(QWidget):
     def __init__(self, parent: QWidget | None = None, seed: int = 5) -> None:
         super().__init__(parent)
-        self.setMinimumSize(200, 200)
+        self.setMinimumSize(80, 80)  # réduit en conversation (U1)
         rng = np.random.default_rng(seed)
         self.targets = fibonacci_sphere(POINTS)
         self.spawn = rng.normal(0, 1.4, (POINTS, 3))  # le nuage du démarrage
@@ -163,14 +164,16 @@ class ParticleSphere(QWidget):
         halo.setColorAt(1, QColor(r, g, b, 0))
         painter.fillRect(self.rect(), halo)
         fade = 0.35 + 0.65 * self.progress
+        # Réduite (U1) : des points plus fins et plus discrets, sinon ils se fondent en boule
+        scale = min(1.0, size / FULL_SIZE)
         layer = np.minimum((depth * LAYERS).astype(int), LAYERS - 1)
         for n in range(LAYERS):
             mask = layer == n
             if not mask.any():
                 continue
             near = (n + 0.5) / LAYERS
-            alpha = int((40 + 190 * near) * fade * (0.85 + 0.3 * self.level))
-            painter.setPen(QPen(QColor(r, g, b, min(255, alpha)), 1.0 + 1.6 * near,
+            alpha = int((40 + 190 * near) * fade * (0.85 + 0.3 * self.level) * (0.4 + 0.6 * scale))
+            painter.setPen(QPen(QColor(r, g, b, min(255, alpha)), (1.0 + 1.6 * near) * scale,
                                 Qt.SolidLine, Qt.RoundCap))  # fmt: skip
             xs, ys = cx + x[mask] * size, cy - y[mask] * size
             painter.drawPoints([QPointF(px, py) for px, py in zip(xs, ys, strict=True)])
