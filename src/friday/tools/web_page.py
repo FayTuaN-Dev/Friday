@@ -1,5 +1,7 @@
 """Outil : lire le contenu principal d'une page web (sans menus ni publicités)."""
 
+import re
+
 import trafilatura
 
 from friday.tools.base import Display, Tool, ToolResult
@@ -51,3 +53,24 @@ class ReadWebPageTool(Tool):
             text=f"Contenu de « {title} » ({url}) :\n{text[:LLM_MAX_CHARS]}",
             display=Display("article", title, {"url": url, "text": text[:DISPLAY_MAX_CHARS]}),
         )
+
+
+# Un lien dans la demande : c'est CETTE page qu'il faut lire. Constaté : « lis-moi cette page
+# https://aniimotools.dev/… » → qwen lisait le résultat « 3 » de la recherche Apple d'avant.
+LINK = re.compile(r"(?:https?://|www\.)[^\s<>«»\"']+"
+                  r"|\b[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}/[^\s<>«»\"']*", re.IGNORECASE)  # fmt: skip
+OPEN_WORDS = ("ouvre", "lance", "va sur", "affiche", "montre", "mets")
+
+
+def link_request(text: str) -> tuple[str, dict] | None:
+    """(« read_webpage », {"url": …}) si la demande contient un lien à lire ; None pour
+    « ouvre https://… » (open_website) ou sans lien."""
+    from friday.brain.thinking import own_words
+    from friday.voice.wake import normalize
+
+    text = own_words(text)  # un lien dans le texte copié ou un fichier joint : pas une demande
+    found = LINK.search(text)
+    if found is None or any(normalize(text).startswith(w) for w in OPEN_WORDS):
+        return None
+    url = found.group(0).rstrip(".,;:!?)")
+    return ("read_webpage", {"url": url if "://" in url else f"https://{url}"})
