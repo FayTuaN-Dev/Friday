@@ -104,7 +104,8 @@ def load_components(
     )
     brain.prefetch = prefetcher(library, trading, brain.toolset.router,
                                 mail=categories is not None, days=day_log is not None,
-                                memory=memory is not None, world=world is not None)  # fmt: skip
+                                memory=memory is not None, world=world is not None,
+                                music=toolbox.find("play_music") is not None)  # fmt: skip
     brain.warmup()
     warn_if_spilling(client, settings.ollama_model, settings.ollama_num_ctx)
     components = Components(

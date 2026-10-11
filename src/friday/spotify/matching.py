@@ -58,14 +58,27 @@ def similarity(wanted: str, choice: Choice) -> float:
     return best
 
 
+def is_style(query: str) -> bool:
+    """« un peu d'électro » : un style, donc une playlist (pas « l'album Electro »)."""
+    wanted, hint = clean(query)
+    return wanted in GENRES and hint == "playlist"
+
+
 def best(query: str, choices: list[Choice]) -> Choice | None:
     wanted, hint = clean(query)
+    style = is_style(query)
+    if style and any(c.kind == "playlist" for c in choices):
+        # une playlist seulement (constaté : l'album « Electro » gagnait au nom exact)
+        choices = [c for c in choices if c.kind == "playlist"]
     if not choices:
         return None
 
     def score(choice: Choice) -> float:
-        bonus = 0.25 * choice.mine + (0.4 if hint and choice.kind == hint else 0)
-        return similarity(wanted, choice) + bonus
+        close = similarity(wanted, choice)
+        # Ses playlists d'abord… sauf pour un style, où le nom doit vraiment y correspondre
+        # (constaté : « Playlist Stream » choisie pour « un peu d'électro »)
+        mine = choice.mine and (not style or close >= 0.75)
+        return close + 0.25 * mine + (0.4 if hint and choice.kind == hint else 0)
 
     return max(choices, key=score)  # à égalité : l'ordre (ses playlists, puis Spotify)
 
@@ -80,3 +93,25 @@ def describe(choice: Choice) -> str:
     if choice.kind == "artist":
         return f"les titres de {choice.name}"
     return f"« {choice.name} »{by}"
+
+
+# « Mets un peu d'électro » : la musique, lancée par le code. Constaté : qwen répondait « Je
+# lance une playlist electro » sans appeler l'outil (il imitait ses réponses précédentes).
+VERBS = re.compile(r"^(?:\w+ )?(?:mets?|lance|joue|passe|fais moi ecouter|fait moi ecouter)\b")
+NOT_MUSIC = re.compile(r"\b(?:minuteur|rappel|alerte|volume|video|youtube|film|serie|pause|"
+                       r"suivante?|precedente?|radio)\b")  # fmt: skip
+
+
+def music_request(text: str) -> tuple[str, dict] | None:
+    """(« play_music », {"query": …}) pour une demande de musique sans ambiguïté : un verbe
+    (« mets », « lance », « joue »…) et un style, « playlist », « album », « artiste »,
+    « chanson » ou « Spotify ». Le reste (« lance Nova ») : au modèle."""
+    said = normalize(text)
+    if not VERBS.search(said) or NOT_MUSIC.search(said):
+        return None
+    wanted, hint = clean(text)
+    if not wanted or wanted == said:  # rien de précis (« lance la musique »)
+        return None
+    if hint or wanted in GENRES or re.search(r"\bspotify\b", said):
+        return ("play_music", {"query": text.strip()})
+    return None
