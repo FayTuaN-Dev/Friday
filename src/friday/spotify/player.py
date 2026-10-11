@@ -9,13 +9,14 @@ from collections.abc import Callable
 import httpx
 
 from friday.spotify.auth import SpotifyAccount
-from friday.spotify.matching import Choice, best, clean
+from friday.spotify.matching import Choice, best, clean, is_style
 
 log = logging.getLogger(__name__)
 
 API = "https://api.spotify.com/v1"
 PLAYLISTS_KEPT = 600  # secondes : les playlists de l'utilisateur, relues toutes les 10 min
 DEVICE_WAIT = 12  # secondes pour que l'appli, tout juste ouverte, apparaisse
+STYLE_LIMIT = 10  # playlists cherchées pour un style (« un peu d'électro »)
 
 
 class SpotifyError(Exception):
@@ -56,9 +57,9 @@ class Spotify:
         self._playlists = (time.time(), found)
         return found
 
-    def search(self, query: str) -> list[Choice]:
-        page = self._call("GET", "/search", params={
-            "q": query, "type": "playlist,album,artist,track", "limit": 5})  # fmt: skip
+    def search(self, query: str, kinds: str = "playlist,album,artist,track",
+               limit: int = 5) -> list[Choice]:  # fmt: skip
+        page = self._call("GET", "/search", params={"q": query, "type": kinds, "limit": limit})
         found = []
         for kind in ("playlist", "artist", "album", "track"):
             for item in (page.get(f"{kind}s") or {}).get("items") or []:
@@ -74,6 +75,8 @@ class Spotify:
 
     def find(self, query: str) -> Choice | None:
         wanted, _ = clean(query)
+        if is_style(query):  # constaté : 5 résultats par type, une seule playlist (hors sujet)
+            return best(query, self.my_playlists() + self.search(wanted, "playlist", STYLE_LIMIT))
         return best(query, self.my_playlists() + self.search(wanted))
 
     def device(self) -> str:

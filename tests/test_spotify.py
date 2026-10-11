@@ -5,6 +5,7 @@ import json
 import time
 
 import httpx
+import pytest
 
 from friday.app.backup import SKIP_FILES
 from friday.spotify.auth import NotConnected, SpotifyAccount, challenge
@@ -142,3 +143,56 @@ def test_token_is_refreshed_and_never_backed_up(tmp_path):
         raise AssertionError("doit demander la connexion")
     except NotConnected:
         pass
+
+
+@pytest.mark.parametrize(
+    ("said", "chosen"),
+    [
+        ("met un peu d'électro", True),  # constaté : « Je lance… » sans rien lancer
+        ("Mets un peu de jazz", True),
+        ("lance ma playlist Aurelsan", True),
+        ("joue la chanson Bohemian Rhapsody", True),
+        ("mets du rap sur Spotify", True),
+        ("lance la musique", False),  # rien de précis : au modèle
+        ("lance Nova", False),  # nom seul : au modèle (une playlist ? un site ?)
+        ("lance un minuteur de 5 minutes", False),
+        ("mets le volume à 30", False),
+        ("mets la chanson suivante", False),
+        ("mets un rappel pour demain", False),
+    ],
+)
+def test_music_requests_are_launched_by_code(said, chosen):
+    from friday.app.prefetch import prefetcher
+    from friday.spotify.matching import music_request
+
+    expected = ("play_music", {"query": said}) if chosen else None
+    assert music_request(said) == expected
+    assert prefetcher(None, None, None, music=True)(said) == expected
+    assert prefetcher(None, None, None)(said) is None  # sans outil de musique
+
+
+def test_a_style_picks_a_playlist_even_against_an_exact_album_name():
+    """Constaté : « un peu d'électro » → l'album « Electro » de Various Artists."""
+    choices = [Choice("album", "Electro", "spotify:album:1", "Various Artists"),
+               Choice("playlist", "Electro Hits 2026", "spotify:playlist:2")]  # fmt: skip
+    assert best("met un peu d'électro", choices).kind == "playlist"
+    assert best("l'album Electro", choices).kind == "album"  # demandé explicitement
+
+
+def test_a_style_does_not_pick_an_unrelated_own_playlist():
+    """Constaté : « un peu d'électro » → « Playlist Stream », une de ses playlists sans rapport."""
+    choices = [Choice("playlist", "Playlist Stream", "spotify:playlist:a", mine=True),
+               Choice("playlist", "Electro Mix", "spotify:playlist:e", mine=True),
+               Choice("playlist", "Electro Hits 2026", "spotify:playlist:b")]  # fmt: skip
+    assert best("un peu d'électro", choices).name == "Electro Mix"  # la sienne, si elle colle
+    assert best("un peu d'électro", [choices[0], choices[2]]).name == "Electro Hits 2026"
+
+
+def test_a_style_searches_playlists_only():
+    """Constaté : 5 résultats par type, une seule playlist (hors sujet) pour « électro »."""
+    client, calls, _ = fake_api()
+    Spotify(Account(), client).find("met un peu d'électro")
+    search = next(r for r in calls if r.url.path == "/v1/search")
+    assert search.url.params["type"] == "playlist" and search.url.params["limit"] == "10"
+    Spotify(Account(), client).find("l'album Discovery")
+    assert calls[-1].url.params["type"] == "playlist,album,artist,track"
