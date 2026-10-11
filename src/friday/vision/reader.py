@@ -10,6 +10,8 @@ import logging
 
 import ollama
 
+from friday.brain.vram import wait_unloaded
+
 log = logging.getLogger(__name__)
 
 INSTRUCTIONS = """Tu regardes une capture de l'écran de l'utilisateur. Sa question : « {question} »
@@ -20,6 +22,9 @@ Décris en français ce qui est utile pour y répondre :
   extraits de code, contenu d'un tableau ;
 - ne fais aucun calcul et ne réponds pas toi-même à la question : décris seulement.
 Sois factuel, sans Markdown, 15 lignes au maximum."""
+
+
+MAX_TOKENS = 600  # environ 15 lignes de description
 
 
 class VisionUnavailable(Exception):
@@ -44,7 +49,8 @@ class ScreenReader:
                 ],  # fmt: skip
                 think=False,
                 keep_alive=0,  # libère la mémoire vidéo pour qwen3
-                options={"num_ctx": 4096, "temperature": 0.2},
+                # 15 lignes demandées, mais constaté : 9 000 caractères en 35 s ; on coupe
+                options={"num_ctx": 4096, "temperature": 0.2, "num_predict": MAX_TOKENS},
             )
         except ollama.ResponseError as error:
             if error.status_code == 404:
@@ -53,6 +59,9 @@ class ScreenReader:
                     f"(commande : ollama pull {self.model})."
                 ) from error
             raise
+        finally:
+            # qwen3 revient juste après : il doit retrouver une carte vraiment libre
+            wait_unloaded(self.client, self.model)
         text = (response.message.content or "").strip()
         log.info("Écran décrit en %d caractères", len(text))
         return text
