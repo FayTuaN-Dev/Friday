@@ -209,3 +209,16 @@ def test_the_real_category_list_is_given_and_asked_by_the_code():
     prefetch = prefetcher(None, None, None, mail=True)
     assert prefetch("quelles catégories ai-je ?") == ("category_mails", {})
     assert prefetcher(None, None, None)("quelles catégories ai-je ?") is None  # sans Gmail
+
+
+def test_sorting_covers_archived_mails_too():
+    """Constaté : 19 mails dans la boîte de réception, 103 en tout ; le tri n'en voyait que 19."""
+    from friday.google.sorter import EVERYWHERE
+
+    queries = []
+    box = FakeMailbox({"m1": {"INBOX"}, "m2": set()}, {})
+    original = box.ids
+    box.ids = lambda query="", label_id=None, limit=500: queries.append(query) or original(
+        query, label_id, limit)  # fmt: skip
+    totals = MailSorter(box, lambda mails, extra=(): ["Jeux"] * len(mails)).sort_inbox(10)
+    assert queries == [EVERYWHERE] and "in:inbox" not in EVERYWHERE and totals["Jeux"] == 2

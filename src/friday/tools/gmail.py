@@ -29,7 +29,10 @@ class CheckMailTool(Tool):
         "de nouveaux mails ? » (only_unread=true pour les non lus seulement)."
     )
     parameters = {
-        "count": {"type": "integer", "description": "Combien de mails (5 par défaut, 15 au plus)"},
+        "count": {
+            "type": "integer",
+            "description": "Combien (5 par défaut, 10 pour les non lus, 25 au plus)",
+        },
         "only_unread": {"type": "boolean", "description": "Seulement les non lus"},
     }
 
@@ -41,13 +44,20 @@ class CheckMailTool(Tool):
 
     def run(self, count: int | None = None, only_unread: bool = False) -> ToolResult:
         def check() -> ToolResult:
-            limit = max(1, min(int(count or 5), 15))
-            mails = self.gmail.latest(limit, only_unread)
+            # Constaté : « que 5 mails non lus » alors qu'il y en avait 10 (promotions comprises)
+            limit = max(1, min(int(count or (10 if only_unread else 5)), 25))
+            mails = self.gmail.latest(limit, only_unread, skip_tabs=not only_unread)
             if not mails:
                 return ToolResult(
                     "Aucun mail non lu." if only_unread else "Boîte de réception vide."
                 )
-            return mail_list(mails, "Mails non lus" if only_unread else "Derniers mails reçus")
+            result = mail_list(mails, "Mails non lus" if only_unread else "Derniers mails reçus")
+            total = self.gmail.unread_total() if only_unread else None
+            if total and total > len(mails):
+                result.text = (f"{total} mails non lus au total dans la boîte de réception : "
+                               f"annonce ce total, voici les {len(mails)} plus récents.\n"
+                               + result.text)  # fmt: skip
+            return result
 
         return guarded(check)
 

@@ -108,20 +108,31 @@ class Gmail:
         found = self._messages().list(userId="me", q=query, maxResults=limit).execute()
         return [self._metadata(m["id"]) for m in found.get("messages", [])]
 
-    def unread(self, limit: int = 8) -> list[Mail]:
-        return self.latest(limit, only_unread=True)
+    def unread(self, limit: int = 8, skip_tabs: bool = True) -> list[Mail]:
+        return self.latest(limit, only_unread=True, skip_tabs=skip_tabs)
 
-    def latest(self, limit: int = 5, only_unread: bool = False) -> list[Mail]:
-        """Derniers mails de la boîte de réception, sans promotions ni réseaux sociaux.
+    def unread_total(self) -> int | None:
+        """Nombre de non lus dans la boîte de réception, tous onglets (None : inconnu)."""
+        try:
+            label = self._service().users().labels().get(userId="me", id="INBOX").execute()
+            return int(label.get("messagesUnread", 0))
+        except Exception:
+            return None
+
+    def latest(self, limit: int = 5, only_unread: bool = False,
+               skip_tabs: bool = True) -> list[Mail]:  # fmt: skip
+        """Derniers mails de la boîte de réception, sans promotions ni réseaux sociaux (sauf
+        `skip_tabs=False` : « ai-je des nouveaux mails ? » veut TOUS les non lus).
 
         Le tri se fait ici, sur les étiquettes de chaque mail : les filtres de recherche par
         onglet (« category:primary ») ne marchent pas sur tous les comptes."""
         query = "in:inbox is:unread" if only_unread else "in:inbox"
-        found = self._messages().list(userId="me", q=query, maxResults=SCAN).execute()
+        found = self._messages().list(userId="me", q=query, maxResults=max(SCAN, limit)).execute()
+        skipped = SKIPPED_TABS if skip_tabs else frozenset()
         mails = []
         for item in found.get("messages", []):
             mail = self._metadata(item["id"])
-            if not mail.labels & SKIPPED_TABS:
+            if not mail.labels & skipped:
                 mails.append(mail)
                 if len(mails) >= limit:
                     break
