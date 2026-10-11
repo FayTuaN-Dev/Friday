@@ -1,4 +1,5 @@
-"""Dossiers où Friday a le droit de chercher : Documents, Bureau, Téléchargements, Images.
+"""Dossiers où Friday a le droit de chercher : Documents, Bureau, Téléchargements, Images,
+Musique (avec tous leurs sous-dossiers).
 
 Leur vrai emplacement est demandé à Windows (dossiers connus) : il suit une éventuelle
 redirection vers OneDrive ou un autre disque.
@@ -19,6 +20,7 @@ KNOWN_FOLDERS = {
     "Bureau": ("B4BFCC3A-DB2C-424C-B029-7FE99A87C641", "Desktop"),
     "Téléchargements": ("374DE290-123F-4565-9164-39C4925E467B", "Downloads"),
     "Images": ("33E28130-4E1E-4676-835A-98395C3BC3BB", "Pictures"),
+    "Musique": ("4BD8D571-6D19-48D3-BE97-422220080E43", "Music"),
 }
 
 

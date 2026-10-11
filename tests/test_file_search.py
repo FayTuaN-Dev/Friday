@@ -121,3 +121,26 @@ def test_type_words_become_a_filter(folders):
     tool = SearchFilesTool(FileFinder(folders))
     result = tool.run("PDF", kind="pdf", in_content=True)  # ne cherche pas « pdf » dans le texte
     assert [f["name"] for f in result.display.data["files"]] == ["Facture_EDF_2026.pdf"]
+
+
+def test_an_invented_path_is_found_by_its_name(folders, monkeypatch):
+    """Constaté : « lance panda.png dans le dossier Download » → « /Download/panda.png »
+    inventé par qwen ; le fichier était dans Téléchargements."""
+    import friday.files.opener as opener
+
+    opened = []
+    monkeypatch.setattr(opener.os, "startfile", opened.append, raising=False)
+    tool = OpenFileTool(FileFinder(folders))
+    said = tool.run("/Download/Photo vacances Bretagne.jpg").text
+    assert opened == [folders["Téléchargements"] / "Photo vacances Bretagne.jpg"]
+    assert "Fichier ouvert" in said
+    make(folders["Documents"] / "Archives" / "notes.txt")  # deux fichiers du même nom
+    said = OpenFileTool(FileFinder(folders, cache_seconds=0)).run("/Download/notes.txt").text
+    assert "Plusieurs fichiers « notes.txt »" in said and len(opened) == 1
+    assert "introuvable" in tool.run("/Download/absent.pdf").text
+
+
+def test_music_is_one_of_the_searched_folders():
+    from friday.files.folders import KNOWN_FOLDERS
+
+    assert KNOWN_FOLDERS["Musique"][1] == "Music"

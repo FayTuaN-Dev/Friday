@@ -92,7 +92,7 @@ SKILLS = (
   l'utilisateur : …] » : sers-t'en directement. Sinon, read_clipboard le lit. Ne lui demande
   jamais de coller le texte : tu peux le lire toi-même.
 - search_files : retrouver un fichier par son nom (Documents, Bureau, Téléchargements,
-  Images), avec un mois ou une année si l'utilisateur en parle. Si rien n'est trouvé,
+  Images, Musique), avec un mois ou une année si l'utilisateur en parle. Si rien n'est trouvé,
   relance avec in_content=true pour chercher dans le contenu des documents.
 - open_file : ouvrir un fichier (ou son dossier avec reveal=true), à partir de son chemin.
 - copy_to_clipboard : mettre un texte dans le presse-papier (corrigé, traduit, rédigé…).
