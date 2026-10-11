@@ -22,7 +22,7 @@ class Skill:
 # Toujours présents : petits et utiles partout.
 CORE_TOOLS = (
     "close_popups", "open_settings", "remember", "forget_memory", "list_memories", "load_skill",
-    "recall_day", "memory_origin", "dream_report",
+    "recall_day", "memory_origin", "dream_report", "open_memory_sheet",
 )  # fmt: skip
 CORE_GUIDE = """- close_popups : fermer les fenêtres que tu as affichées (résultats, fichiers, météo…).
   Jamais close_app pour elles.

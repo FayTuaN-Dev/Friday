@@ -194,9 +194,10 @@ def default_toolbox(
     if memory is not None:
         from friday.tools.memory import ForgetTool, ListMemoriesTool, RememberTool
         from friday.tools.memory_origin import MemoryOriginTool
+        from friday.tools.memory_sheet import OpenMemorySheetTool
 
         tools += [RememberTool(memory), ForgetTool(memory), ListMemoriesTool(memory),
-                  MemoryOriginTool(memory)]  # fmt: skip
+                  MemoryOriginTool(memory), OpenMemorySheetTool(memory)]  # fmt: skip
         if settings.night_dream:
             from friday.core.config import DATA_DIR
             from friday.tools.dream_report import DreamReportTool

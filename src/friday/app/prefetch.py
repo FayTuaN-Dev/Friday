@@ -110,6 +110,10 @@ def prefetcher(
 
             if asks_dream(text):  # « qu'as-tu fait cette nuit ? »
                 return ("dream_report", {})
+            from friday.tools.memory_sheet import asks_sheet
+
+            if asks_sheet(text):  # « ouvre ta fiche mémoire » (qwen ouvrait le Bloc-notes vide)
+                return ("open_memory_sheet", {})
         if days:
             from friday.memory.day_log import asks_day
 
