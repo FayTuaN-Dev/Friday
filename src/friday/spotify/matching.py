@@ -11,6 +11,12 @@ from friday.voice.wake import normalize
 HINTS = (("playlist", "playlist"), ("album", "album"), ("artiste", "artist"),
          ("groupe", "artist"), ("chanteur", "artist"), ("chanteuse", "artist"),
          ("chanson", "track"), ("titre", "track"), ("morceau", "track"))  # fmt: skip
+# Un style de musique (« mets du jazz ») : une playlist, pas l'album « Jazz » de Queen (constaté)
+GENRES = {"jazz", "rock", "rap", "pop", "electro", "techno", "house", "lofi", "lo fi", "chill",
+          "classique", "reggae", "funk", "soul", "blues", "metal", "country", "disco", "variete",
+          "variete francaise", "rnb", "r b", "hip hop", "ambiance", "relax", "detente", "dub",
+          "drum and bass", "dance", "afro", "latino", "salsa", "kpop", "musique classique",
+          "piano", "acoustique", "annees 80", "annees 90", "annees 2000"}  # fmt: skip
 # Mots qui entourent ce qu'on cherche (« mets-moi un peu de … sur Spotify »)
 FILLER = (
     r"\b(?:mets?(?: moi)?|lance|joue|ecoute|ecouter|passe|sur spotify|spotify|musique|"
@@ -33,8 +39,10 @@ def clean(query: str) -> tuple[str, str]:
     hint = next((kind for word, kind in HINTS if re.search(rf"\b{word}s?\b", words)), "")
     for word, _ in HINTS:
         words = re.sub(rf"\b{word}s?\b", " ", words)
-    words = re.sub(FILLER, " ", words)
-    return " ".join(words.split()) or normalize(query), hint
+    words = " ".join(re.sub(FILLER, " ", words).split()) or normalize(query)
+    if not hint and words in GENRES:
+        hint = "playlist"
+    return words, hint
 
 
 def similarity(wanted: str, choice: Choice) -> float:

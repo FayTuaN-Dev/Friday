@@ -66,6 +66,7 @@ def test_what_to_play_is_chosen_well():
     assert clean("ma playlist Nova sur Spotify") == ("nova", "playlist")
     assert clean("mets-moi un peu de Daft Punk") == ("daft punk", "")
     assert clean("l'album Discovery") == ("discovery", "album")
+    assert clean("un peu de jazz") == ("jazz", "playlist")  # un style : une playlist
     mine = Choice("playlist", "Nova", "u1", mine=True)
     radio = Choice("playlist", "Radio Nova Mix", "u2")
     assert best("Nova", [radio, mine]) is mine  # ses playlists d'abord
