@@ -196,3 +196,37 @@ def test_diagnostic_page_and_its_buttons(tmp_path):
     assert page.message.text().startswith("Sauvegarde faite : friday-")
     page._reload()
     assert "démarre encore" in page.message.text()
+
+
+def test_diagnostic_checks_in_the_background_without_holding_the_page(tmp_path):
+    """Le bilan (Ollama, nvidia-smi…) se fait dans un autre fil, sans figer l'interface ; le
+    fil ne garde jamais la page (constaté : détruite depuis ce fil, Qt plantait plus tard)."""
+    import gc
+    import threading
+    import weakref
+
+    from PySide6.QtTest import QTest
+    from PySide6.QtWidgets import QApplication
+
+    from friday.ui.desktop.settings.diagnostic_page import DiagnosticPage
+
+    QApplication.instance() or QApplication([])
+    components = SimpleNamespace(brain=None)
+    page = DiagnosticPage(SimpleNamespace(components=components), SETTINGS, tmp_path,
+                          refresh_now=False)  # fmt: skip
+    assert page.grid.count() == 0  # rien de fait à la construction
+    page.refresh_async()
+    assert page.message.text() == "Vérification…"
+    for _ in range(50):
+        QTest.qWait(100)
+        if page.grid.count():
+            break
+    assert page.grid.count() > 0 and page.message.text() == ""
+    page.refresh_async()  # un bilan en cours, puis la page disparaît
+    alive = weakref.ref(page)
+    del page
+    gc.collect()
+    assert alive() is None  # le fil ne la retenait pas
+    for thread in threading.enumerate():
+        if thread.name == "diagnostic":
+            thread.join(10)

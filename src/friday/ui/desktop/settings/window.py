@@ -64,7 +64,8 @@ class SettingsWindow(QFrame):
             "Fonctions": by_name["Fonctions"],
             "Trading": self._trading_page(by_name["Trading"], components),
             "Comptes": AccountsPage(getattr(components, "google", None)),
-            "Diagnostic": DiagnosticPage(main_window.assistant, main_window.settings),
+            "Diagnostic": DiagnosticPage(main_window.assistant, main_window.settings,
+                                         refresh_now=False),  # bilan à l'ouverture de la page
         }  # fmt: skip
         self.nav = QListWidget(objectName="SettingsNav")
         self.nav.setIconSize(QSize(18, 18))
@@ -78,6 +79,7 @@ class SettingsWindow(QFrame):
             for name in names:
                 item = QListWidgetItem(icon(ICONS[name], accent, 18), name, self.nav)
                 item.setData(Qt.UserRole, self.stack.count())
+                item.setData(Qt.UserRole + 1, name)
                 scroll = QScrollArea(widgetResizable=True)
                 scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)  # rien ne déborde
                 scroll.setWidget(pages[name])
@@ -130,6 +132,17 @@ class SettingsWindow(QFrame):
     def _show_page(self, item) -> None:
         if item is not None and item.data(Qt.UserRole) is not None:
             self.stack.setCurrentIndex(item.data(Qt.UserRole))
+            page = self.stack.currentWidget().widget()
+            if hasattr(page, "refresh_async"):  # Diagnostic : le bilan, sans figer Friday
+                page.refresh_async()
+
+    def refresh_icons(self, accent: str) -> None:
+        """La couleur de Friday change : les icônes du menu suivent (le panneau est gardé)."""
+        for row in range(self.nav.count()):
+            item = self.nav.item(row)
+            name = item.data(Qt.UserRole + 1) or item.text()
+            if item.data(Qt.UserRole) is not None and name in ICONS:
+                item.setIcon(icon(ICONS[name], accent, 18))
 
     def show_page(self, name: str) -> None:
         """Ouvre une page par son nom (« Trading »…)."""
@@ -193,7 +206,8 @@ class SettingsWindow(QFrame):
         self._refresh_bar()
 
     def close(self) -> bool:
-        """Le panneau repart vers la droite (overlay.py), puis il est détruit."""
+        """Le panneau repart vers la droite (overlay.py), puis il est caché (gardé pour la
+        prochaine fois : le reconstruire figeait Friday)."""
         overlay = self.parent()
         if overlay is not None and hasattr(overlay, "dismiss"):
             overlay.dismiss()

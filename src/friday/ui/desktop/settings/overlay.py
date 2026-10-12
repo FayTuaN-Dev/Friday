@@ -27,6 +27,10 @@ class SettingsOverlay(QWidget):
         self._animation.finished.connect(self._finished)
         self.hide()
 
+    @property
+    def showing(self) -> bool:
+        return not self.isHidden() and not self._closing
+
     def open(self, area: QRect) -> None:
         self.setGeometry(area)
         self._closing = False
@@ -36,7 +40,7 @@ class SettingsOverlay(QWidget):
         self._run(1.0)
 
     def dismiss(self) -> None:
-        """Le panneau repart vers la droite, puis tout est détruit."""
+        """Le panneau repart vers la droite, puis tout est caché (gardé pour la suite)."""
         if self._closing:
             return
         self._closing = True
@@ -56,7 +60,6 @@ class SettingsOverlay(QWidget):
     def _finished(self) -> None:
         if self._closing:
             self.hide()
-            self.deleteLater()
 
     def _place(self) -> None:
         width = self.width() if self.width() < FULL_BELOW else min(PANEL_WIDTH, self.width() - 24)

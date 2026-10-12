@@ -109,18 +109,14 @@ def test_settings_can_be_reopened_after_closing(env, tmp_path):
     w = MainWindow(SETTINGS, assistant=assistant, preferences_path=tmp_path / "i.json")
     w.open_settings()
     first = w.settings_window
-    first.close()  # le panneau repart vers la droite, puis il est détruit
+    first.close()  # le panneau repart vers la droite, puis il est caché (gardé)
     from PySide6.QtTest import QTest
 
     QTest.qWait(400)
-    for _ in range(3):
-        app.processEvents()
-        from PySide6.QtCore import QCoreApplication, QEvent
-
-        QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
-    assert w.settings_window is None
-    w.open_settings()  # ne plante plus
-    assert w.settings_window is not None and w.settings_window is not first
+    assert not w.settings_showing and w.settings_window is first
+    w.open_settings()  # rouvert tout de suite : rien à reconstruire
+    QTest.qWait(400)
+    assert w.settings_showing and w.settings_window is first
     w.close()
 
 
@@ -158,8 +154,5 @@ def test_settings_live_in_the_window_and_save_only_when_changed(env, tmp_path):
     assert not panel.restart_button.isHidden() and panel.save_button.isHidden()
     w.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_Escape, Qt.NoModifier))
     QTest.qWait(400)
-    from PySide6.QtCore import QCoreApplication
-
-    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
-    assert w.settings_window is None  # refermé et détruit
+    assert not w.settings_showing  # refermé (caché, gardé pour la prochaine fois)
     w.close()

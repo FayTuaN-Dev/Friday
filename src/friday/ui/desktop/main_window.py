@@ -189,6 +189,8 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.base = QColor(base)
         palette = theme.apply_theme(QApplication.instance(), self.base)
         self.title_bar.refresh(palette)
+        if self.settings_window is not None:
+            self.settings_window.refresh_icons(palette.accent)
         self.input.refresh(palette)
         self.orb.set_base_color(self.base)
         self.playing.refresh_style()
@@ -225,16 +227,20 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         else:
             self.popups.show(display)
 
-    def open_settings(self, page: str = "") -> None:
-        """Les réglages, en panneau dans la fenêtre (U7) : il glisse depuis la droite."""
+    def prepare_settings(self) -> None:
+        """Construit le panneau des réglages une fois, caché (au repos, après le démarrage) :
+        le construire au clic figeait Friday ~1 s (périphériques audio, polices…)."""
         from friday.ui.desktop.settings.overlay import SettingsOverlay
         from friday.ui.desktop.settings.window import SettingsWindow
 
         if self.settings_window is None:
             self.settings_window = SettingsWindow(self)
-            # Fermé, le panneau est détruit : on l'oublie (sinon, plantage à la réouverture)
             self.settings_window.destroyed.connect(self._forget_settings)
             self._settings_overlay = SettingsOverlay(self.shell, self.settings_window)
+
+    def open_settings(self, page: str = "") -> None:
+        """Les réglages, en panneau dans la fenêtre (U7) : il glisse depuis la droite."""
+        self.prepare_settings()
         if page:
             self.settings_window.show_page(page)
         self._settings_overlay.open(self._settings_area())
@@ -242,6 +248,11 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
     def _settings_area(self):
         top = self.title_bar.geometry().bottom() + 1
         return self.shell.rect().adjusted(0, top, 0, 0)
+
+    @property
+    def settings_showing(self) -> bool:
+        overlay = getattr(self, "_settings_overlay", None)
+        return self.settings_window is not None and overlay is not None and overlay.showing
 
     def _forget_settings(self) -> None:
         self.settings_window = None
@@ -318,7 +329,7 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
             self._settings_overlay.setGeometry(self._settings_area())
 
     def keyPressEvent(self, event) -> None:
-        if event.key() == Qt.Key_Escape and self.settings_window is not None:
+        if event.key() == Qt.Key_Escape and self.settings_showing:
             self.settings_window.close()  # Échap : les réglages se referment d'abord
             return
         if event.key() == Qt.Key_Escape and self.scene_layer.showing:  # Échap : retour
