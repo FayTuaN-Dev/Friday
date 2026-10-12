@@ -108,3 +108,17 @@ def test_a_freeze_is_photographed_with_its_culprit(caplog):
     assert any("slow_thing_in_the_window" in c for c in watch.culprits)
     assert "Gel en cours, l'interface est dans" in caplog.text
     watch.deleteLater()
+
+
+def test_python_hands_over_quickly_to_the_interface():
+    """Le verrou de Python passe d'un fil à l'autre toutes les 0,5 ms (5 par défaut)."""
+    import sys
+
+    from friday.ui.desktop.app import SWITCH_INTERVAL, keep_interface_responsive
+
+    before = sys.getswitchinterval()
+    try:
+        keep_interface_responsive()
+        assert sys.getswitchinterval() == SWITCH_INTERVAL == 0.0005
+    finally:
+        sys.setswitchinterval(before)

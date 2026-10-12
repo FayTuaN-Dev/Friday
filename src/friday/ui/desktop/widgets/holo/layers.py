@@ -11,6 +11,7 @@ import numpy as np
 from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QPolygonF, QRadialGradient
 
+from friday.ui.desktop.widgets.fast_points import PointBuffer
 from friday.ui.desktop.widgets.holo.scene import GLYPHS, WIDTHS
 
 
@@ -128,8 +129,12 @@ class HoloLayers:
         alpha = 210 * s.arc_bright * glow * (0.15 + means)
         bucket = np.clip(alpha // 24, 0, 10).astype(int)  # 11 paliers de luminosité
         order = np.lexsort((s.arc_width_index, bucket))  # regroupés par stylo
-        xy = np.stack([x, y], 1).tolist()
-        polygons = [QPolygonF([QPointF(*pt) for pt in xy[a:b]]) for a, b in s.arc_bounds]
+        # Les points de tous les arcs écrits d'un coup depuis numpy, puis découpés par arc
+        # (constaté : reconstruits point par point en Python, ~6 ms par image)
+        if getattr(self, "_arc_points", None) is None:
+            self._arc_points = PointBuffer()
+        every = self._arc_points.fill(x, y)
+        polygons = [every.mid(a, b - a) for a, b in s.arc_bounds]
 
         # Lueur : traits fins sur une image au quart de la résolution, puis agrandie : le
         # flou d'agrandissement fait une lueur large et douce, pour très peu de calcul.
