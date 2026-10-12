@@ -37,8 +37,11 @@ class AppearancePage(QWidget):
                                 objectName="SettingsLabel"))  # fmt: skip
         grid = QGridLayout()
         grid.setSpacing(8)
+        self.swatches: dict[str, QPushButton] = {}  # la couleur choisie est entourée (U7)
         for i, (name, value) in enumerate(PRESETS.items()):
-            button = QPushButton(name, objectName="SettingsSwatch")
+            button = QPushButton(name, objectName="SettingsSwatch", checkable=True)
+            button.setChecked(QColor(value).name() == self.current.name())
+            self.swatches[QColor(value).name()] = button
             button.setIcon(swatch(QColor(value), 16))
             button.setIconSize(QSize(16, 16))
             button.clicked.connect(lambda _=False, v=value: self._choose(QColor(v)))
@@ -75,6 +78,8 @@ class AppearancePage(QWidget):
 
     def _choose(self, color: QColor) -> None:
         self.current = color
+        for value, button in self.swatches.items():
+            button.setChecked(value == color.name())  # « Autre couleur » : aucune entourée
         self.apply_color(color)
 
 

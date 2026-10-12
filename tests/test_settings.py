@@ -109,7 +109,10 @@ def test_settings_can_be_reopened_after_closing(env, tmp_path):
     w = MainWindow(SETTINGS, assistant=assistant, preferences_path=tmp_path / "i.json")
     w.open_settings()
     first = w.settings_window
-    first.close()  # WA_DeleteOnClose : Qt la détruit
+    first.close()  # le panneau repart vers la droite, puis il est détruit
+    from PySide6.QtTest import QTest
+
+    QTest.qWait(400)
     for _ in range(3):
         app.processEvents()
         from PySide6.QtCore import QCoreApplication, QEvent
@@ -118,4 +121,45 @@ def test_settings_can_be_reopened_after_closing(env, tmp_path):
     assert w.settings_window is None
     w.open_settings()  # ne plante plus
     assert w.settings_window is not None and w.settings_window is not first
+    w.close()
+
+
+def test_settings_live_in_the_window_and_save_only_when_changed(env, tmp_path):
+    """U7 : un panneau dans la fenêtre (plus une fenêtre à part) ; la barre « Enregistrer »
+    n'apparaît qu'en cas de modification ; « Annuler » remet tout ; Échap ferme."""
+    from PySide6.QtCore import QEvent, Qt
+    from PySide6.QtGui import QKeyEvent
+    from PySide6.QtTest import QTest
+    from test_desktop import StubAssistant
+
+    from friday.ui.desktop.main_window import MainWindow
+
+    assistant = StubAssistant()
+    assistant.components = SimpleNamespace(briefing=None, google=None)
+    w = MainWindow(SETTINGS, assistant=assistant, preferences_path=tmp_path / "i.json")
+    w.resize(1000, 700)
+    w.show()
+    w.open_settings()
+    QTest.qWait(400)
+    panel = w.settings_window
+    assert panel.window() is w and panel.isVisible()  # dans la fenêtre de Friday
+    assert panel.bar.isHidden()  # rien de changé : pas de barre
+    groups = [panel.nav.item(r).text() for r in range(panel.nav.count())
+              if panel.nav.item(r).data(Qt.UserRole) is None]  # fmt: skip
+    assert groups == ["FRIDAY", "SERVICES", "TRADING", "SYSTÈME"]
+    name = panel.forms[0]._controls["FRIDAY_USER_NAME"][0]
+    name.setText("Valentin")
+    assert not panel.bar.isHidden() and panel.banner.text() == "1 réglage modifié"
+    panel.cancel_button.click()
+    assert name.text() == "Monsieur" and panel.bar.isHidden()
+    name.setText("Valentin")
+    panel.save_button.click()
+    assert "FRIDAY_USER_NAME=Valentin" in env.read_text("utf-8")
+    assert not panel.restart_button.isHidden() and panel.save_button.isHidden()
+    w.keyPressEvent(QKeyEvent(QEvent.KeyPress, Qt.Key_Escape, Qt.NoModifier))
+    QTest.qWait(400)
+    from PySide6.QtCore import QCoreApplication
+
+    QCoreApplication.sendPostedEvents(None, QEvent.DeferredDelete)
+    assert w.settings_window is None  # refermé et détruit
     w.close()
