@@ -146,9 +146,31 @@ def _settings(p: Palette) -> str:
     #SettingsNav {{
         background: transparent; border: none; outline: none; font-size: 14px;
     }}
-    #SettingsNav::item {{ padding: 9px 10px; border-radius: 12px; margin: 2px 0; }}
+    #SettingsNav::item {{ padding: 8px 10px; border-radius: 12px; margin: 1px 0; }}
     #SettingsNav::item:hover {{ background: {p.surface_hi}; }}
     #SettingsNav::item:selected {{ background: {p.accent_soft}; color: {p.text}; }}
+    #SettingsNav::item:disabled {{
+        color: {p.muted}; font-family: "{FONT_HUD}"; font-size: 10px; letter-spacing: 2px;
+        padding: 14px 10px 4px 10px; background: transparent;
+    }}
+    #SettingsCard {{
+        background: {p.bg}; border-left: 1px solid {p.accent_glow};
+        border-top-left-radius: 18px; border-bottom-left-radius: 18px;
+    }}
+    #SettingsHeader {{
+        font-family: "{FONT_HUD}"; font-size: 13px; letter-spacing: 4px; color: {p.accent};
+        background: transparent; padding-left: 4px;
+    }}
+    #SettingsGroup {{ background: {p.surface}; border-radius: 16px; }}
+    #SettingsLine, #SettingsLine QLabel {{ background: transparent; }}
+    #SettingsDivider {{ background: rgba(255, 255, 255, 14); margin: 0 16px; }}
+    #SettingsSubtitle {{
+        background: transparent; color: {p.muted}; font-family: "{FONT_HUD}";
+        font-size: 10px; letter-spacing: 2px; padding: 10px 2px 0 2px;
+    }}
+    #SettingsPage #Hint {{ color: {p.muted}; font-style: normal; font-size: 11px; }}
+    #SaveBar {{ background: {p.accent_soft}; border-radius: 16px; }}
+    #SaveBarText {{ background: transparent; color: {p.text}; font-size: 13px; }}
     #SettingsPage, #SettingsPage QLabel {{ background: transparent; }}
     #SettingsTitle {{
         font-family: "{FONT_HUD}"; font-size: 20px; color: {p.accent}; padding: 2px 0 6px 0;
@@ -173,6 +195,9 @@ def _settings(p: Palette) -> str:
         background: {p.accent_soft};
     }}
     #SettingsSwatch {{ text-align: left; padding-left: 12px; }}
+    #SettingsSwatch:checked, #SettingsSmall:checked {{
+        background: {p.accent_soft}; border: 1px solid {p.accent};
+    }}
     #JournalTable {{
         background: {p.surface}; border: none; border-radius: 12px; gridline-color: {p.bg};
         selection-background-color: {p.accent_soft}; selection-color: {p.text}; font-size: 13px;

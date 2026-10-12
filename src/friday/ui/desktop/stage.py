@@ -138,9 +138,15 @@ class StageMixin:
             from friday.ui.desktop.scenes.weather_scene import CODES
 
             self._skies = [(kind, day) for kind in CODES for day in (True, False)]
+            QTimer.singleShot(2000, self.prepare_settings_if_shown)  # réglages prêts d'avance
             QTimer.singleShot(PREWARM_MS, self.warm_skies_when_idle)
         else:
             QTimer.singleShot(3000, self.warm_map_when_idle)
+
+    def prepare_settings_if_shown(self) -> None:
+        """Seulement pour une fenêtre affichée (pas une fenêtre déjà fermée)."""
+        if self.isVisible():
+            self.prepare_settings()
 
     def warm_skies_when_idle(self) -> None:
         """Les ciels de la météo, fabriqués d'avance un par un, seulement au repos."""

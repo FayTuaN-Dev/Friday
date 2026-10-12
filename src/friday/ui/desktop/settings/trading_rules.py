@@ -50,13 +50,15 @@ class TradingRulesRow(QFrame):
             "même nom.",
             objectName="Hint", wordWrap=True))  # fmt: skip
         form = QFormLayout()
+        # Libellés longs à la ligne (constaté : 656 px de large, la page débordait)
+        form.setRowWrapPolicy(QFormLayout.WrapLongRows)
         self.inputs = {}
         for name, (label, low, high, step) in FIELDS.items():
             box = QSpinBox() if isinstance(step, int) else QDoubleSpinBox(decimals=1)
             box.setRange(low, int(high) if isinstance(step, int) else high)
             box.setSingleStep(step)
             box.setValue(getattr(rules, name))
-            form.addRow(label, box)
+            form.addRow(QLabel(label, wordWrap=True), box)
             self.inputs[name] = box
         self.turning = QCheckBox("Le RSI doit repartir dans le sens du trade")
         self.turning.setChecked(rules.rsi_turning)
