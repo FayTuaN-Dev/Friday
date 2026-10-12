@@ -84,14 +84,16 @@ def test_slow_voice_and_frozen_window_are_logged(caplog):
     from friday.ui.desktop.freeze_watch import FreezeWatch
 
     watch = FreezeWatch()
-    watch.pulse.last -= 0.6  # 600 ms sans nouvelles : l'interface était figée
+    watch._last -= 0.6  # 600 ms sans nouvelles : l'interface était figée
     watch._tick()
     assert "Interface figée" in caplog.text and watch.worst > 400
 
 
-def test_a_freeze_is_photographed_with_its_culprit(caplog):
-    """Pendant un gel, le guetteur note OÙ en est l'interface (fichier, fonction, ligne)."""
+def test_a_freeze_is_photographed_with_every_thread(caplog):
+    """Pendant un gel, une minuterie en C photographie TOUS les fils (sans le verrou de
+    Python) : où était l'interface, et ce que faisaient les autres pendant ce temps."""
     import logging
+    import threading
 
     from test_desktop import app  # noqa: F401  (QApplication)
 
@@ -99,14 +101,28 @@ def test_a_freeze_is_photographed_with_its_culprit(caplog):
 
     caplog.set_level(logging.WARNING)
     watch = FreezeWatch()
+    stop = threading.Event()
+
+    def busy_worker_thread():
+        x = 0
+        while not stop.is_set():
+            x += 1  # un autre fil qui travaille pendant le gel
+
+    worker = threading.Thread(target=busy_worker_thread, name="travailleur")
+    worker.start()
 
     def slow_thing_in_the_window():
         time.sleep(0.7)  # un travail lent dans le fil de l'interface
 
-    slow_thing_in_the_window()
-    watch._tick()
+    try:
+        slow_thing_in_the_window()
+        watch._tick()
+    finally:
+        stop.set()
+        worker.join()
     assert any("slow_thing_in_the_window" in c for c in watch.culprits)
-    assert "Gel en cours, l'interface est dans" in caplog.text
+    assert any(c.startswith("travailleur :") and "busy_worker_thread" in c for c in watch.culprits)
+    assert "Gel : l'interface était dans" in caplog.text and "pendant ce temps" in caplog.text
     watch.deleteLater()
 
 
