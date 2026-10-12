@@ -84,6 +84,41 @@ def test_slow_voice_and_frozen_window_are_logged(caplog):
     from friday.ui.desktop.freeze_watch import FreezeWatch
 
     watch = FreezeWatch()
-    watch._last -= 0.6  # 600 ms sans nouvelles : l'interface était figée
+    watch.pulse.last -= 0.6  # 600 ms sans nouvelles : l'interface était figée
     watch._tick()
     assert "Interface figée" in caplog.text and watch.worst > 400
+
+
+def test_a_freeze_is_photographed_with_its_culprit(caplog):
+    """Pendant un gel, le guetteur note OÙ en est l'interface (fichier, fonction, ligne)."""
+    import logging
+
+    from test_desktop import app  # noqa: F401  (QApplication)
+
+    from friday.ui.desktop.freeze_watch import FreezeWatch
+
+    caplog.set_level(logging.WARNING)
+    watch = FreezeWatch()
+
+    def slow_thing_in_the_window():
+        time.sleep(0.7)  # un travail lent dans le fil de l'interface
+
+    slow_thing_in_the_window()
+    watch._tick()
+    assert any("slow_thing_in_the_window" in c for c in watch.culprits)
+    assert "Gel en cours, l'interface est dans" in caplog.text
+    watch.deleteLater()
+
+
+def test_python_hands_over_quickly_to_the_interface():
+    """Le verrou de Python passe d'un fil à l'autre toutes les 0,5 ms (5 par défaut)."""
+    import sys
+
+    from friday.ui.desktop.app import SWITCH_INTERVAL, keep_interface_responsive
+
+    before = sys.getswitchinterval()
+    try:
+        keep_interface_responsive()
+        assert sys.getswitchinterval() == SWITCH_INTERVAL == 0.0005
+    finally:
+        sys.setswitchinterval(before)
