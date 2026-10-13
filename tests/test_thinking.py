@@ -60,6 +60,8 @@ class Listener:
     def on_tool(self, label):
         self.tools.append(label)
 
+    def on_tool_done(self, ok): ...
+
 
 class Speaker:
     def __init__(self):

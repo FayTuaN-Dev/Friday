@@ -92,6 +92,7 @@ def test_slow_voice_and_frozen_window_are_logged(caplog):
 def test_a_freeze_is_photographed_with_every_thread(caplog):
     """Pendant un gel, une minuterie en C photographie TOUS les fils (sans le verrou de
     Python) : où était l'interface, et ce que faisaient les autres pendant ce temps."""
+    import faulthandler
     import logging
     import threading
 
@@ -100,7 +101,7 @@ def test_a_freeze_is_photographed_with_every_thread(caplog):
     from friday.ui.desktop.freeze_watch import FreezeWatch
 
     caplog.set_level(logging.WARNING)
-    watch = FreezeWatch()
+    watch = FreezeWatch(sample=True)
     stop = threading.Event()
 
     def busy_worker_thread():
@@ -120,6 +121,7 @@ def test_a_freeze_is_photographed_with_every_thread(caplog):
     finally:
         stop.set()
         worker.join()
+        faulthandler.cancel_dump_traceback_later()  # plus de photo après le test
     assert any("slow_thing_in_the_window" in c for c in watch.culprits)
     assert any(c.startswith("travailleur :") and "busy_worker_thread" in c for c in watch.culprits)
     assert "Gel : l'interface était dans" in caplog.text and "pendant ce temps" in caplog.text

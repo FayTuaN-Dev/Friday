@@ -38,6 +38,7 @@ class ConfirmationRequest:
     # son `approved` passe à True seulement si l'utilisateur accepte.
     preview: Any = None
     timed_out: bool = False  # pas de réponse à temps (≠ un « non »)
+    delay: float = 60.0  # secondes laissées pour répondre (barre de temps de la carte, U4)
     _answered: threading.Event = field(default_factory=threading.Event, repr=False)
 
     @property

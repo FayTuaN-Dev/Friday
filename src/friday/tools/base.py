@@ -44,6 +44,7 @@ class Display:
 class ToolResult:
     text: str  # ce que le LLM lit pour formuler sa réponse
     display: Display | None = None  # ce que l'utilisateur voit
+    ok: bool = True  # False : l'outil a échoué ou n'a pas répondu (✗ dans le fil, U3)
 
 
 class Tool(ABC):
@@ -142,7 +143,7 @@ class ToolBox:
         l'utilisateur, réseau bloqué) sans rester coincé avec lui."""
         tool = self._tools.get(name)
         if tool is None:
-            return ToolResult(f"Erreur : l'outil « {name} » n'existe pas.")
+            return ToolResult(f"Erreur : l'outil « {name} » n'existe pas.", ok=False)
 
         outcome: list[ToolResult] = []
         done = threading.Event()
@@ -155,9 +156,8 @@ class ToolBox:
                 outcome.append(tool.run(**kwargs))
             except Exception as e:
                 log.exception("Échec de l'outil %s(%s)", name, args)
-                outcome.append(
-                    ToolResult(f"Erreur pendant « {name} » : {e}. Préviens l'utilisateur.")
-                )
+                error = f"Erreur pendant « {name} » : {e}. Préviens l'utilisateur."
+                outcome.append(ToolResult(error, ok=False))
             finally:
                 done.set()
 
@@ -167,11 +167,12 @@ class ToolBox:
         while not done.wait(0.1):
             if cancelled():
                 tool.cancel()
-                return ToolResult("Interrompu par l'utilisateur.")
+                return ToolResult("Interrompu par l'utilisateur.", ok=False)
             if time.monotonic() > deadline:
                 log.warning("Outil %s abandonné après %.0f s", name, timeout)
                 tool.cancel()
-                return ToolResult(
+                late = (
                     f"« {name} » n'a pas répondu à temps (internet lent ?). Préviens l'utilisateur."
                 )
+                return ToolResult(late, ok=False)
         return outcome[0]

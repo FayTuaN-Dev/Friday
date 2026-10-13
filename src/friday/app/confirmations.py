@@ -54,7 +54,7 @@ class ConfirmationGate:
                 "send_preview", "Aperçu de l'envoi",
                 {"packet": request.preview, "request": request, "answer": self.answer},
             ))  # fmt: skip
-        self.listener.on_confirmation(request.question)
+        self.listener.on_confirmation(request.question, request.delay)
 
     def answer(self, approved: bool) -> None:
         with self._lock:

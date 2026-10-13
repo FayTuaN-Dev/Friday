@@ -67,7 +67,7 @@ class TerminalUI(NullListener):
             print(f"  ({len(display.data['images'])} images : visibles dans la fenêtre de bureau)")
         print("Friday> ", end="", flush=True)
 
-    def on_confirmation(self, question: str) -> None:
+    def on_confirmation(self, question: str, seconds: float = 60.0) -> None:
         print(f"\n  ❓ {question}  (oui / non)\n{PROMPT}", end="", flush=True)
 
     def on_memory(self, text: str) -> None:
