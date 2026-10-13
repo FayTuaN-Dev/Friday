@@ -159,13 +159,16 @@ class RecordingListener:
     def on_tool(self, label):
         self._log("tool", label)
 
+    def on_tool_done(self, ok):
+        self._log("tool_done", ok)
+
     def on_display(self, display):
         self._log("display", display.kind)
 
     def on_memory(self, text):
         self._log("memory", text)
 
-    def on_confirmation(self, question):
+    def on_confirmation(self, question, seconds=60.0):
         self._log("confirm", question)
         self.confirm_asked.set()
 

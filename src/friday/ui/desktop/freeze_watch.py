@@ -6,10 +6,15 @@ La photo est prise par faulthandler.dump_traceback_later, une minuterie écrite 
 chaque battement de l'interface : si l'interface ne revient pas à temps, elle écrit la pile
 de tous les fils SANS avoir besoin du verrou de Python. Constaté : un mouchard en Python ne
 pouvait pas tourner pendant qu'un autre fil gardait ce verrou, et photographiait trop tard
-(il désignait des innocents)."""
+(il désignait des innocents).
+
+Cette photo n'est prise que sur demande (FRIDAY_FREEZE_PHOTOS=1 avant de lancer Friday) :
+lire les fils sans le verrou de Python peut tomber sur un fil en plein changement et faire
+planter le programme. Constaté dans les tests (« access violation » au hasard)."""
 
 import faulthandler
 import logging
+import os
 import re
 import tempfile
 import threading
@@ -23,6 +28,7 @@ EVERY_MS = 100
 FROZEN_MS = 250  # au-delà : à-coup visible
 PHOTO_AFTER = 0.35  # secondes sans battement : la minuterie photographie tous les fils
 FRAMES = 4  # étapes notées par fil
+PHOTOS = os.getenv("FRIDAY_FREEZE_PHOTOS") == "1"  # enquête sur un gel : voir plus haut
 THREAD = re.compile(r"^(?:Current thread|Thread) (0x[0-9a-fA-F]+)", re.M)
 STEP = re.compile(r'File "([^"]+)", line (\d+) in (\S+)')
 # Un fil qui attend (file, minuterie, réseau…) n'est pas un coupable
@@ -64,7 +70,7 @@ def summary(text: str, gui: int, names: dict[int, str]) -> tuple[str, list[str]]
 
 
 class FreezeWatch(QObject):
-    def __init__(self, parent: QObject | None = None, sample: bool = True) -> None:
+    def __init__(self, parent: QObject | None = None, sample: bool = PHOTOS) -> None:
         super().__init__(parent)
         self.worst = 0.0  # le plus long gel vu (ms), pour le diagnostic
         self.culprits: list[str] = []  # ce que faisaient les fils pendant les derniers gels

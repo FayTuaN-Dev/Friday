@@ -43,12 +43,16 @@ class Reply:
         self.spoken = ""  # tout ce qui a été envoyé à la voix
         self.text = ""  # tout le texte de la réponse (pour le journal)
         self.tools_used: list[str] = []
+        self._thinking = False  # pastille « Réflexion approfondie » en cours (U3)
 
     def run(self, events: Iterator[BrainEvent]) -> bool:
         """Joue la réponse jusqu'au bout. Renvoie True si elle a été interrompue."""
         for event in events:
             if self.interrupted.is_set():
                 return True
+            if self._thinking and isinstance(event, str | ToolStarted):
+                self._thinking = False  # la réflexion est finie : sa pastille passe à ✓
+                self.listener.on_tool_done(True)
             if isinstance(event, str):
                 self.text += event
                 self.listener.on_reply_chunk(event)
@@ -56,6 +60,7 @@ class Reply:
             elif isinstance(event, ThinkingStarted):  # 10 à 25 s de réflexion : on le dit
                 self._say([random.choice(THINKING)])
                 self.listener.on_tool("🧠 Réflexion approfondie")
+                self._thinking = True
             elif isinstance(event, ToolStarted):
                 self.tools_used.append(event.name)
                 self._say(self._splitter.flush())  # ce qui a été dit avant l'outil
@@ -66,7 +71,10 @@ class Reply:
                 self._say(self._splitter.flush())
                 self._say([event.question])
                 self.on_confirm(event)
-            elif isinstance(event, ToolFinished) and event.result.display:
+            elif isinstance(event, ToolFinished):
+                self.listener.on_tool_done(event.result.ok)
+                if not event.result.display:
+                    continue
                 if self.scene_gate is not None:
                     self.scene_gate.expect(event.result.display)
                 self.listener.on_display(event.result.display)

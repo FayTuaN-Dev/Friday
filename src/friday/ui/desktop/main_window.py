@@ -168,11 +168,12 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         b.reply_end.connect(self.chat.end_reply)
         b.notice.connect(self.chat.add_notice)
         b.tool.connect(self.chat.add_tool)
+        b.tool_done.connect(self.chat.finish_tool)
         b.display.connect(self._on_display)
         b.confirmation.connect(
-            lambda question: self.chat.add_confirmation(question).answered.connect(
-                self.assistant.answer_confirmation
-            )
+            lambda question, seconds: self.chat.add_confirmation(
+                question, seconds
+            ).answered.connect(self.assistant.answer_confirmation)
         )
         b.memory.connect(lambda text: self.chat.add_notice(f"🧠 Mémorisé : {text}", "MemoryNotice"))
         b.mic_level.connect(lambda level: self.orb.set_mic_level(level))  # suit le style choisi

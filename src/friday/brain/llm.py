@@ -238,9 +238,9 @@ class Brain:
                 question = safety.guard_question(self.toolbox.label(name, args))
             if question:
                 preview = self.toolbox.preview(name, args)
-                request = ConfirmationRequest(name, args, question, preview=preview)
-                yield request  # l'assistant pose la question et note qu'une réponse est attendue
                 delay = PREVIEW_TIMEOUT if preview is not None else CONFIRM_TIMEOUT
+                request = ConfirmationRequest(name, args, question, preview=preview, delay=delay)
+                yield request  # l'assistant pose la question et note qu'une réponse est attendue
                 approved = request.wait(delay, cancelled)
                 if preview is not None:
                     preview.approved = approved  # seul ce « oui » explicite valide l'envoi

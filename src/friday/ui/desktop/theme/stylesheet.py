@@ -74,6 +74,18 @@ def _chat(p: Palette) -> str:
     #BubbleText {{ background: transparent; }}
     #Notice {{ background: transparent; color: {p.muted}; font-style: italic; font-size: 12px; }}
     #ToolNotice, #MemoryNotice {{ background: transparent; color: {p.accent}; font-size: 12px; }}
+    #DaySeparator {{
+        background: transparent; color: {p.muted}; font-size: 11px; letter-spacing: 2px;
+    }}
+    #ToolChip {{
+        background: {p.surface}; border: 1px solid {p.accent_glow}; border-radius: 14px;
+    }}
+    #ToolChip[state="failed"] {{ border-color: {p.error}; }}
+    #ToolChip QLabel {{ background: transparent; font-size: 12px; }}
+    #ToolChipMark {{ color: {p.accent}; font-size: 13px; }}
+    #ToolChip[state="ok"] #ToolChipMark {{ color: #5fd38d; }}
+    #ToolChip[state="failed"] #ToolChipMark {{ color: {p.error}; }}
+    #ToolChipTime {{ color: {p.muted}; font-size: 11px; }}
     #WelcomeGreeting {{
         background: transparent; font-family: "{FONT_HUD}"; font-size: 26px; color: {p.text};
     }}
@@ -105,12 +117,16 @@ def _cards(p: Palette) -> str:
     }}
     #ConfirmCard QLabel {{ background: transparent; }}
     #ConfirmCard QPushButton {{
-        min-width: 104px; max-width: 130px; min-height: 32px; max-height: 32px;
-        border-radius: 16px; font-size: 13px; background: {p.surface_hi};
+        min-width: 104px; max-width: 130px; min-height: 34px; max-height: 34px;
+        border-radius: 17px; font-size: 13px;
     }}
-    #ConfirmYes {{ color: {p.accent}; }}
-    #ConfirmYes:hover {{ background: {p.accent_soft}; }}
-    #ConfirmNo:hover {{ background: rgba(255, 93, 108, 60); }}
+    #ConfirmYes {{ background: {p.accent}; color: {p.bg}; font-weight: 600; }}
+    #ConfirmYes:hover {{ background: {p.text}; }}
+    #ConfirmNo {{ background: transparent; border: 1px solid {p.accent_soft}; }}
+    #ConfirmNo:hover {{ background: rgba(255, 93, 108, 60); border-color: transparent; }}
+    #ConfirmOutcome {{ color: {p.muted}; font-size: 12px; }}
+    #ConfirmTime {{ background: {p.surface_hi}; border: none; border-radius: 1px; }}
+    #ConfirmTime::chunk {{ background: {p.accent}; border-radius: 1px; }}
     #MemoryItem, #ResultCard, #WeatherNow {{
         background: {p.surface}; border-radius: 14px;
     }}

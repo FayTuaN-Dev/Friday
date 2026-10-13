@@ -1,9 +1,14 @@
-"""Fil de discussion : bulles de l'utilisateur à droite, de Friday à gauche."""
+"""Fil de discussion : bulles de l'utilisateur à droite, de Friday à gauche, avec leur heure
+(U6) ; les outils en pastilles animées (U3) ; un séparateur quand le jour change."""
+
+from collections.abc import Callable
+from datetime import date, datetime
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from friday.ui.desktop.widgets.confirm_card import ConfirmCard
+from friday.ui.desktop.widgets.tool_chip import ToolChip, chip_row
 from friday.ui.desktop.widgets.welcome import Welcome
 
 BUBBLE_RATIO = 0.8  # largeur max d'une bulle, en part de la largeur du chat
@@ -65,6 +70,9 @@ class ChatView(QScrollArea):
         self._bubbles: list[Bubble] = []
         self._cards: list[ConfirmCard] = []
         self._current: Bubble | None = None
+        self._chips: list[ToolChip] = []  # outils en cours, dans l'ordre de lancement
+        self._day: date | None = None  # jour du dernier message (séparateur s'il change)
+        self.clock: Callable[[], datetime] = datetime.now
         # Reste collé en bas quand le contenu grandit
         self.verticalScrollBar().rangeChanged.connect(
             lambda _min, maximum: self.verticalScrollBar().setValue(maximum)
@@ -72,14 +80,14 @@ class ChatView(QScrollArea):
 
     def add_user(self, text: str, by_voice: bool) -> None:
         author = "Vous · à la voix" if by_voice else "Vous"
-        self._add_bubble(Bubble(author, text, from_user=True), True)
+        self._add_bubble(Bubble(self._stamped(author), text, from_user=True), True)
 
     def start_reply(self) -> None:
         self._current = None  # la bulle naît avec le premier mot
 
     def append_reply(self, text: str) -> None:
         if self._current is None:
-            self._current = Bubble("Friday", "", from_user=False)
+            self._current = Bubble(self._stamped("Friday"), "", from_user=False)
             self._add_bubble(self._current, False)
         self._current.append(text)
 
@@ -87,12 +95,15 @@ class ChatView(QScrollArea):
         if self._current and interrupted:
             self._current.append(" […]")
         self._current = None
-        for card in self._cards:  # réponse finie : les questions en suspens sont closes
-            card.close_card()
+        for chip in self._chips:  # réponse finie : plus rien ne tourne
+            chip.finish(not interrupted, "interrompu" if interrupted else "")
+        self._chips.clear()
+        for card in self._cards:  # réponse finie sans outil lancé : rien n'est parti
+            card.close_card("✗ Rien n'a été lancé")
         self._cards.clear()
 
-    def add_confirmation(self, question: str) -> ConfirmCard:
-        card = ConfirmCard(question)
+    def add_confirmation(self, question: str, seconds: float = 60.0) -> ConfirmCard:
+        card = ConfirmCard(question, seconds)
         self.welcome.hide()
         self._layout.addWidget(card)
         self._cards.append(card)
@@ -101,8 +112,18 @@ class ChatView(QScrollArea):
 
     def add_tool(self, label: str) -> None:
         self.welcome.hide()
-        self.add_notice(label, "ToolNotice")
+        for card in self._cards:  # un outil démarre après la question : c'était un « oui »
+            card.close_card("✓ Lancé")
+        self._cards.clear()
+        chip = ToolChip(label)
+        self._layout.addLayout(chip_row(chip))
+        self._chips.append(chip)
         self._current = None  # la suite de la réponse s'affiche sous l'outil
+
+    def finish_tool(self, ok: bool) -> None:
+        """Le plus ancien outil en cours a fini (les outils se terminent dans l'ordre)."""
+        if self._chips:
+            self._chips.pop(0).finish(ok)
 
     def add_notice(self, text: str, kind: str = "Notice") -> None:
         label = QLabel(text, objectName=kind)
@@ -114,12 +135,16 @@ class ChatView(QScrollArea):
         while self._layout.count() > 2:  # on garde l'espace extensible du haut et l'accueil
             _delete_item(self._layout.takeAt(2))
         self._bubbles.clear()
+        self._chips.clear()
+        self._cards.clear()
         self._current = None
+        self._day = None
         self.welcome.refresh()
         self.welcome.show()
 
     def _add_bubble(self, bubble: Bubble, from_user: bool) -> None:
         self.welcome.hide()  # la conversation commence : l'accueil s'efface
+        self._mark_day()
         row = QHBoxLayout()
         if from_user:
             row.addStretch()
@@ -129,6 +154,18 @@ class ChatView(QScrollArea):
         self._layout.addLayout(row)
         self._bubbles.append(bubble)
         self._fit(bubble)
+
+    def _stamped(self, author: str) -> str:
+        return f"{author} · {self.clock():%H:%M}"
+
+    def _mark_day(self) -> None:
+        """Un séparateur « Mercredi 14 octobre » quand la conversation passe minuit."""
+        today = self.clock().date()
+        if self._day is not None and today != self._day:
+            from friday.ui.desktop.widgets.welcome import today as day_name
+
+            self.add_notice(f"— {day_name(self.clock())} —", "DaySeparator")
+        self._day = today
 
     def _fit(self, bubble: Bubble) -> None:
         bubble.fit(int(self.viewport().width() * BUBBLE_RATIO))
