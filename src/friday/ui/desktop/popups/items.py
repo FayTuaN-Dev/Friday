@@ -1,19 +1,26 @@
 """Pop-up générique : une liste d'éléments (rappels, notes, courses…)."""
 
-from PySide6.QtWidgets import QFrame, QLabel, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from friday.tools.base import Display
-from friday.ui.desktop.popups.base import Popup
+from friday.ui.desktop.popups.base import LinkRow, Popup
 
 
 def item_row(item: dict) -> QFrame:
-    row = QFrame(objectName="MemoryItem")
-    layout = QVBoxLayout(row)
-    layout.setContentsMargins(10, 6, 10, 6)
-    layout.setSpacing(2)
-    layout.addWidget(QLabel(item["text"], wordWrap=True))
+    """Une ligne ; cliquable (survol, ↗) quand elle mène quelque part (« url »)."""
+    row = LinkRow(item.get("url", ""), objectName="MemoryItem")
+    outer = QHBoxLayout(row)
+    outer.setContentsMargins(10, 6, 10, 6)
+    outer.setSpacing(8)
+    column = QVBoxLayout()
+    column.setSpacing(2)
+    column.addWidget(QLabel(item["text"], wordWrap=True))
     if item.get("meta"):
-        layout.addWidget(QLabel(item["meta"], objectName="MemoryMeta"))
+        column.addWidget(QLabel(item["meta"], objectName="MemoryMeta", wordWrap=True))
+    outer.addLayout(column, 1)
+    if row.url:
+        outer.addWidget(QLabel("↗", objectName="OpenMark"), 0, Qt.AlignTop)
     return row
 
 
@@ -30,3 +37,4 @@ class ItemsPopup(Popup):
         scroll = QScrollArea(widgetResizable=True)
         scroll.setWidget(content)
         self.body.addWidget(scroll, 1)
+        self.fit_height(content)

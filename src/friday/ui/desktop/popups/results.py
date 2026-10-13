@@ -1,23 +1,20 @@
 """Pop-up des résultats de recherche web (cliquer sur un titre ouvre le navigateur)."""
 
-from html import escape
 from urllib.parse import urlparse
 
 from PySide6.QtWidgets import QFrame, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from friday.tools.base import Display
-from friday.ui.desktop.popups.base import Popup
+from friday.ui.desktop.popups.base import LinkRow, Popup
 
 
 def result_card(title: str, url: str, snippet: str) -> QFrame:
-    card = QFrame(objectName="ResultCard")
+    card = LinkRow(url, objectName="ResultCard")  # toute la carte ouvre la page
     layout = QVBoxLayout(card)
     layout.setContentsMargins(10, 8, 10, 8)
     layout.setSpacing(2)
 
-    link = QLabel(f'<a href="{escape(url, quote=True)}">{escape(title)}</a>', objectName="Link")
-    link.setOpenExternalLinks(True)
-    link.setWordWrap(True)
+    link = QLabel(title, objectName="Link", wordWrap=True)  # le clic va à la carte entière
     domain = QLabel(urlparse(url).netloc.removeprefix("www."), objectName="Domain")
     text = QLabel(snippet, objectName="Snippet", wordWrap=True)
 
@@ -40,3 +37,4 @@ class ResultsPopup(Popup):
         scroll = QScrollArea(widgetResizable=True)
         scroll.setWidget(content)
         self.body.addWidget(scroll)
+        self.fit_height(content)

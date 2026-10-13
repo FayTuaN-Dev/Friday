@@ -122,8 +122,8 @@ class World:
         if disasters:
             spoken += " Catastrophes en cours : " + " ; ".join(
                 describe(d) for d in disasters[:MAX_DISASTERS]) + "."  # fmt: skip
-        items = [{"text": h.title, "meta": f"{h.source} · {h.time.astimezone():%H:%M}"}
-                 for h in titles[:10]]  # fmt: skip
+        items = [{"text": h.title, "meta": f"{h.source} · {h.time.astimezone():%H:%M}",
+                  "url": h.link} for h in titles[:10]]  # fmt: skip
         items += [
             {
                 "text": f"{ICONS.get(d.kind, '⚠️')} {describe(d)}",

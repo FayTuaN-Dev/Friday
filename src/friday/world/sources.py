@@ -35,6 +35,7 @@ class Headline:
     title: str
     summary: str
     source: str
+    link: str = ""  # l'article (clic dans la pop-up, U5)
 
 
 @dataclass(frozen=True)
@@ -90,7 +91,9 @@ def fetch_headlines(get=httpx.get) -> list[Headline]:
             when = _date(item.findtext("pubDate"))
             title = _clean(item.findtext("title"))
             if when is not None and title:
-                found.append(Headline(when, title, _clean(item.findtext("description")), source))
+                summary = _clean(item.findtext("description"))
+                link = (item.findtext("link") or "").strip()
+                found.append(Headline(when, title, summary, source, link))
     if len(errors) == len(FEEDS):  # toutes en panne (une source vide, elle, a répondu)
         raise WorldUnavailable("Actualité internationale indisponible : " + " ; ".join(errors))
     return found

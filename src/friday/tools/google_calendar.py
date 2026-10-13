@@ -10,6 +10,8 @@ from friday.google.event_ref import EventNotFound, RecentEvents, find_event
 from friday.tools.base import Display, Tool, ToolResult
 from friday.tools.google_base import guarded
 
+CALENDAR_DAY = "https://calendar.google.com/calendar/r/day/"  # + AAAA/MM/JJ
+
 
 def event_line(event: Event, with_day: bool) -> str:
     day = f"{french_date(event.start)}, " if with_day else ""
@@ -62,7 +64,8 @@ class ListEventsTool(Tool):
         several_days = first != last
         self.recent.remember(events)
         lines = [f"[{i}] {event_line(e, several_days)}" for i, e in enumerate(events, 1)]
-        items = [{"text": e.title, "meta": event_line(e, True).rsplit(" : ", 1)[0]} for e in events]
+        items = [{"text": e.title, "meta": event_line(e, True).rsplit(" : ", 1)[0],
+                  "url": f"{CALENDAR_DAY}{e.start:%Y/%m/%d}"} for e in events]  # fmt: skip
         return ToolResult(
             f"Agenda ({span}), affiché à l'écran :\n"
             + "\n".join(lines)

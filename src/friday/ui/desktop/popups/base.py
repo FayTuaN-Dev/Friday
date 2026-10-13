@@ -1,7 +1,19 @@
-"""Pop-up de base : sans bordure Windows, arrondi, en-tête déplaçable, apparition en fondu."""
+"""Pop-up de base : sans bordure Windows, arrondi, en-tête déplaçable, apparition en fondu
+avec une petite glissade vers le haut (U5), hauteur ajustée au contenu."""
 
-from PySide6.QtCore import QPoint, QPropertyAnimation, QSize, Qt, Signal
+from PySide6.QtCore import (
+    QEasingCurve,
+    QParallelAnimationGroup,
+    QPoint,
+    QPropertyAnimation,
+    QSize,
+    Qt,
+    QUrl,
+    Signal,
+)
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
+    QFrame,
     QHBoxLayout,
     QLabel,
     QPushButton,
@@ -29,6 +41,31 @@ class ElidedLabel(QLabel):
         self.setText(metrics.elidedText(self.full_text, Qt.ElideRight, self.width()))
 
 
+SLIDE = 14  # pixels de glissade à l'apparition
+CHROME = 84  # en-tête, marges et poignée, autour du contenu
+
+
+class LinkRow(QFrame):
+    """Ligne cliquable (mail, article, rendez-vous) : survol en surbrillance, clic = ouvrir."""
+
+    def __init__(self, url: str = "", **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.url = url
+        self.setProperty("link", bool(url))
+        if url:
+            self.setCursor(Qt.PointingHandCursor)
+            self.setToolTip("Ouvrir")
+
+    def mouseReleaseEvent(self, event) -> None:
+        if (
+            self.url
+            and event.button() == Qt.LeftButton
+            and self.rect().contains(event.position().toPoint())
+        ):
+            QDesktopServices.openUrl(QUrl(self.url))
+        super().mouseReleaseEvent(event)
+
+
 class Popup(QWidget):
     closed = Signal(object)
 
@@ -39,7 +76,7 @@ class Popup(QWidget):
         self.key = ""  # identité de la liste affichée (mises à jour sur place)
         self.setAttribute(Qt.WA_TranslucentBackground)  # coins arrondis
         self.resize(*size)
-        self.setMinimumSize(300, 200)
+        self.setMinimumSize(300, 150)
         self._drag_from: QPoint | None = None
 
         header = QWidget(objectName="PopupHeader")
@@ -75,18 +112,32 @@ class Popup(QWidget):
         corner.addWidget(grip, 0, Qt.AlignBottom | Qt.AlignRight)
         layout.addLayout(corner)
 
-    def fit_height(self, content: QWidget, extra: int = 150, screen_share: float = 0.9) -> None:
-        """Hauteur ajustée au contenu, au plus `screen_share` de l'écran (puis défilement)."""
+    def fit_height(self, content: QWidget, extra: int = CHROME, screen_share: float = 0.8) -> None:
+        """Hauteur ajustée au contenu, au plus `screen_share` de l'écran (puis défilement) :
+        une liste de deux lignes n'ouvre plus une grande fenêtre à moitié vide."""
         screen = self.screen().availableGeometry() if self.screen() else None
         limit = int(screen.height() * screen_share) if screen else 900
-        wanted = content.sizeHint().height() + extra
+        width = self.width() - 2 * 14 - 10  # marges du corps et barre de défilement
+        content.ensurePolished()
+        has_hfw = content.layout() is not None and content.layout().hasHeightForWidth()
+        height = content.layout().totalHeightForWidth(width) if has_hfw else -1
+        wanted = (height if height > 0 else content.sizeHint().height()) + extra
         self.resize(self.width(), max(self.minimumHeight(), min(wanted, limit)))
 
     def show_animated(self) -> None:
+        """Apparition : fondu et petite glissade vers sa place."""
+        target = self.pos()
         self.setWindowOpacity(0.0)
+        self.move(target + QPoint(0, SLIDE))
         self.show()
-        self._fade = QPropertyAnimation(self, b"windowOpacity", self, duration=250)
-        self._fade.setEndValue(0.97)
+        self._fade = QParallelAnimationGroup(self)
+        fade = QPropertyAnimation(self, b"windowOpacity", self, duration=260)
+        fade.setEndValue(0.97)
+        slide = QPropertyAnimation(self, b"pos", self, duration=320)
+        slide.setEndValue(target)
+        slide.setEasingCurve(QEasingCurve.OutCubic)
+        self._fade.addAnimation(fade)
+        self._fade.addAnimation(slide)
         self._fade.start()
 
     # Déplacement en attrapant la fenêtre (elle n'a pas de barre de titre Windows)

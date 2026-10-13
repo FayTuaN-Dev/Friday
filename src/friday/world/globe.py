@@ -3,7 +3,7 @@ quand ils touchent les marchés de l'utilisateur), et les catastrophes en cours.
 globe choisit les couleurs (celle de l'interface pour « mine »)."""
 
 from friday.trading.instruments import Instrument
-from friday.world.digest import World, describe, names
+from friday.world.digest import World, _title, describe, names
 from friday.world.sources import KINDS, WorldUnavailable
 from friday.world.themes import CENTERS
 
@@ -14,16 +14,25 @@ def plural(count: int, word: str) -> str:
     return f"{count} {word}{'s' if count > 1 else ''}"
 
 
+def article_links(world: World) -> dict[str, str]:
+    """Titre affiché → lien de l'article (clic sur l'étiquette du globe)."""
+    try:
+        return {_title(h): h.link for h in world.headlines() if h.link}
+    except WorldUnavailable:
+        return {}
+
+
 def globe(world: World, instruments: list[Instrument]) -> tuple[str, dict]:
     """(phrase à dire, données de la scène « world ») ; les points ont un `kind` : « mine »
     (thème qui touche ses marchés), « theme », « red » ou « orange » (catastrophes)."""
     points, mine = [], 0
+    links = article_links(world)
     for theme, items in world.themes(None):
         lat, lon = CENTERS[theme.name]
         own = any(theme.concerns(i) for i in instruments)
         mine += own
         points.append({"lat": lat, "lon": lon, "label": theme.name, "detail": items[0],
-                       "kind": "mine" if own else "theme",
+                       "url": links.get(items[0], ""), "kind": "mine" if own else "theme",
                        "size": min(16, 7 + 2 * len(items))})  # fmt: skip
     themes = len(points)
     try:

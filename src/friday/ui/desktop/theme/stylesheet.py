@@ -130,11 +130,13 @@ def _cards(p: Palette) -> str:
     #MemoryItem, #ResultCard, #WeatherNow {{
         background: {p.surface}; border-radius: 14px;
     }}
-    #ResultCard:hover {{ background: {p.surface_hi}; }}
+    #ResultCard:hover, #MemoryItem[link="true"]:hover {{ background: {p.surface_hi}; }}
+    #MemoryItem[link="true"]:hover #OpenMark {{ color: {p.accent}; }}
+    #OpenMark {{ background: transparent; color: {p.muted}; font-size: 13px; }}
     #MemoryItem QLabel, #ResultCard QLabel, #WeatherNow QLabel {{ background: transparent; }}
     #MemoryMeta, #Snippet, #WeatherRain {{ color: {p.muted}; font-size: 11px; }}
     #Hint {{ background: transparent; color: {p.muted}; font-size: 11px; font-style: italic; }}
-    #Link {{ font-size: 14px; font-weight: 600; }}
+    #Link {{ background: transparent; color: {p.accent}; font-size: 14px; font-weight: 600; }}
     #Domain {{ color: {p.accent}; font-size: 11px; }}
     #WeatherIcon {{ font-size: 40px; }}
     #WeatherTemp {{ font-family: "{FONT_HUD}"; font-size: 42px; color: {p.accent}; }}

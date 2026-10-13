@@ -134,6 +134,10 @@ def prefetcher(
 
             if asked := link_request(text):  # le lien donné, pas un numéro de résultat
                 return asked
+            from friday.tools.web_search import search_request
+
+            if asked := search_request(text):  # internet demandé : pas de réponse de mémoire
+                return asked
         if music:
             from friday.spotify.matching import music_request
 
