@@ -6,6 +6,8 @@ Le globe tourne tout seul dès qu'il s'affiche ; toucher la carte l'arrête."""
 
 GLOBE_CSS = """
 #leaders,#callouts{pointer-events:none}
+.callout.link{pointer-events:auto;cursor:pointer}
+.callout.link:hover{background:rgba(20,28,44,.92)}
 #leaders polyline{fill:none;stroke-width:1.2;stroke-opacity:.75}
 #leaders *{transition:opacity .3s}
 #leaders circle{stroke:none}
@@ -92,6 +94,11 @@ function setCallouts(points) {
     const title = document.createElement("b"), text = document.createElement("span");
     title.textContent = p.label; text.textContent = p.detail;
     card.append(title, text);
+    if (p.url) {  // un titre d'article : cliquable, il s'ouvre dans le navigateur (U5)
+      card.classList.add("link");
+      card.title = "Ouvrir l'article";
+      card.addEventListener("click", (e) => { e.stopPropagation(); location.href = p.url; });
+    }
     callouts.append(card);
     const line = document.createElementNS(SVG, "polyline");
     line.setAttribute("stroke", color);

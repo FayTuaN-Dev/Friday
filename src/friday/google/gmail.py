@@ -93,6 +93,22 @@ def parse_mail(message: dict, with_body: bool = False) -> Mail:
 class Gmail:
     def __init__(self, service: Callable[[], object]) -> None:
         self._service = service
+        self._address: str | None = None
+
+    def address(self) -> str:
+        """L'adresse du compte connecté à Friday ("" si inconnue), demandée une fois."""
+        if self._address is None:
+            try:
+                profile = self._service().users().getProfile(userId="me").execute()
+                self._address = profile.get("emailAddress", "")
+            except Exception:
+                return ""
+        return self._address
+
+    def link(self, mail_id: str) -> str:
+        """Le mail dans Gmail, dans le BON compte. Constaté : avec deux comptes Google ouverts
+        dans le navigateur, « /u/0/ » ouvrait celui qui n'est pas relié à Friday."""
+        return f"https://mail.google.com/mail/u/{self.address() or 0}/#all/{mail_id}"
 
     def _messages(self):
         return self._service().users().messages()

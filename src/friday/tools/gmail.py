@@ -4,15 +4,13 @@ from friday.google.gmail import Gmail, Mail
 from friday.tools.base import Display, Tool, ToolResult
 from friday.tools.google_base import guarded
 
-GMAIL_URL = "https://mail.google.com/mail/u/0/#all/{id}"
 
-
-def mail_list(mails: list[Mail], title: str) -> ToolResult:
+def mail_list(mails: list[Mail], title: str, link=lambda mail_id: "") -> ToolResult:
     lines = [f"- [id : {m.id}] {m.date}{' (non lu)' if m.unread else ''} — {m.sender_name} : "
              f"« {m.subject} » — {m.snippet[:140]}"
              for m in mails]  # fmt: skip
     items = [{"text": m.subject, "meta": f"{m.sender_name} · {m.date}",
-              "url": GMAIL_URL.format(id=m.id)} for m in mails]  # fmt: skip
+              "url": link(m.id)} for m in mails]  # fmt: skip
     return ToolResult(
         f"{title} ({len(mails)}, affichés à l'écran) :\n"
         + "\n".join(lines)
@@ -52,7 +50,8 @@ class CheckMailTool(Tool):
                 return ToolResult(
                     "Aucun mail non lu." if only_unread else "Boîte de réception vide."
                 )
-            result = mail_list(mails, "Mails non lus" if only_unread else "Derniers mails reçus")
+            result = mail_list(mails, "Mails non lus" if only_unread else "Derniers mails reçus",
+                               self.gmail.link)  # fmt: skip
             total = self.gmail.unread_total() if only_unread else None
             if total and total > len(mails):
                 result.text = (f"{total} mails non lus au total dans la boîte de réception : "
@@ -83,7 +82,7 @@ class SearchMailTool(Tool):
             mails = self.gmail.search(query)
             if not mails:
                 return ToolResult(f"Aucun mail trouvé pour « {query} ».")
-            return mail_list(mails, f"Mails : {query}")
+            return mail_list(mails, f"Mails : {query}", self.gmail.link)
 
         return guarded(search)
 
@@ -108,7 +107,7 @@ class ReadMailTool(Tool):
                 f"{text}\n\nRésume-le à l'oral, en t'en tenant strictement à ce qu'il dit (rien "
                 "d'inventé ni d'interprété) ; le texte complet est affiché.",
                 Display(
-                    "article", mail.subject, {"url": GMAIL_URL.format(id=mail.id), "text": text}
+                    "article", mail.subject, {"url": self.gmail.link(mail.id), "text": text}
                 ),  # fmt: skip
             )
 

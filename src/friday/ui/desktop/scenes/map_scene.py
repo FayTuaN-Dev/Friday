@@ -64,7 +64,10 @@ class MapScene(QWidget):
         self._pending: str | None = None  # le dernier script, joué une fois la page prête
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        from friday.ui.desktop.scenes.links_page import LinksPage
+
         self.view = QWebEngineView(self)
+        self.view.setPage(LinksPage(self.view))  # un article cliqué s'ouvre dans le navigateur
         self.view.page().setBackgroundColor(QColor(BACKGROUND))  # pas de flash blanc
         self.view.loadFinished.connect(self._loaded)
         self.view.setHtml(page(accent), QUrl("https://friday.local/"))
