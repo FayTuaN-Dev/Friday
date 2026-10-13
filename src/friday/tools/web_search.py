@@ -56,7 +56,7 @@ class WebSearchTool(Tool):
 # Une recherche demandée en toutes lettres : lancée par le code. Constaté : « trouve-moi des
 # sites pour faire un planning de stream » → qwen répondait de mémoire, sites inventés compris.
 ASKS_WEB = re.compile(
-    r"\b(sur (internet|le web|le net|google)|en ligne|sites|un site (pour|qui|ou)"
+    r"\b(sur (internet|le web|le net|google)|sites|un site (pour|qui|ou)"
     r"|site (web|internet)|des liens?|fais une recherche|recherche web)\b"
 )
 NOT_A_SEARCH = ("ouvre", "lance", "va sur", "affiche", "montre", "mets", "achete", "commande")

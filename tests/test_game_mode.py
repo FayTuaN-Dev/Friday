@@ -71,14 +71,16 @@ def test_unload_passes_the_closed_gate(monkeypatch):
 
 
 class FakeSTT:
-    def __init__(self):
+    def __init__(self, order):
         self.loaded = True
+        self.order = order
 
     def unload(self):
         self.loaded = False
 
     def reload(self):
         self.loaded = True
+        self.order.append("whisper")
 
 
 class FakeEar:
@@ -94,16 +96,25 @@ def paused_friday(monkeypatch):
     monkeypatch.setattr(game_mode, "vram_used_mb", lambda: 900)
     monkeypatch.setattr(gpu_gate, "unload_all", lambda client: ["qwen3:8b"])
     warmed = []
-    brain = SimpleNamespace(client=None, warmup=lambda: warmed.append(gpu_gate.OPEN.is_set()))
+
+    def warmup():
+        warmed.append(gpu_gate.OPEN.is_set())
+        order.append("qwen")
+
+    order = []
+    embeds = SimpleNamespace(embed=lambda **k: order.append("mémoire"))
+    brain = SimpleNamespace(client=embeds, warmup=warmup)
     listener = RecordingListener()
     states = []
     assistant = SimpleNamespace(
-        settings=SimpleNamespace(user_name="Monsieur"), listener=listener, voice_on=False,
-        components=SimpleNamespace(brain=brain, stt=FakeSTT(), speaker=None),
+        settings=SimpleNamespace(user_name="Monsieur", memory_enabled=True, embed_model="e"),
+        listener=listener, voice_on=False,
+        components=SimpleNamespace(brain=brain, stt=FakeSTT(order), speaker=None),
         set_state=states.append,
     )  # fmt: skip
     game = GameMode(assistant)
     assert game.command("Friday, mode jeu")
+    game.order = order
     return game, assistant, states, warmed
 
 
@@ -123,6 +134,8 @@ def test_pause_frees_the_gpu_and_the_return_reloads_everything(monkeypatch):
         time.sleep(0.02)
     assert not game.paused and gpu_gate.OPEN.is_set()
     assert assistant.components.stt.loaded and warmed == [True]  # rechargé, barrière ouverte
+    # l'ordre du démarrage : Whisper d'abord faisait déborder qwen (200 jetons/s au lieu de 1 550)
+    assert game.order == ["mémoire", "qwen", "whisper"]
     assert states[-2:] == [AssistantState.LOADING, AssistantState.IDLE]
 
 

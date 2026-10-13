@@ -141,16 +141,30 @@ class GameMode:
             self._say(f"Je reviens, {a.settings.user_name}.", wait=False)
             a.listener.on_display(Display("game_mode", "Mode jeu", {"on": False}))
             a.set_state(AssistantState.LOADING)
-            if a.components.stt is not None:
-                a.components.stt.reload()
             gpu_gate.OPEN.set()
-            a.components.brain.warmup()
+            self._reload_in_startup_order()
         finally:
             gpu_gate.OPEN.set()
             self.paused = self._leaving = False
         a.set_state(AssistantState.IDLE)
         log.info("Mode jeu terminé : Friday rechargée en %.1f s", time.monotonic() - start)
         self._say("Me revoilà.", wait=False)
+
+    def _reload_in_startup_order(self) -> None:
+        """Le même ordre qu'au démarrage : modèle de la mémoire, qwen, PUIS Whisper. Mesuré :
+        Whisper rechargé d'abord, qwen débordait de la carte et lisait 200 jetons/s au lieu
+        de 1 550 (carte à 97 %, Friday semblait figée)."""
+        a = self.assistant
+        settings = a.settings
+        if getattr(settings, "memory_enabled", False):
+            try:
+                a.components.brain.client.embed(model=settings.embed_model, input=["réveil"],
+                                                keep_alive="30m")  # fmt: skip
+            except Exception as error:
+                log.warning("Mode jeu : modèle de la mémoire non rechargé (%s)", error)
+        a.components.brain.warmup()
+        if a.components.stt is not None:
+            a.components.stt.reload()
 
     def _say(self, text: str, wait: bool = True) -> None:
         """Une phrase dite et affichée, sans passer par qwen."""
