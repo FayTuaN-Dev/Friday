@@ -74,6 +74,20 @@ def _chat(p: Palette) -> str:
     #BubbleText {{ background: transparent; }}
     #Notice {{ background: transparent; color: {p.muted}; font-style: italic; font-size: 12px; }}
     #ToolNotice, #MemoryNotice {{ background: transparent; color: {p.accent}; font-size: 12px; }}
+    #WelcomeGreeting {{
+        background: transparent; font-family: "{FONT_HUD}"; font-size: 26px; color: {p.text};
+    }}
+    #WelcomeDate {{
+        background: transparent; color: {p.accent}; font-size: 11px; letter-spacing: 3px;
+    }}
+    #WelcomeGlance {{ background: transparent; color: {p.muted}; font-size: 12px; }}
+    #Suggestion {{
+        min-width: 0; max-width: 16777215; min-height: 38px; max-height: 38px;
+        border-radius: 19px; background: {p.surface}; border: 1px solid {p.accent_soft};
+        padding: 0 14px; font-size: 13px; text-align: left;
+    }}
+    #Suggestion:hover {{ background: {p.surface_hi}; border-color: {p.accent}; }}
+    #Suggestion:disabled {{ color: {p.muted}; border-color: transparent; }}
     #InputBar {{
         background: {p.surface}; border: 1px solid {p.accent_glow}; border-radius: 25px;
     }}

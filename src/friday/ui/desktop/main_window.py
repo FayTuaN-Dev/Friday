@@ -73,7 +73,8 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.boot_signal.done.connect(self._show_boot)
         self.status = QLabel(objectName="Status", alignment=Qt.AlignCenter)
         self.info = QLabel(objectName="Info", alignment=Qt.AlignCenter, wordWrap=True)
-        self.chat = ChatView()
+        self.chat = ChatView(name=settings.user_name)
+        self.chat.welcome.setEnabled(False)  # suggestions cliquables une fois Friday prête
         self.input = InputBar(settings.ptt_key)
         self.input.setEnabled(False)
         self.popups = PopupManager(self)
@@ -178,6 +179,7 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         b.speech_audio.connect(lambda audio, rate: self.orb.play_speech(audio, rate))
 
         self.input.submitted.connect(a.submit_text)
+        self.chat.welcome.chosen.connect(a.submit_text)
         self.input.mic_pressed.connect(a.start_listening)
         self.input.mic_released.connect(a.stop_listening)
         self.input.voice_toggled.connect(lambda: self.input.set_voice(a.toggle_voice()))
@@ -300,9 +302,17 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
 
         threading.Thread(target=self._boot_check, daemon=True, name="boot-check").start()
         self.input.setEnabled(True)
+        self._welcome_glance()
         self.input.mic.setEnabled(self.assistant.can_listen)
         self.input.set_voice(self.assistant.voice_on)
         self.input.edit.setFocus()
+
+    def _welcome_glance(self) -> None:
+        from friday.app.glance import glance
+
+        self.chat.welcome.setEnabled(True)
+        components = getattr(self.assistant, "components", None)
+        self.chat.welcome.load_glance(lambda: glance(components))
 
     def show_state(self, state: AssistantState) -> None:
         self.state = state
@@ -319,6 +329,8 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
 
     def _reset(self) -> None:
         self.chat.clear()
+        if self.input.isEnabled():
+            self._welcome_glance()  # coup d'œil à jour
         self.set_compact(False)
         self.assistant.reset()
 
