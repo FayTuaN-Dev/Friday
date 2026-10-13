@@ -66,7 +66,8 @@ class PopupManager:
     def _replace(self, current: Popup, popup: Popup, key: str) -> Popup:
         popup.key = key
         popup.closed.connect(self._forget)
-        popup.setGeometry(current.geometry())  # même place, même taille : pas de saut
+        popup.move(current.pos())  # même place, même largeur : pas de saut…
+        popup.resize(current.width(), popup.height())  # …et la hauteur suit la liste
         self.popups[self.popups.index(current)] = popup
         current.close()
         popup.setWindowOpacity(0.97)

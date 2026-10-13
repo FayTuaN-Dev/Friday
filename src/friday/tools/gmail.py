@@ -11,7 +11,8 @@ def mail_list(mails: list[Mail], title: str) -> ToolResult:
     lines = [f"- [id : {m.id}] {m.date}{' (non lu)' if m.unread else ''} — {m.sender_name} : "
              f"« {m.subject} » — {m.snippet[:140]}"
              for m in mails]  # fmt: skip
-    items = [{"text": m.subject, "meta": f"{m.sender_name} · {m.date}"} for m in mails]
+    items = [{"text": m.subject, "meta": f"{m.sender_name} · {m.date}",
+              "url": GMAIL_URL.format(id=m.id)} for m in mails]  # fmt: skip
     return ToolResult(
         f"{title} ({len(mails)}, affichés à l'écran) :\n"
         + "\n".join(lines)
