@@ -12,10 +12,11 @@ from PySide6.QtWidgets import QWidget
 
 from friday.app.events import AssistantState
 from friday.ui.desktop import theme
-from friday.ui.desktop.widgets.holo.layers import HoloLayers
+from friday.ui.desktop.widgets.holo.painter import HoloPainter, PainterThread
 from friday.ui.desktop.widgets.holo.scene import RINGS, HoloScene, rotation
 
-FPS = 60
+FPS = 60  # valeurs de l'enveloppe de la voix par seconde
+HOLO_FPS = 30  # images du noyau par seconde (60 doublait le travail sans gain visible)
 # État → (vitesse, intensité, étincelles par seconde)
 MOTION = {
     AssistantState.LOADING: (0.25, 0.4, 1),
@@ -38,7 +39,9 @@ def speech_envelope(audio: np.ndarray, sample_rate: int) -> np.ndarray:
     return np.clip(rms * 5, 0, 1)
 
 
-class HoloOrb(HoloLayers, QWidget):
+class HoloOrb(QWidget):
+    """L'état et l'animation ; le dessin se fait dans le fil du peintre (painter.py)."""
+
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setMinimumSize(80, 80)  # réduit en conversation (U1)
@@ -52,12 +55,14 @@ class HoloOrb(HoloLayers, QWidget):
         self.time = 0.0  # temps de l'animation
         self.turn = 0.0  # rotation accumulée (intégrée : pas de saut quand la vitesse change)
         self.sparks: list[list] = []  # [anneau, angle, vitesse, vie]
-        self._pens: dict = {}
+        self._painter = PainterThread(HoloPainter(self.scene))
+        self.destroyed.connect(self._painter.close)  # le fil s'arrête avec le noyau
+        self._shown = 0  # numéro de la dernière image affichée
         self._mic_level = 0.0
         self._envelope = np.zeros(0)
         self._envelope_start = 0.0
         self._last_tick = time.perf_counter()
-        self._timer = QTimer(self, interval=1000 // FPS, timeout=self._tick)
+        self._timer = QTimer(self, interval=1000 // HOLO_FPS, timeout=self._tick)
         self._timer.start()
 
     # --- Entrées ---
@@ -111,7 +116,10 @@ class HoloOrb(HoloLayers, QWidget):
         self.turn += dt * self.speed
         self._update_sparks(dt, spark_rate)
         if self.isVisible():
-            self.update()
+            self._painter.request(self._snapshot())  # dessiné dans le fil du peintre
+            frame = self._painter.frame
+            if frame is not None and frame[0] != self._shown:
+                self.update()
 
     def _update_sparks(self, dt: float, rate: float) -> None:
         rng = self.rng
@@ -123,12 +131,23 @@ class HoloOrb(HoloLayers, QWidget):
             spark[3] -= dt * 0.7
         self.sparks = [s for s in self.sparks if s[3] > 0]
 
-    def paintEvent(self, _event) -> None:
+    def _snapshot(self) -> dict:
+        """L'état du moment, copié pour le peintre (il ne lit jamais le widget)."""
         w, h = self.width(), self.height()
-        self.cx, self.cy = w / 2, h / 2
-        self.size = min(w, h) * 0.34 * (1 + 0.03 * self.level)
-        self.world = rotation((0.15, 1, 0.05), self.turn * 0.12) @ TILT
+        return {
+            "w": w, "h": h, "cx": w / 2, "cy": h / 2,
+            "size": min(w, h) * 0.34 * (1 + 0.03 * self.level),
+            "world": rotation((0.15, 1, 0.05), self.turn * 0.12) @ TILT,
+            "color": self.color, "time": self.time, "turn": self.turn, "speed": self.speed,
+            "level": self.level, "sparks": [list(s) for s in self.sparks],
+            "glow": self.intensity * (0.75 + 0.6 * self.level),
+        }  # fmt: skip
+
+    def paintEvent(self, _event) -> None:
+        frame = self._painter.frame
+        if frame is None:
+            return
+        self._shown, image = frame
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
-        self.draw_layers(painter, self.intensity * (0.75 + 0.6 * self.level))
+        painter.drawImage(self.rect(), image)  # une seule opération pour l'interface
         painter.end()

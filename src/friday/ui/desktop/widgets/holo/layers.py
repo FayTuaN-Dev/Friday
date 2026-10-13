@@ -1,23 +1,24 @@
 """Couches de dessin du noyau, de l'arrière vers l'avant, toutes en lumière additive :
 halo → particules floues → rayons → circuits → anneaux (+ étincelles) → noyau en « œil ».
 
-Mixin utilisé par HoloOrb : il lit `scene`, `color`, `cx`, `cy`, `size`, `world`, `time`,
-`turn`, `speed`, `level`, `sparks` sur le widget.
+Mixin utilisé par HoloPainter (painter.py), dans son propre fil : il lit `scene`, `color`,
+`cx`, `cy`, `size`, `world`, `time`, `turn`, `speed`, `level`, `sparks`, `w`, `h`. Rien ici
+ne touche un widget, et les images sont des QImage (permises hors du fil de l'interface).
 """
 
 import math
 
 import numpy as np
 from PySide6.QtCore import QLineF, QPointF, QRectF, Qt
-from PySide6.QtGui import QColor, QImage, QPainter, QPen, QPixmap, QPolygonF, QRadialGradient
+from PySide6.QtGui import QColor, QImage, QPainter, QPen, QPolygonF, QRadialGradient
 
 from friday.ui.desktop.widgets.fast_points import PointBuffer
 from friday.ui.desktop.widgets.holo.scene import GLYPHS, WIDTHS
 
 
-def glow_sprite(color: tuple, size: int = 64) -> QPixmap:
+def glow_sprite(color: tuple, size: int = 64) -> QImage:
     """Petite tache lumineuse, réutilisée pour les particules, les étincelles et le cœur."""
-    pixmap = QPixmap(size, size)
+    pixmap = QImage(size, size, QImage.Format_ARGB32_Premultiplied)
     pixmap.fill(Qt.transparent)
     p = QPainter(pixmap)
     g = QRadialGradient(size / 2, size / 2, size / 2)
@@ -38,7 +39,7 @@ CORE_ARCS = ((0.1, 2.6, 1.0, 290), (0.14, 1.2, -0.7, 220), (0.19, 0.8, 0.4, 300)
 
 class HoloLayers:
     _pens: dict
-    _sprite: QPixmap
+    _sprite: QImage
     _sprite_color: tuple | None = None
 
     def project(self, p: np.ndarray):
@@ -74,8 +75,8 @@ class HoloLayers:
 
     def _blob(self, painter, x: float, y: float, radius: float, opacity: float) -> None:
         painter.setOpacity(max(0.0, min(1.0, opacity)))
-        painter.drawPixmap(QRectF(x - radius, y - radius, 2 * radius, 2 * radius), self._sprite,
-                           QRectF(self._sprite.rect()))  # fmt: skip
+        painter.drawImage(QRectF(x - radius, y - radius, 2 * radius, 2 * radius), self._sprite,
+                          QRectF(self._sprite.rect()))  # fmt: skip
 
     def _draw_halo(self, painter, glow):
         center, radius = QPointF(self.cx, self.cy), self.size * 1.8
@@ -138,7 +139,7 @@ class HoloLayers:
 
         # Lueur : traits fins sur une image au quart de la résolution, puis agrandie : le
         # flou d'agrandissement fait une lueur large et douce, pour très peu de calcul.
-        w, h = max(4, self.width()), max(4, self.height())
+        w, h = max(4, self.w), max(4, self.h)
         quarter = QImage(w // 4, h // 4, QImage.Format_ARGB32_Premultiplied)
         quarter.fill(Qt.transparent)
         glow_painter = QPainter(quarter)
