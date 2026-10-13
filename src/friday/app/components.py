@@ -133,6 +133,7 @@ def load_components(
             from friday.voice.tts import PiperTTS
 
             tts = PiperTTS(settings.tts_voice, VOICES_DIR, settings.tts_speed, settings.tts_speaker)
+            tts.synthesize("Bonjour.")  # échauffement : la 1re phrase coûtait cher en pleine réponse
             player = AudioPlayer(tts.sample_rate, settings.output_device)
             name = settings.wake_words[0]
             components.speaker = Speaker(
