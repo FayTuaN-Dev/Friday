@@ -103,13 +103,12 @@ def default_toolbox(
     else:
         claude = None
     if settings.vision_enabled:
-        import ollama
-
+        from friday.brain.gpu_gate import GatedClient
         from friday.tools.screen import AskClaudeAboutScreenTool, LookAtScreenTool
         from friday.vision.capture import capture_screen
         from friday.vision.reader import ScreenReader
 
-        reader = ScreenReader(ollama.Client(host=settings.ollama_host), settings.vision_model)
+        reader = ScreenReader(GatedClient(host=settings.ollama_host), settings.vision_model)
         tools.append(LookAtScreenTool(reader, capture_screen))
         if claude is not None:  # secours, avec confirmation
             tools.append(AskClaudeAboutScreenTool(claude, capture_screen))

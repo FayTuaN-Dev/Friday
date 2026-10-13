@@ -15,6 +15,7 @@ from PySide6.QtWidgets import QWidget
 from friday.app.events import AssistantState
 from friday.ui.desktop import theme
 from friday.ui.desktop.widgets.fast_points import PointBuffer
+from friday.ui.desktop.widgets.freeze import freeze
 from friday.ui.desktop.widgets.holo.orb import FPS, speech_envelope
 
 POINTS = 2600
@@ -30,6 +31,7 @@ MOTION = {
     AssistantState.LISTENING: (0.2, 0.0, 0.03),
     AssistantState.THINKING: (0.45, 1.0, 0.04),
     AssistantState.SPEAKING: (0.25, 0.0, 0.03),
+    AssistantState.PAUSED: (0.03, 0.0, 0.0),
 }
 EASE = 0.05
 
@@ -79,6 +81,7 @@ class ParticleSphere(QWidget):
         if self.state is AssistantState.LOADING and state is not AssistantState.LOADING:
             self.converging = True  # Friday est prête : le nuage devient sphère
         self.state = state
+        freeze(self._timer, state)
         if state is not AssistantState.LISTENING:
             self._mic_level = 0.0
 

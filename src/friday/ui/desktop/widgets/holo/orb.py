@@ -12,6 +12,7 @@ from PySide6.QtWidgets import QWidget
 
 from friday.app.events import AssistantState
 from friday.ui.desktop import theme
+from friday.ui.desktop.widgets.freeze import freeze
 from friday.ui.desktop.widgets.holo.painter import HoloPainter, PainterThread
 from friday.ui.desktop.widgets.holo.scene import RINGS, HoloScene, rotation
 
@@ -24,6 +25,7 @@ MOTION = {
     AssistantState.LISTENING: (0.6, 0.85, 8),
     AssistantState.THINKING: (1.4, 1.0, 30),
     AssistantState.SPEAKING: (0.8, 1.05, 12),
+    AssistantState.PAUSED: (0.1, 0.3, 0),
 }
 EASE = 0.05  # transitions douces entre états
 TILT = rotation((1, 0, 0), 0.35)  # le noyau est légèrement penché vers l'avant
@@ -69,6 +71,7 @@ class HoloOrb(QWidget):
 
     def set_state(self, state: AssistantState) -> None:
         self.state = state
+        freeze(self._timer, state)
         if state is not AssistantState.LISTENING:
             self._mic_level = 0.0
 

@@ -7,8 +7,7 @@ from friday.tools.base import Tool
 
 
 def google_tools(account, settings, on_background=None) -> list[Tool]:
-    import ollama
-
+    from friday.brain.gpu_gate import GatedClient
     from friday.google.mailbox import Mailbox
     from friday.google.sorter import Classifier, MailSorter
     from friday.tools.gmail import CheckMailTool, ReadMailTool, SearchMailTool, SendMailTool
@@ -23,7 +22,7 @@ def google_tools(account, settings, on_background=None) -> list[Tool]:
 
     calendar = GoogleCalendar(lambda: account.service("calendar", "v3"))
     mailbox = Mailbox(lambda: account.service("gmail", "v1"))
-    classify = Classifier(ollama.Client(host=settings.ollama_host), settings.ollama_model,
+    classify = Classifier(GatedClient(host=settings.ollama_host), settings.ollama_model,
                           settings.ollama_num_ctx)  # fmt: skip
     recent = RecentEvents()  # partagé : « supprime le 2 » renvoie à la dernière liste
     gmail = Gmail(lambda: account.service("gmail", "v1"))

@@ -49,13 +49,17 @@ class VoiceInputs:
                     from friday.voice.heard_log import HeardLog
 
                     heard_log = HeardLog(LOGS_DIR / "heard")
+                awake = self._with_wake_rescue(stt)
+                game = self.assistant.game  # mode jeu : la petite oreille, « reviens » seulement
                 self.hands_free = HandsFreeListener(
-                    self._with_wake_rescue(stt),
-                    self.wake.on_heard,
+                    lambda segment: (game.transcribe if game.paused else awake)(segment),
+                    lambda text, at: (
+                        game.heard(text) if game.paused else self.wake.on_heard(text, at)
+                    ),  # fmt: skip
                     self.settings.mic_device,
                     self.settings.vad_silence_ms,
                     heard_log,
-                    on_clap=self.wake.on_clap if self.settings.clap_wake else None,
+                    on_clap=self._on_clap if self.settings.clap_wake else None,
                     clap_sensitivity=self.settings.clap_sensitivity,
                 )
                 self.hands_free.start()
@@ -84,9 +88,18 @@ class VoiceInputs:
 
         return transcribe
 
+    def _on_clap(self) -> None:
+        if self.assistant.game.paused:  # double clap pendant le mode jeu : retour
+            self.assistant.game.leave()
+        else:
+            self.wake.on_clap()
+
     def press(self) -> None:
-        """Touche ou bouton micro enfoncé : on enregistre."""
+        """Touche ou bouton micro enfoncé : on enregistre (pendant le mode jeu : retour)."""
         a = self.assistant
+        if a.game.paused:
+            a.game.leave()
+            return
         if not a.can_listen or self.listening:
             return
         if not a.confirm.waiting:  # on appuie peut-être pour répondre « oui »
