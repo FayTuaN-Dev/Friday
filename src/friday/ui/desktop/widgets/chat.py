@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QScrollArea, QVBoxLayout, QWidget
 
 from friday.ui.desktop.widgets.confirm_card import ConfirmCard
+from friday.ui.desktop.widgets.welcome import Welcome
 
 BUBBLE_RATIO = 0.8  # largeur max d'une bulle, en part de la largeur du chat
 H_MARGIN = 16
@@ -49,7 +50,7 @@ class Bubble(QFrame):
 
 
 class ChatView(QScrollArea):
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, name: str = "Monsieur") -> None:
         super().__init__(parent)
         self.setWidgetResizable(True)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -58,6 +59,8 @@ class ChatView(QScrollArea):
         self._layout.setContentsMargins(12, 8, 12, 8)
         self._layout.setSpacing(12)
         self._layout.addStretch()
+        self.welcome = Welcome(name)  # accueil (U2) : tant que la conversation est vide
+        self._layout.addWidget(self.welcome)
         self.setWidget(container)
         self._bubbles: list[Bubble] = []
         self._cards: list[ConfirmCard] = []
@@ -90,12 +93,14 @@ class ChatView(QScrollArea):
 
     def add_confirmation(self, question: str) -> ConfirmCard:
         card = ConfirmCard(question)
+        self.welcome.hide()
         self._layout.addWidget(card)
         self._cards.append(card)
         self._current = None  # la suite de la réponse s'affiche sous la carte
         return card
 
     def add_tool(self, label: str) -> None:
+        self.welcome.hide()
         self.add_notice(label, "ToolNotice")
         self._current = None  # la suite de la réponse s'affiche sous l'outil
 
@@ -106,12 +111,15 @@ class ChatView(QScrollArea):
         self._layout.addWidget(label)
 
     def clear(self) -> None:
-        while self._layout.count() > 1:  # on garde l'espace extensible du haut
-            _delete_item(self._layout.takeAt(1))
+        while self._layout.count() > 2:  # on garde l'espace extensible du haut et l'accueil
+            _delete_item(self._layout.takeAt(2))
         self._bubbles.clear()
         self._current = None
+        self.welcome.refresh()
+        self.welcome.show()
 
     def _add_bubble(self, bubble: Bubble, from_user: bool) -> None:
+        self.welcome.hide()  # la conversation commence : l'accueil s'efface
         row = QHBoxLayout()
         if from_user:
             row.addStretch()
