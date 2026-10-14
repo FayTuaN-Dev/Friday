@@ -140,6 +140,10 @@ class Assistant:
     def reset(self) -> None:
         self._events.put(("reset", None))
 
+    def post(self, kind: str, payload: object = None) -> None:
+        """Un évènement pour le fil de l'assistant (jeu détecté…)."""
+        self._events.put((kind, payload))
+
     def shutdown(self) -> None:
         self.inputs.close()
         self.interrupt()
@@ -170,6 +174,7 @@ class Assistant:
         self.listener.on_ready(describe(self.settings, self.components, inputs))
         self.set_state(AssistantState.IDLE)
         self._events.put(("briefing", None))  # briefing du matin, s'il est dû
+        self.game.watch_games()  # mode jeu automatique (G2), si activé
         StallWatch(lambda: self._waiting_since, LOGS_DIR)  # enquête si une demande reste bloquée
 
         while True:
@@ -196,6 +201,8 @@ class Assistant:
                 return
             if not self._trading_command(str(payload)):
                 self._respond(self.attachments.wrap(str(payload)), said=str(payload))
+        elif kind == "game":  # un jeu vient de se lancer (G2)
+            self.game.enter(game=str(payload))
         elif kind == "done":  # une tâche de fond (Claude) est terminée
             self._announce(*payload)
         elif kind == "briefing" and (request := morning_request(self.components.briefing)):

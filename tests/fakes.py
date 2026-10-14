@@ -51,6 +51,7 @@ SETTINGS = Settings(
     library_enabled=False,
     embed_model="embeddinggemma",
     log_level="INFO",
+    game_auto=False,  # jamais de vraie surveillance des jeux du PC pendant les tests
 )
 
 

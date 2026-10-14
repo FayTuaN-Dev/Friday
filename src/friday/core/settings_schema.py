@@ -105,6 +105,12 @@ SECTIONS = (
               "La nuit (ou après 30 min sans parler), Friday relit la journée pour retenir ce "
               "qu'elle a manqué et prépare un rapport de ménage, qu'elle propose sans rien "
               "changer seule. Demande « qu'as-tu fait cette nuit ? »."),
+        Field("GAME_MODE_AUTO", "Mode jeu automatique", "bool", "true",
+              "Quand un jeu se lance, Friday libère la carte graphique d'elle-même. « Friday, "
+              "reviens » ou un double clap pour la rappeler."),
+        Field("GAME_MODE_IGNORE", "Pas des jeux (mode jeu)", "text", "",
+              "Programmes à ne jamais prendre pour un jeu, séparés par des virgules (ex. : "
+              "wallpaper64, resolve)."),
         Field("BACKUP_DIR", "Copie des sauvegardes (dossier)", "text", "",
               "Facultatif : un dossier OneDrive ou une clé USB. Les sauvegardes quotidiennes "
               "restent aussi dans data/sauvegardes (les 7 dernières)."),

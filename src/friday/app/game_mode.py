@@ -28,6 +28,7 @@ log = logging.getLogger(__name__)
 ENTER = re.compile(r"\bmode (jeu|gaming|gamer)\b|\bje (vais|pars) (jouer|faire une partie)\b")
 NOT_ENTER = re.compile(r"\b(fin|quitte|sors|desactive|arrete|stoppe)\b")
 RETURN = re.compile(r"\b(revien\w*|revenir|reveille\w*)\b")
+CALL_BACK = "« Friday, reviens » ou un double clap pour me rappeler."
 EAR_MODEL = "tiny"  # mesuré : ~0,4 s par phrase sur 2 cœurs ; comprend bien « reviens »
 EAR_THREADS = 2  # le jeu garde le reste du processeur
 EAR_MAX_SECONDS = 4.0  # « Friday, reviens » est court : une longue phrase (Discord…) est ignorée
@@ -83,6 +84,22 @@ class GameMode:
         self._ear: PauseEar | None = None
         self._lock = threading.Lock()
         self._leaving = False
+        self.watch = None  # GameWatch (G2) : le mode jeu se met tout seul quand un jeu démarre
+
+    def watch_games(self) -> None:
+        settings = self.assistant.settings
+        if not getattr(settings, "game_auto", False):
+            return
+        from friday.app.game_watch import GameWatch
+
+        self.watch = GameWatch(self._detected, lambda: self.paused, settings.game_ignore)
+        self.watch.start()
+
+    def _detected(self, game) -> None:
+        """Fil du guetteur : la demande passe par le fil de l'assistant, après avoir coupé
+        une éventuelle réponse en cours."""
+        self.assistant.interrupt()
+        self.assistant.post("game", game.name)
 
     # --- Entrée (dans le fil de l'assistant) ---
 
@@ -93,11 +110,20 @@ class GameMode:
         self.enter()
         return True
 
-    def enter(self) -> None:
+    def enter(self, game: str = "") -> None:
+        """`game` : le jeu détecté (G2) ; vide quand l'utilisateur l'a demandé."""
         a = self.assistant
-        name = a.settings.user_name
-        self._say(f"Mode jeu : je libère la carte graphique. Dites « Friday, reviens » ou tapez "
-                  f"deux fois dans vos mains pour me rappeler. Bonne partie, {name} !")  # fmt: skip
+        if self.paused:
+            return
+        if game:  # le jeu démarre : on libère tout de suite, la phrase est dite en même temps
+            self._say(f"{game} se lance : je passe en mode jeu. {CALL_BACK}", wait=False)
+            notice = {"text": f"{game} : carte graphique libérée"}
+            a.listener.on_display(Display("notification", "🎮 Mode jeu", notice))
+        else:
+            name = a.settings.user_name
+            self._say(
+                f"Mode jeu : je libère la carte graphique. {CALL_BACK} Bonne partie, {name} !"
+            )
         start, before = time.monotonic(), vram_used_mb()
         self.paused = True
         gpu_gate.OPEN.clear()  # plus aucun modèle ne se recharge pendant la partie
@@ -146,6 +172,8 @@ class GameMode:
         finally:
             gpu_gate.OPEN.set()
             self.paused = self._leaving = False
+            if self.watch is not None:  # rappelée en pleine partie : pas de nouvelle pause
+                self.watch.excuse_running_games()
         a.set_state(AssistantState.IDLE)
         log.info("Mode jeu terminé : Friday rechargée en %.1f s", time.monotonic() - start)
         self._say("Me revoilà.", wait=False)
