@@ -17,6 +17,7 @@ from friday.brain.events import (
     ToolFinished,
     ToolStarted,
 )
+from friday.brain.gpu_gate import GatedClient
 from friday.brain.prompts import build_system_prompt
 from friday.brain.router import SkillRouter
 from friday.brain.second_chance import forget_nudges, second_chance
@@ -71,7 +72,7 @@ class Brain:
     ) -> None:
         """`router` : aiguillage des compétences (sans lui, tous les outils sont donnés)."""
         self.settings = settings
-        self.client = client or ollama.Client(host=settings.ollama_host)
+        self.client = client or GatedClient(host=settings.ollama_host)
         self.toolbox = toolbox or ToolBox([])
         # recall(question) → souvenirs utiles, déjà mis en forme (None : pas de mémoire)
         self.recall = recall

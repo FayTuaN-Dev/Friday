@@ -225,10 +225,20 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
             self.open_journal()
         elif display.kind == "notification":  # tâche de fond finie : bulle Windows
             self.notifier.notify(display)
+        elif display.kind == "game_mode":  # mode jeu : la fenêtre se fait oublier
+            self._game_mode(display.data.get("on", False))
         elif display.kind == "trading_mode":  # badge du mode trading
             self.title_bar.set_trading(display.data.get("on", False))
         else:
             self.popups.show(display)
+
+    def _game_mode(self, on: bool) -> None:
+        if on:
+            self.scene_layer.close_scene(quiet=True)
+            self.popups.close_all()
+            self.showMinimized()
+        elif self.isMinimized():
+            self.showNormal()
 
     def prepare_settings(self) -> None:
         """Construit le panneau des réglages une fois, caché (au repos, après le démarrage) :

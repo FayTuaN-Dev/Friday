@@ -18,6 +18,7 @@ from friday.app.briefing_trigger import morning_request
 from friday.app.components import Components, describe, load_components
 from friday.app.confirmations import ConfirmationGate
 from friday.app.events import AssistantListener, AssistantState
+from friday.app.game_mode import GameMode
 from friday.app.reply import Reply
 from friday.app.scene_gate import SceneGate
 from friday.app.stall_watch import StallWatch
@@ -63,6 +64,7 @@ class Assistant:
         self.speech_ended_at = float("-inf")  # fin de la dernière prise de parole (anti-écho)
         self._interrupted = threading.Event()
         self._state: AssistantState | None = None
+        self.game = GameMode(self)  # « Friday, mode jeu » : la carte graphique rendue au jeu
         self.inputs = VoiceInputs(settings, self)
         self._reply: Reply | None = None
         self.confirm = ConfirmationGate(listener)  # « Je lance ? » en attente de réponse
@@ -85,6 +87,8 @@ class Assistant:
         return bool(c and c.recorder and c.stt)
 
     def submit_text(self, text: str) -> None:
+        if self.game.paused:  # écrire à Friday pendant le mode jeu la fait revenir
+            self.game.leave()
         if text.strip() and not self.confirm.route(text):
             self._queue_request(("text", text.strip()))
 
@@ -179,7 +183,7 @@ class Assistant:
             except Exception:
                 log.exception("Erreur pendant le traitement de %s", kind)
                 self.listener.on_notice("Une erreur est survenue : voir logs/friday.log")
-            if not self.inputs.listening:
+            if not self.inputs.listening and not self.game.paused:
                 self.set_state(AssistantState.IDLE)
 
     def _handle(self, kind: str, payload: object) -> None:
@@ -188,6 +192,8 @@ class Assistant:
             self.listener.on_notice("Nouvelle conversation")
         elif kind in ("text", "heard"):
             self.listener.on_user_message(str(payload), by_voice=kind == "heard")
+            if self.game.command(str(payload)):
+                return
             if not self._trading_command(str(payload)):
                 self._respond(self.attachments.wrap(str(payload)), said=str(payload))
         elif kind == "done":  # une tâche de fond (Claude) est terminée

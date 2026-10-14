@@ -28,6 +28,7 @@ STATE_TINTS = {
     AssistantState.LISTENING: (12, 0.85, 1.15),  # plus clair, plus doux
     AssistantState.THINKING: (-14, 1.15, 1.0),  # plus chaud, plus intense
     AssistantState.SPEAKING: (6, 0.9, 1.12),  # plus lumineux
+    AssistantState.PAUSED: (0, 0.25, 0.6),  # éteinte : mode jeu
 }
 ERROR = QColor("#ff5d6c")
 

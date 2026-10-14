@@ -14,6 +14,7 @@ class AssistantState(Enum):
     LISTENING = "À l'écoute"
     THINKING = "Réflexion…"
     SPEAKING = "Parle"
+    PAUSED = "Mode jeu"  # carte graphique rendue au jeu (G1)
 
 
 class AssistantListener(Protocol):

@@ -30,6 +30,11 @@ class WhisperSTT:
         self.hotword = hotword  # le nom de l'assistante, que Whisper doit bien écrire
         # Push-to-talk et écoute continue transcrivent depuis deux threads : un à la fois.
         self._lock = threading.Lock()
+        self._settings = (model, device, models_dir)
+        self._load()
+
+    def _load(self) -> None:
+        model, device, models_dir = self._settings
         register_cuda_dlls()
         from faster_whisper import WhisperModel
 
@@ -51,6 +56,24 @@ class WhisperSTT:
             self._warmup()
         log.info("Whisper %s prêt (%s)", model, self.model.model.device)
 
+    @property
+    def loaded(self) -> bool:
+        return self.model is not None
+
+    def unload(self) -> None:
+        """Mode jeu : le modèle quitte la carte graphique (rechargé par `reload`)."""
+        import gc
+
+        with self._lock:
+            self.model = None
+            gc.collect()
+        log.info("Whisper déchargé")
+
+    def reload(self) -> None:
+        with self._lock:
+            if self.model is None:
+                self._load()
+
     def _warmup(self) -> None:
         list(self.model.transcribe(np.zeros(WHISPER_RATE, dtype=np.float32), language="fr")[0])
 
@@ -58,6 +81,8 @@ class WhisperSTT:
         if audio.size < MIN_SECONDS * WHISPER_RATE:
             return ""
         with self._lock:
+            if self.model is None:  # déchargé (mode jeu) : rien à transcrire
+                return ""
             return self._transcribe(audio)
 
     def _transcribe(self, audio: np.ndarray) -> str:
@@ -79,6 +104,8 @@ class WhisperSTT:
         Sur un extrait plus long, Whisper repasse au français : il faut rester court."""
         start = voice_start(audio)
         with self._lock:
+            if self.model is None:
+                return ""
             segments, _ = self.model.transcribe(
                 audio[start : start + int(seconds * WHISPER_RATE)],
                 language=language,

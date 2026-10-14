@@ -63,7 +63,12 @@ def test_a_search_asked_in_words_is_launched_by_the_code():
     assert search_request("cherche sur internet le prix de la RTX 5070")[1] == {
         "query": "le prix de la rtx 5070"
     }
-    for other in ("ouvre le site de twitch", "quelle heure est-il", "les parasites du chat"):
+    for other in (
+        "ouvre le site de twitch",
+        "quelle heure est-il",
+        "les parasites du chat",
+        "Friday, t'es en ligne ?",
+    ):  # constaté : lançait une recherche « t es en ligne »
         assert search_request(other) is None
 
 

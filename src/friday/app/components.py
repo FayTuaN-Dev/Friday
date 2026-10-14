@@ -18,6 +18,7 @@ from friday.app.extras import (
 from friday.app.gpu_check import warn_if_spilling
 from friday.app.memory_keeper import MemoryKeeper
 from friday.app.prefetch import hints, prefetcher
+from friday.brain.gpu_gate import GatedClient
 from friday.brain.llm import Brain
 from friday.core.config import DATA_DIR, MODELS_DIR, VOICES_DIR, Settings
 from friday.memory.service import MemoryService, format_memories
@@ -52,7 +53,7 @@ def load_components(
     on_memory: Callable[[str], None] = lambda text: None,
     on_background: Callable[[str, ToolResult], None] | None = None,
 ) -> Components:
-    client = ollama.Client(host=settings.ollama_host)
+    client = GatedClient(host=settings.ollama_host)
     memory = load_memory(settings, client)
     day_log = None
     if settings.day_memory:
