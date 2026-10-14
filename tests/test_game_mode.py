@@ -151,3 +151,71 @@ def test_unloaded_whisper_transcribes_nothing():
     stt = WhisperSTT.__new__(WhisperSTT)
     stt._lock, stt.model = threading.Lock(), None
     assert stt.transcribe(np.ones(16000, dtype=np.float32)) == "" and not stt.loaded
+
+
+def test_return_summary_counts_what_happened_during_the_game(monkeypatch):
+    from datetime import datetime, timedelta
+
+    from friday.app.game_summary import GameSummary, length
+
+    clock = [datetime(2026, 10, 14, 20, 0)]
+    google = SimpleNamespace(connected=True)
+    unread = iter([5, 8])
+    monkeypatch.setattr(
+        "friday.app.game_summary.unread_mails", lambda g: next(unread) if g else None
+    )
+    summary = GameSummary(google, clock=lambda: clock[0])
+    clock[0] += timedelta(minutes=85)
+    text = summary.text(["rappel", "rappel", "analyse"])
+    assert text == ("Me revoilà. Pendant votre partie (1 h 25) : 2 rappels, 1 tâche terminée "
+                    "et 3 nouveaux mails.")  # fmt: skip
+    assert GameSummary(None).text([]) == "Me revoilà."
+    assert length(45) == "45 min" and length(120) == "2 h"
+
+
+def test_background_tasks_wait_for_the_return_with_only_a_notification(monkeypatch):
+    game, assistant, states, _ = paused_friday(monkeypatch)
+    posted = []
+    assistant.post = lambda kind, payload=None: posted.append((kind, payload))
+    from friday.tools.base import ToolResult
+
+    reminder = ("rappel", ToolResult("Dis EXACTEMENT : « Rappel : appeler Julie »"))
+    assert game.keep_for_later(*reminder)  # pas d'annonce par qwen pendant la partie
+    assert assistant.listener.of("display")[-1] == ("notification",)
+    game.leave()
+    for _ in range(50):
+        if posted:
+            break
+        time.sleep(0.02)
+    assert posted == [("done", reminder)]  # annoncé après « Me revoilà »
+    assert not game.keep_for_later(*reminder)  # hors mode jeu : annonce normale
+
+
+def test_tray_and_button_toggle_the_game_mode(monkeypatch):
+    game, assistant, _, _ = paused_friday(monkeypatch)
+    posted = []
+    assistant.post = lambda kind, payload=None: posted.append((kind, payload))
+    game.toggle()  # en pause : « Reprendre »
+    for _ in range(50):
+        if not game.paused:
+            break
+        time.sleep(0.02)
+    assert not game.paused
+    game.toggle()  # puis « Mode jeu » : passe par le fil de l'assistant
+    assert posted[-1] == ("game", "")
+
+
+def test_tray_icon_tells_how_to_come_back():
+    from PySide6.QtGui import QIcon
+    from PySide6.QtWidgets import QWidget
+    from test_desktop import app  # noqa: F401  (QApplication)
+
+    from friday.ui.desktop.notifier import Notifier
+
+    notifier = Notifier(QWidget(), QIcon())
+    if notifier.tray is None:  # pas de zone de notification (CI)
+        return
+    notifier.set_game(True)
+    assert "reviens" in notifier.tray.toolTip() and "Reprendre" in notifier.game_action.text()
+    notifier.set_game(False)
+    assert notifier.tray.toolTip() == "Friday"

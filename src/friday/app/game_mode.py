@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from friday.app.events import AssistantState
+from friday.app.game_summary import GameSummary
 from friday.brain import gpu_gate
 from friday.tools.base import Display
 from friday.voice.recorder import WHISPER_RATE
@@ -85,6 +86,30 @@ class GameMode:
         self._lock = threading.Lock()
         self._leaving = False
         self.watch = None  # GameWatch (G2) : le mode jeu se met tout seul quand un jeu démarre
+        self.summary: GameSummary | None = None  # résumé du retour (G3)
+        self.missed: list[tuple] = []  # annonces gardées pour le retour : (tâche, résultat)
+
+    def toggle(self) -> None:
+        """Icône près de l'horloge (G3) : « Mode jeu » ou « Reprendre »."""
+        if self.paused:
+            self.leave()
+        else:
+            self.assistant.post("game", "")  # comme « Friday, mode jeu »
+
+    def keep_for_later(self, task: str, result) -> bool:
+        """Une tâche de fond finit pendant la partie (rappel…) : notification seulement,
+        l'annonce (qui demande qwen) attend le retour. Constaté : sinon Friday restait
+        bloquée en « Réflexion… » jusqu'au retour."""
+        if not self.paused:
+            return False
+        a = self.assistant
+        if getattr(a.settings, "notifications", True):
+            from friday.app.notification import notification
+
+            a.listener.on_display(notification(task, result))
+        self.missed.append((task, result))
+        log.info("Mode jeu : « %s » annoncé au retour", task)
+        return True
 
     def watch_games(self) -> None:
         settings = self.assistant.settings
@@ -136,6 +161,8 @@ class GameMode:
             from friday.core.config import DATA_DIR
 
             self._ear = PauseEar(DATA_DIR / "models")
+        self.missed = []
+        self.summary = GameSummary(getattr(a.components, "google", None))
         log.info("Mode jeu : %s déchargés en %.1f s ; carte graphique %s → %s Mo",
                  ", ".join(names) or "aucun modèle", time.monotonic() - start, before,
                  vram_used_mb())  # fmt: skip
@@ -176,7 +203,11 @@ class GameMode:
                 self.watch.excuse_running_games()
         a.set_state(AssistantState.IDLE)
         log.info("Mode jeu terminé : Friday rechargée en %.1f s", time.monotonic() - start)
-        self._say("Me revoilà.", wait=False)
+        missed, self.missed = self.missed, []
+        summary = self.summary.text([task for task, _ in missed]) if self.summary else ""
+        self._say(summary or "Me revoilà.")
+        for item in missed:  # puis les annonces gardées pendant la partie
+            a.post("done", item)
 
     def _reload_in_startup_order(self) -> None:
         """Le même ordre qu'au démarrage : modèle de la mémoire, qwen, PUIS Whisper. Mesuré :
