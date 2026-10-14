@@ -204,7 +204,8 @@ class Assistant:
         elif kind == "game":  # un jeu vient de se lancer (G2)
             self.game.enter(game=str(payload))
         elif kind == "done":  # une tâche de fond (Claude) est terminée
-            self._announce(*payload)
+            if not self.game.keep_for_later(*payload):  # mode jeu : annoncée au retour
+                self._announce(*payload)
         elif kind == "briefing" and (request := morning_request(self.components.briefing)):
             self._respond(request)
         elif kind == "audio":

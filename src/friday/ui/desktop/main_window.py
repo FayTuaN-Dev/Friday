@@ -82,7 +82,8 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         from friday.ui.desktop.notifier import Notifier
 
         # bulles Windows des tâches de fond, quand Friday n'est pas au premier plan
-        self.notifier = Notifier(self, icon("pulse", theme.current().accent, 32))
+        self.notifier = Notifier(self, icon("pulse", theme.current().accent, 32), self.toggle_game,
+                                 icon("gamepad", theme.current().muted, 32))  # fmt: skip
         self.settings_window = None  # fenêtre des réglages (ouverte à la demande)
         self.journal_window = None  # journal de trading (ouvert à la demande)
         self._build_layout()
@@ -186,6 +187,7 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.input.voice_toggled.connect(lambda: self.input.set_voice(a.toggle_voice()))
         self.input.reset_clicked.connect(self._reset)
         self.title_bar.settings_button.clicked.connect(self.open_settings)
+        self.title_bar.game_button.clicked.connect(self.toggle_game)
 
     def apply_color(self, base: QColor, save: bool = True) -> None:
         """Change la couleur de toute l'interface, à chaud (pop-ups ouverts compris)."""
@@ -232,7 +234,14 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         else:
             self.popups.show(display)
 
+    def toggle_game(self) -> None:
+        """Bouton de la barre de titre ou menu de l'icône : mode jeu, ou retour (G3)."""
+        game = getattr(self.assistant, "game", None)
+        if game is not None:
+            game.toggle()
+
     def _game_mode(self, on: bool) -> None:
+        self.notifier.set_game(on)
         if on:
             self.scene_layer.close_scene(quiet=True)
             self.popups.close_all()
