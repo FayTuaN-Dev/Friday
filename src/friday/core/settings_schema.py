@@ -52,6 +52,9 @@ def audio_devices(inputs: bool) -> list[tuple[str, str]]:
 SECTIONS = (
     Section("Général", "user", (
         Field("FRIDAY_USER_NAME", "Comment Friday vous appelle", "text", "Monsieur"),
+        Field("START_WITH_WINDOWS", "Lancer Friday avec Windows", "bool", "true",
+              "Elle démarre cachée près de l'horloge et vous écoute tout de suite. La croix de "
+              "sa fenêtre la cache ; « Quitter Friday » (clic droit sur l'icône) l'arrête."),
         Field("HOME_CITY", "Ville par défaut (météo)", "text",
               help="Vide : Friday utilise la ville qu'elle a mémorisée."),
         Field("OLLAMA_NUM_CTX", "Mémoire de travail du modèle", "choice", "8192",

@@ -131,10 +131,11 @@ class StageMixin:
 
         from friday.app.events import AssistantState
 
-        if self.scene_layer.map is not None:
+        if getattr(self, "_warmed", False):
             return
         if self.state is AssistantState.IDLE:
-            self.scene_layer.warm_map()
+            self._warmed = True
+            self.scene_layer.warm_map()  # déjà prête si préparée avant l'affichage (S2)
             from friday.ui.desktop.scenes.weather_scene import CODES
 
             self._skies = [(kind, day) for kind in CODES for day in (True, False)]

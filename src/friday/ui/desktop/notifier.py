@@ -26,10 +26,11 @@ class Notifier:
             self.game_action = self.menu.addAction("🎮  Mode jeu", on_game or (lambda: None))
             self.menu.addAction("Ouvrir Friday", self.bring_back)
             self.menu.addSeparator()
-            self.menu.addAction("Quitter Friday", window.close)
+            self.menu.addAction("Quitter Friday", getattr(window, "quit_friday", window.close))
             self.tray.setContextMenu(self.menu)
             self.tray.show()
         self.sent: list[tuple[str, str]] = []  # (titre, texte), pour les tests
+        self._told_hidden = False
 
     def _clicked(self, reason) -> None:
         if reason != QSystemTrayIcon.Context:  # clic droit : le menu, pas la fenêtre
@@ -43,6 +44,16 @@ class Notifier:
         self.tray.setToolTip("Friday · mode jeu (« Friday, reviens » ou double clap)" if on
                              else "Friday")  # fmt: skip
         self.game_action.setText("▶  Reprendre Friday" if on else "🎮  Mode jeu")
+
+    def hidden_once(self) -> None:
+        """La croix a caché Friday : on le dit une fois, pour qu'elle ne semble pas fermée."""
+        if self._told_hidden or self.tray is None:
+            return
+        self._told_hidden = True
+        self.tray.showMessage("Friday reste là",
+                              "Elle vous écoute toujours. Clic sur l'icône pour la rouvrir ; "
+                              "clic droit → « Quitter Friday » pour l'arrêter.",
+                              QSystemTrayIcon.Information, SHOWN_MS)  # fmt: skip
 
     def in_front(self) -> bool:
         return self.window.isActiveWindow() and not self.window.isMinimized()
