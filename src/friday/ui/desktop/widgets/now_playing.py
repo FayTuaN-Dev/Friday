@@ -3,9 +3,11 @@ boutons précédent / lecture-pause / suivant, au style HUD de Friday (comme les
 Claude). Lue toutes les 1,5 s dans un fil à part (tools/pc/now_playing.py) ; cachée quand
 rien ne joue."""
 
+import atexit
 import logging
 import threading
 import time
+import weakref
 
 from PySide6.QtCore import QObject, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QPixmap
@@ -38,6 +40,17 @@ def style(p) -> str:
     """  # fmt: skip
 
 
+_POLLERS: "weakref.WeakSet[Poller]" = weakref.WeakSet()
+
+
+@atexit.register
+def _stop_pollers() -> None:
+    """Constaté (tests) : un fil qui émet pendant que Qt se ferme fait planter Python à la
+    sortie (violation d'accès). Tous s'arrêtent avant."""
+    for poller in list(_POLLERS):
+        poller.stop()
+
+
 class Poller(QObject):
     """Lit ce qui joue dans un fil à part et le transmet à l'interface."""
 
@@ -47,11 +60,18 @@ class Poller(QObject):
         super().__init__()
         self.backend = backend
         self._stop = threading.Event()
+        _POLLERS.add(self)
         threading.Thread(target=self._loop, daemon=True, name="now-playing").start()
 
     def _loop(self) -> None:
         while not self._stop.is_set():
-            self.changed.emit(self.backend.current())
+            track = self.backend.current()
+            if self._stop.is_set():
+                return
+            try:
+                self.changed.emit(track)
+            except RuntimeError:  # « Signal source has been deleted » : la carte n'est plus là
+                return
             self._stop.wait(POLL_SECONDS)
 
     def stop(self) -> None:
@@ -105,6 +125,7 @@ class NowPlayingCard(QFrame):
         if backend is not None:
             self.poller = Poller(backend)
             self.poller.changed.connect(self.show_track)
+            self.destroyed.connect(self.poller.stop)  # la carte détruite : le fil s'arrête
         self._clock = QTimer(self, interval=500, timeout=self._advance)  # avance entre 2 lectures
         self._clock.start()
         self.refresh_style()
