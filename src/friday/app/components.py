@@ -20,6 +20,7 @@ from friday.app.memory_keeper import MemoryKeeper
 from friday.app.prefetch import hints, prefetcher
 from friday.brain.gpu_gate import GatedClient
 from friday.brain.llm import Brain
+from friday.brain.ollama_wait import wait_for_ollama
 from friday.core.config import DATA_DIR, MODELS_DIR, VOICES_DIR, Settings
 from friday.memory.service import MemoryService, format_memories
 from friday.tools import ToolResult, default_toolbox
@@ -54,6 +55,7 @@ def load_components(
     on_background: Callable[[str, ToolResult], None] | None = None,
 ) -> Components:
     client = GatedClient(host=settings.ollama_host)
+    wait_for_ollama(client)  # avant tout modèle : qwen doit passer avant Whisper (S3)
     memory = load_memory(settings, client)
     day_log = None
     if settings.day_memory:

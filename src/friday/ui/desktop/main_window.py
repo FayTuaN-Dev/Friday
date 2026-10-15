@@ -343,6 +343,7 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.scene_follows(state)
         self.regrow_when_idle(state)
         self.orb.set_state(state)
+        self.notifier.set_loading(state is AssistantState.LOADING)
         self.status.setText(state.value.upper())
         self.status.setStyleSheet(f"color: {self.status_color()};")
         if self.scene_mode:  # la sphère est cachée : l'état s'affiche en haut de la scène
