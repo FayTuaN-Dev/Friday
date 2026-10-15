@@ -65,6 +65,7 @@ def default_toolbox(
         from friday.tools.place import ShowPlaceTool
         from friday.tools.route import ShowRouteTool
         from friday.tools.weather import WeatherTool
+        from friday.tools.weather_map import ShowWeatherMapTool
         from friday.tools.web_page import ReadWebPageTool
         from friday.tools.web_search import WebSearchTool
 
@@ -78,6 +79,7 @@ def default_toolbox(
             MarketQuoteTool(),
             ShowPlaceTool(),
             ShowRouteTool(settings.home_city),
+            ShowWeatherMapTool(),
         ]
     if settings.files_access:
         from friday.files.folders import search_folders
