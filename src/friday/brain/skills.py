@@ -34,7 +34,7 @@ CORE_GUIDE = """- close_popups : fermer les fenêtres que tu as affichées (rés
 SKILLS = (
     Skill("web", "internet : météo, recherche, actualité, pages web, images, cartes",
           ("get_weather", "web_search", "read_webpage", "search_images", "market_quote",
-           "show_place"),
+           "show_place", "show_route"),
           """- get_weather : la météo (actuelle et sur 7 jours). Toujours cet outil pour la météo,
   jamais la recherche web.
 - web_search : chercher sur internet : actualité, faits récents, prix, horaires, résultats
@@ -45,7 +45,10 @@ SKILLS = (
 - market_quote : le cours d'une devise, de l'or, de l'argent, du pétrole, d'un indice, d'une
   crypto ou d'une action. Toujours cet outil pour un cours, jamais web_search.
 - show_place : MONTRER un lieu réel sur une carte 3D (« montre-moi la tour Eiffel », « où se
-  trouve Tokyo ? »). Pour des PHOTOS d'un lieu, c'est search_images.""",
+  trouve Tokyo ? »). Pour des PHOTOS d'un lieu, c'est search_images.
+- show_route : un ITINÉRAIRE tracé sur la carte, avec distance et durée (« trace-moi la route
+  de Nantes à Lyon », « combien de temps pour aller à Bordeaux ? », « c'est loin, Brest ? »).
+  Départ non dit = chez l'utilisateur (laisse origin vide). Jamais de mémoire : cet outil.""",
           ("meteo", "quel temps", "temps qu", "pluie", "pleu", "neige", "temperature", "degre",
            "vent ", "cherche", "recherche", "internet", "web", "actualit", "info ", "infos",
            "news", "nouvelles", "page", "lien", "article", "image", "photo ", "photos", "prix",
@@ -55,10 +58,13 @@ SKILLS = (
            "matieres premieres", "devise",
            "bitcoin", "crypto", "approfondi", "en savoir plus", "plus de detail", "developpe",
            "guide", "le point", "numero", "montre moi", "fais moi voir", "ou se trouve",
-           "ou est situe", "carte", "en 3d", "vue du ciel"),
+           "ou est situe", "carte", "en 3d", "vue du ciel", "itineraire", "trajet",
+           "la route", "pour aller", "c est loin", "combien de km", "kilometres", "distance",
+           "en voiture", "a velo", "a pied", "trace moi"),
           ("quel temps fait-il demain", "cherche les dernières nouvelles sur la bourse",
            "montre-moi des images de chats", "qui a gagné le match hier soir",
-           "lis-moi cet article", "montre-moi la tour Eiffel")),
+           "lis-moi cet article", "montre-moi la tour Eiffel",
+           "trace-moi la route jusqu'à Nantes", "combien de temps pour aller à Bordeaux")),
     Skill("monde", "actualité internationale, catastrophes, ce qui peut bouger les marchés",
           ("world_news", "market_movers", "show_world"),
           """- world_news : le point sur le monde (« quoi de neuf dans le monde ? », « les infos

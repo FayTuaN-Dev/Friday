@@ -124,9 +124,9 @@ class SceneLayer(QFrame):
             from friday.ui.desktop.scenes.weather_scene import WeatherScene
 
             return WeatherScene(data, title)
-        if kind in ("place", "world"):  # la même carte : lieu en 3D, ou globe (J9b)
+        if kind in ("place", "world", "route"):  # la même carte : lieu, globe, itinéraire
             self.warm_map()
-            self.map.go(data) if kind == "place" else self.map.world(data)
+            {"place": self.map.go, "world": self.map.world, "route": self.map.route}[kind](data)
             return self.map
         return None
 

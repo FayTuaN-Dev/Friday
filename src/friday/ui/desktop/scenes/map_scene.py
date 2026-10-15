@@ -89,6 +89,11 @@ class MapScene(QWidget):
         """Se place sur le lieu (sans animation : Friday va en parler)."""
         self._run(go_script(data, self.accent))
 
+    def route(self, data: dict) -> None:
+        """Un itinéraire tracé, la carte cadrée sur tout le trajet (M1)."""
+        args = ", ".join(json.dumps(v) for v in (data, self.accent))
+        self._run(f"window.fridayRoute && window.fridayRoute({args});")
+
     def world(self, data: dict) -> None:
         """Le globe de la veille monde (J9b)."""
         self._run(world_script(data))
