@@ -16,6 +16,7 @@ import numpy as np
 
 from friday.app.events import AssistantState
 from friday.app.game_summary import GameSummary
+from friday.app.gpu_reload import reload_in_startup_order
 from friday.brain import gpu_gate
 from friday.tools.base import Display
 from friday.voice.recorder import WHISPER_RATE
@@ -195,7 +196,7 @@ class GameMode:
             a.listener.on_display(Display("game_mode", "Mode jeu", {"on": False}))
             a.set_state(AssistantState.LOADING)
             gpu_gate.OPEN.set()
-            self._reload_in_startup_order()
+            reload_in_startup_order(a)
         finally:
             gpu_gate.OPEN.set()
             self.paused = self._leaving = False
@@ -209,30 +210,17 @@ class GameMode:
         for item in missed:  # puis les annonces gardées pendant la partie
             a.post("done", item)
 
-    def _reload_in_startup_order(self) -> None:
-        """Le même ordre qu'au démarrage : modèle de la mémoire, qwen, PUIS Whisper. Mesuré :
-        Whisper rechargé d'abord, qwen débordait de la carte et lisait 200 jetons/s au lieu
-        de 1 550 (carte à 97 %, Friday semblait figée)."""
-        a = self.assistant
-        settings = a.settings
-        if getattr(settings, "memory_enabled", False):
-            try:
-                a.components.brain.client.embed(model=settings.embed_model, input=["réveil"],
-                                                keep_alive="30m")  # fmt: skip
-            except Exception as error:
-                log.warning("Mode jeu : modèle de la mémoire non rechargé (%s)", error)
-        a.components.brain.warmup()
-        if a.components.stt is not None:
-            a.components.stt.reload()
-
     def _say(self, text: str, wait: bool = True) -> None:
-        """Une phrase dite et affichée, sans passer par qwen."""
-        a = self.assistant
-        a.listener.on_reply_start()
-        a.listener.on_reply_chunk(text)
-        a.listener.on_reply_end(False)
-        speaker = a.components.speaker if a.voice_on else None
-        if speaker is not None:
-            speaker.say(text)
-            if wait:
-                speaker.wait()
+        say_directly(self.assistant, text, wait)
+
+
+def say_directly(a: "Assistant", text: str, wait: bool = True) -> None:
+    """Une phrase dite et affichée, sans passer par qwen (mode jeu, mode globe)."""
+    a.listener.on_reply_start()
+    a.listener.on_reply_chunk(text)
+    a.listener.on_reply_end(False)
+    speaker = a.components.speaker if a.voice_on else None
+    if speaker is not None:
+        speaker.say(text)
+        if wait:
+            speaker.wait()

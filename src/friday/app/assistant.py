@@ -19,6 +19,7 @@ from friday.app.components import Components, describe, load_components
 from friday.app.confirmations import ConfirmationGate
 from friday.app.events import AssistantListener, AssistantState
 from friday.app.game_mode import GameMode
+from friday.app.globe_mode import GlobeMode
 from friday.app.reply import Reply
 from friday.app.scene_gate import SceneGate
 from friday.app.stall_watch import StallWatch
@@ -65,6 +66,7 @@ class Assistant:
         self._interrupted = threading.Event()
         self._state: AssistantState | None = None
         self.game = GameMode(self)  # « Friday, mode jeu » : la carte graphique rendue au jeu
+        self.globe = GlobeMode(self)  # « Friday, ouvre l'œil de Dieu » : le globe God's Eye
         self.inputs = VoiceInputs(settings, self)
         self._reply: Reply | None = None
         self.confirm = ConfirmationGate(listener)  # « Je lance ? » en attente de réponse
@@ -145,6 +147,7 @@ class Assistant:
         self._events.put((kind, payload))
 
     def shutdown(self) -> None:
+        self.globe.shutdown()
         self.inputs.close()
         self.interrupt()
         self._events.put(("stop", None))
@@ -197,12 +200,14 @@ class Assistant:
             self.listener.on_notice("Nouvelle conversation")
         elif kind in ("text", "heard"):
             self.listener.on_user_message(str(payload), by_voice=kind == "heard")
-            if self.game.command(str(payload)):
+            if self.game.command(str(payload)) or self.globe.command(str(payload)):
                 return
             if not self._trading_command(str(payload)):
                 self._respond(self.attachments.wrap(str(payload)), said=str(payload))
         elif kind == "game":  # un jeu vient de se lancer (G2)
             self.game.enter(game=str(payload))
+        elif kind == "globe":  # bouton, menu de l'icône, ou fenêtre du globe fermée
+            self.globe.event(str(payload))
         elif kind == "done":  # une tâche de fond (Claude) est terminée
             if not self.game.keep_for_later(*payload):  # mode jeu : annoncée au retour
                 self._announce(*payload)
@@ -215,6 +220,8 @@ class Assistant:
                 return
             if not self.confirm.route(text):
                 self.listener.on_user_message(text, by_voice=True)
+                if self.globe.command(text):
+                    return
                 if not self._trading_command(text):
                     self._respond(self.attachments.wrap(text), said=text)
 

@@ -83,7 +83,8 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
 
         # bulles Windows des tâches de fond, quand Friday n'est pas au premier plan
         self.notifier = Notifier(self, icon("pulse", theme.current().accent, 32), self.toggle_game,
-                                 icon("gamepad", theme.current().muted, 32))  # fmt: skip
+                                 icon("gamepad", theme.current().muted, 32),
+                                 on_globe=self.toggle_globe)  # fmt: skip
         self.settings_window = None  # fenêtre des réglages (ouverte à la demande)
         self.journal_window = None  # journal de trading (ouvert à la demande)
         self._build_layout()
@@ -188,6 +189,7 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.input.reset_clicked.connect(self._reset)
         self.title_bar.settings_button.clicked.connect(self.open_settings)
         self.title_bar.game_button.clicked.connect(self.toggle_game)
+        self.title_bar.globe_button.clicked.connect(self.toggle_globe)
 
     def apply_color(self, base: QColor, save: bool = True) -> None:
         """Change la couleur de toute l'interface, à chaud (pop-ups ouverts compris)."""
@@ -229,6 +231,8 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
             self.notifier.notify(display)
         elif display.kind == "game_mode":  # mode jeu : la fenêtre se fait oublier
             self._game_mode(display.data.get("on", False))
+        elif display.kind == "globe_mode":  # œil de Dieu : l'icône le dit
+            self.notifier.set_globe(display.data.get("on", False))
         elif display.kind == "trading_mode":  # badge du mode trading
             self.title_bar.set_trading(display.data.get("on", False))
         else:
@@ -239,6 +243,12 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         game = getattr(self.assistant, "game", None)
         if game is not None:
             game.toggle()
+
+    def toggle_globe(self) -> None:
+        """Bouton de la barre de titre ou menu de l'icône : ouvre ou ferme l'œil de Dieu."""
+        globe = getattr(self.assistant, "globe", None)
+        if globe is not None:
+            globe.toggle()
 
     def _game_mode(self, on: bool) -> None:
         self.notifier.set_game(on)

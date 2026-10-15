@@ -114,6 +114,12 @@ SECTIONS = (
         Field("GAME_MODE_IGNORE", "Pas des jeux (mode jeu)", "text", "",
               "Programmes à ne jamais prendre pour un jeu, séparés par des virgules (ex. : "
               "wallpaper64, resolve)."),
+        Field("GLOBE_MODEL", "Cerveau pendant l'œil de Dieu", "text",
+              "qwen3:4b-instruct-2507-q4_K_M",
+              "« Friday, ouvre l'œil de Dieu » : ce petit modèle remplace le cerveau habituel "
+              "le temps du globe, pour lui laisser la carte graphique."),
+        Field("GLOBE_DIR", "Dossier de l'œil de Dieu", "text", "",
+              "Le dossier de gods-eye-view (vide : à côté du dossier de Friday)."),
         Field("BACKUP_DIR", "Copie des sauvegardes (dossier)", "text", "",
               "Facultatif : un dossier OneDrive ou une clé USB. Les sauvegardes quotidiennes "
               "restent aussi dans data/sauvegardes (les 7 dernières)."),

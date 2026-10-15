@@ -14,17 +14,31 @@ log = logging.getLogger(__name__)
 OPEN = threading.Event()
 OPEN.set()  # ouverte : Friday travaille normalement
 
+# Mode globe : le gros modèle remplacé par un petit, pour TOUS les appels (réponse, mémoire,
+# tri des mails, rêve…) : aucun ne recharge le gros à côté du globe. {gros: petit}
+STAND_IN: dict[str, str] = {}
+NO_THINK: set[str] = set()  # remplaçants sans réflexion : Ollama refuserait think=True
+
+
+def _stand_in(kwargs: dict) -> dict:
+    small = STAND_IN.get(kwargs.get("model", ""))
+    if small:
+        kwargs["model"] = small
+        if small in NO_THINK:
+            kwargs.pop("think", None)
+    return kwargs
+
 
 class GatedClient(ollama.Client):
     """Client Ollama de Friday : chaque appel qui chargerait un modèle passe par la barrière."""
 
     def chat(self, *args, **kwargs):
         OPEN.wait()
-        return super().chat(*args, **kwargs)
+        return super().chat(*args, **_stand_in(kwargs))
 
     def generate(self, *args, **kwargs):
         OPEN.wait()
-        return super().generate(*args, **kwargs)
+        return super().generate(*args, **_stand_in(kwargs))
 
     def embed(self, *args, **kwargs):
         OPEN.wait()

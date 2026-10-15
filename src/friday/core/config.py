@@ -11,6 +11,7 @@ DATA_DIR = ROOT_DIR / "data"
 LOGS_DIR = ROOT_DIR / "logs"
 VOICES_DIR = DATA_DIR / "voices"
 MODELS_DIR = DATA_DIR / "models"
+GLOBE_MODEL = "qwen3:4b-instruct-2507-q4_K_M"  # le meilleur petit modèle du banc (31/33)
 
 
 @dataclass(frozen=True)
@@ -85,6 +86,8 @@ class Settings:
     game_auto: bool = True  # mode jeu tout seul quand un jeu se lance (G2)
     start_with_windows: bool = True  # lancée (cachée près de l'horloge) avec Windows (S1)
     game_ignore: tuple[str, ...] = ()  # programmes qui ne sont pas des jeux (« wallpaper64 »)
+    globe_model: str = GLOBE_MODEL  # petit cerveau pendant le globe God's Eye (place sur la carte)
+    globe_dir: str = ""  # dossier de gods-eye-view (vide : à côté du dossier de Friday)
     spotify_client_id: str = ""  # application developer.spotify.com : lecture directe (Premium)
     trading: TradingSettings = TradingSettings()
 
@@ -177,6 +180,8 @@ def load_settings() -> Settings:
             w.strip().lower() for w in os.getenv("GAME_MODE_IGNORE", "").split(",") if w.strip()
         ),
         spotify_client_id=os.getenv("SPOTIFY_CLIENT_ID", "").strip(),
+        globe_model=os.getenv("GLOBE_MODEL", "").strip() or GLOBE_MODEL,
+        globe_dir=os.getenv("GLOBE_DIR", "").strip(),
         trading=TradingSettings(
             enabled=_bool("TRADING_ENABLED", True),
             passages=max(1, min(15, int(os.getenv("TRADING_PASSAGES", "10")))),

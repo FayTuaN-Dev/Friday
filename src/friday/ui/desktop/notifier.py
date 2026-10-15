@@ -11,12 +11,13 @@ SHOWN_MS = 8000
 
 
 class Notifier:
-    def __init__(self, window: QWidget, icon, on_game=None, game_icon=None) -> None:
+    def __init__(self, window: QWidget, icon, on_game=None, game_icon=None,
+                 on_globe=None) -> None:  # fmt: skip
         """`on_game` : « Mode jeu » / « Reprendre » du menu (G3) ; `game_icon` : l'icône
-        montrée pendant le mode jeu."""
+        montrée pendant le mode jeu ; `on_globe` : « Œil de Dieu » du menu."""
         self.window = window
         self.icons = (icon, game_icon or icon)
-        self._game = self._loading = False
+        self._game = self._loading = self._globe = False
         self.tray = QSystemTrayIcon(icon, window) if QSystemTrayIcon.isSystemTrayAvailable() \
             else None  # fmt: skip
         if self.tray is not None:
@@ -25,6 +26,7 @@ class Notifier:
             self.tray.activated.connect(self._clicked)
             self.menu = QMenu(window)
             self.game_action = self.menu.addAction("🎮  Mode jeu", on_game or (lambda: None))
+            self.globe_action = self.menu.addAction("🌍  Œil de Dieu", on_globe or (lambda: None))
             self.menu.addAction("Ouvrir Friday", self.bring_back)
             self.menu.addSeparator()
             self.menu.addAction("Quitter Friday", getattr(window, "quit_friday", window.close))
@@ -51,13 +53,22 @@ class Notifier:
         self._loading = on
         self._tooltip()
 
+    def set_globe(self, on: bool) -> None:
+        """Œil de Dieu : l'infobulle rappelle que Friday tourne sur son petit cerveau."""
+        self._globe = on
+        if self.tray is not None:
+            self.globe_action.setText("🌍  Fermer l'œil de Dieu" if on else "🌍  Œil de Dieu")
+        self._tooltip()
+
     def _tooltip(self) -> None:
         if self.tray is None:
             return
         if self._game:
             text = "Friday · mode jeu (« Friday, reviens » ou double clap)"
+        elif self._loading:
+            text = "Friday · démarrage…"
         else:
-            text = "Friday · démarrage…" if self._loading else "Friday"
+            text = "Friday · œil de Dieu (petit cerveau)" if self._globe else "Friday"
         self.tray.setToolTip(text)
 
     def hidden_once(self) -> None:

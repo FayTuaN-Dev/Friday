@@ -23,6 +23,7 @@ class TitleBar(QWidget):
 
         self.settings_button = self._button("Réglages", "TitleButton")
         self.game_button = self._button("Mode jeu : libérer la carte graphique", "TitleButton")
+        self.globe_button = self._button("Œil de Dieu : le globe en direct", "TitleButton")
         self.minimize = self._button("Réduire", "TitleButton", window.showMinimized)
         self.maximize = self._button("Agrandir", "TitleButton", self.toggle_maximized)
         self.close_button = self._button("Fermer", "CloseButton", window.close)
@@ -35,6 +36,7 @@ class TitleBar(QWidget):
         left_row.setContentsMargins(0, 0, 0, 0)
         left_row.addWidget(self.settings_button)
         left_row.addWidget(self.game_button)
+        left_row.addWidget(self.globe_button)
         left_row.addStretch()
         right = QWidget()
         right_row = QHBoxLayout(right)
@@ -69,6 +71,7 @@ class TitleBar(QWidget):
     def refresh(self, palette: Palette) -> None:
         self.settings_button.setIcon(icon("settings", palette.accent, 16))
         self.game_button.setIcon(icon("gamepad", palette.accent, 16))
+        self.globe_button.setIcon(icon("globe", palette.accent, 16))
         self.minimize.setIcon(icon("minimize", palette.muted, 15))
         self.maximize.setIcon(icon("maximize", palette.muted, 15))
         self.close_button.setIcon(icon("close", palette.muted, 15))
