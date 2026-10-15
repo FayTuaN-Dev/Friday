@@ -16,6 +16,7 @@ class Notifier:
         montrée pendant le mode jeu."""
         self.window = window
         self.icons = (icon, game_icon or icon)
+        self._game = self._loading = False
         self.tray = QSystemTrayIcon(icon, window) if QSystemTrayIcon.isSystemTrayAvailable() \
             else None  # fmt: skip
         if self.tray is not None:
@@ -40,10 +41,24 @@ class Notifier:
         """Mode jeu (G3) : l'icône change, l'infobulle et le menu disent comment revenir."""
         if self.tray is None:
             return
+        self._game = on
         self.tray.setIcon(self.icons[on])
-        self.tray.setToolTip("Friday · mode jeu (« Friday, reviens » ou double clap)" if on
-                             else "Friday")  # fmt: skip
+        self._tooltip()
         self.game_action.setText("▶  Reprendre Friday" if on else "🎮  Mode jeu")
+
+    def set_loading(self, on: bool) -> None:
+        """Démarrage (S3) : l'infobulle dit que Friday se prépare (elle attend Ollama…)."""
+        self._loading = on
+        self._tooltip()
+
+    def _tooltip(self) -> None:
+        if self.tray is None:
+            return
+        if self._game:
+            text = "Friday · mode jeu (« Friday, reviens » ou double clap)"
+        else:
+            text = "Friday · démarrage…" if self._loading else "Friday"
+        self.tray.setToolTip(text)
 
     def hidden_once(self) -> None:
         """La croix a caché Friday : on le dit une fois, pour qu'elle ne semble pas fermée."""
