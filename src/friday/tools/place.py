@@ -14,6 +14,15 @@ HEADERS = {"User-Agent": "Friday-assistant-personnel/1.0 (usage local)"}
 TOWNS = {"city", "town", "village", "municipality", "city_district", "suburb", "province"}
 
 
+def find_place(client: httpx.Client, place: str) -> dict | None:
+    """Le lieu le plus probable (OpenStreetMap), ou None."""
+    response = client.get(SEARCH_URL, params={"q": place, "format": "json", "limit": 1,
+                                              "accept-language": "fr"})  # fmt: skip
+    response.raise_for_status()
+    found = response.json()
+    return found[0] if found else None
+
+
 def zoom_for(bbox: list[str], kind: str = "") -> float:
     """Boîte du lieu [sud, nord, ouest, est] → zoom de carte (17 : un bâtiment, 4 : un pays)."""
     south, north, west, east = (float(v) for v in bbox)
@@ -39,13 +48,9 @@ class ShowPlaceTool(Tool):
         return f"🗺️ Carte : {args.get('place', '')}"
 
     def run(self, place: str) -> ToolResult:
-        response = self.client.get(SEARCH_URL, params={"q": place, "format": "json", "limit": 1,
-                                                       "accept-language": "fr"})  # fmt: skip
-        response.raise_for_status()
-        found = response.json()
-        if not found:
+        top = find_place(self.client, place)
+        if top is None:
             return ToolResult(f"Dis EXACTEMENT : « Je ne trouve pas « {place} » sur la carte. »")
-        top = found[0]
         name = top.get("name") or top["display_name"].split(",")[0]
         where = ", ".join(top["display_name"].split(", ")[-2:])
         zoom = zoom_for(top["boundingbox"], top.get("addresstype", ""))

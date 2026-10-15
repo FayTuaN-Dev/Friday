@@ -53,7 +53,9 @@ class Assistant:
     ) -> None:
         self.settings = settings
         # Météo (si les scènes sont activées), lieu, globe : la voix attend le fond (U8)
-        kinds = {"place", "world"} | ({"weather"} if getattr(settings, "scenes", False) else set())
+        kinds = {"place", "world", "route"} | (
+            {"weather"} if getattr(settings, "scenes", False) else set()
+        )
         self.scene_gate = SceneGate(kinds)
         self.listener = listener
         self._loader = loader
