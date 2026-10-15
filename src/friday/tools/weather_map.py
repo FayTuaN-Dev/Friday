@@ -112,9 +112,10 @@ class ShowWeatherMapTool(Tool):
     def _measure(self, points: list[tuple[float, float]]) -> list[dict] | None:
         """Temps actuel de chaque point (None : service saturé)."""
         key = tuple(points)
-        when, kept = self._kept.get(key, (0.0, []))
-        if time.monotonic() - when < KEEP_SECONDS:
-            return kept
+        # Constaté (CI) : avec « 0 » comme date par défaut, un PC allumé depuis moins de 10 min
+        # croyait avoir des mesures récentes… vides
+        if key in self._kept and time.monotonic() - self._kept[key][0] < KEEP_SECONDS:
+            return self._kept[key][1]
         response = self.client.get(FORECAST_URL, params={
             "latitude": ",".join(str(lat) for lat, _ in points),
             "longitude": ",".join(str(lon) for _, lon in points),
