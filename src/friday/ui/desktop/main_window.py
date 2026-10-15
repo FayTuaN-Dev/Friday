@@ -312,9 +312,13 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         from PySide6.QtCore import QProcess
 
         from friday.core.config import ROOT_DIR
+        from friday.ui.desktop.single_instance import InstanceServer
 
-        QProcess.startDetached(sys.executable, ["-m", "friday", *sys.argv[1:]], str(ROOT_DIR))
-        self.close()
+        for server in self.findChildren(InstanceServer):  # sinon la nouvelle Friday croirait
+            server.server.close()  # qu'une autre tourne déjà, et s'arrêterait
+        args = [a for a in sys.argv[1:] if a != "--tray"]  # relancée depuis la fenêtre : visible
+        QProcess.startDetached(sys.executable, ["-m", "friday", *args], str(ROOT_DIR))
+        self.quit_friday()
 
     def on_ready(self, info: str) -> None:
         self.info.setText(info)
@@ -375,7 +379,19 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
             self._side_panels()
         super().changeEvent(event)
 
+    def quit_friday(self) -> None:
+        """Arrêter vraiment Friday (menu de l'icône) : la croix, elle, ne fait que cacher."""
+        self._quitting = True
+        self.close()
+        QApplication.quit()
+
     def closeEvent(self, event) -> None:
+        if not getattr(self, "_quitting", False):  # la croix : Friday reste près de l'horloge
+            event.ignore()
+            self.popups.close_all()  # pas de pop-ups seules à l'écran
+            self.hide()
+            self.notifier.hidden_once()
+            return
         self.popups.close_all()
         self.playing.close_poller()
         for window in (self.settings_window, self.journal_window):

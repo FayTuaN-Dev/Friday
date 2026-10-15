@@ -83,6 +83,7 @@ class Settings:
     world: bool = True  # veille monde : actualité internationale, catastrophes (J9)
     world_alerts: bool = True  # notification discrète pour un événement majeur (J9)
     game_auto: bool = True  # mode jeu tout seul quand un jeu se lance (G2)
+    start_with_windows: bool = True  # lancée (cachée près de l'horloge) avec Windows (S1)
     game_ignore: tuple[str, ...] = ()  # programmes qui ne sont pas des jeux (« wallpaper64 »)
     spotify_client_id: str = ""  # application developer.spotify.com : lecture directe (Premium)
     trading: TradingSettings = TradingSettings()
@@ -171,6 +172,7 @@ def load_settings() -> Settings:
         world=_bool("WORLD", True),
         world_alerts=_bool("WORLD_ALERTS", True),
         game_auto=_bool("GAME_MODE_AUTO", True),
+        start_with_windows=_bool("START_WITH_WINDOWS", True),
         game_ignore=tuple(
             w.strip().lower() for w in os.getenv("GAME_MODE_IGNORE", "").split(",") if w.strip()
         ),

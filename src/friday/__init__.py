@@ -11,6 +11,8 @@ from friday.core.logging import setup_logging
 def main() -> None:
     parser = argparse.ArgumentParser(prog="friday", description="Assistant personnel vocal")
     parser.add_argument("--cli", action="store_true", help="interface terminal (sans fenêtre)")
+    hint = "démarrer cachée près de l'horloge (lancement avec Windows)"
+    parser.add_argument("--tray", action="store_true", help=hint)
     args = parser.parse_args()
 
     # La console Windows n'est pas en UTF-8 par défaut : sans ça, les accents sont illisibles.
@@ -23,6 +25,9 @@ def main() -> None:
 
     if args.cli:
         from friday.ui.terminal import run
+
+        run(settings)
     else:
         from friday.ui.desktop.app import run
-    run(settings)
+
+        run(settings, tray=args.tray)

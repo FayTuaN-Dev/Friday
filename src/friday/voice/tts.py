@@ -10,6 +10,22 @@ from piper.download_voices import download_voice
 log = logging.getLogger(__name__)
 
 
+_LOADED: dict[tuple, "PiperTTS"] = {}
+
+
+def load_voice(voice: str, voices_dir: Path, speed: float = 1.0,
+               speaker: int | None = None) -> "PiperTTS":  # fmt: skip
+    """La voix, chargée et échauffée une seule fois. Constaté : charger Piper gardait le verrou
+    de Python 2 à 3 s, et sa première phrase 1,5 s : fenêtre figée au démarrage. Friday la
+    charge donc AVANT d'afficher sa fenêtre (S2), puis la retrouve ici."""
+    key = (voice, str(voices_dir), speed, speaker)
+    if key not in _LOADED:
+        tts = PiperTTS(voice, voices_dir, speed, speaker)
+        tts.synthesize("Bonjour.")  # échauffement : la 1re phrase coûte cher
+        _LOADED[key] = tts
+    return _LOADED[key]
+
+
 class PiperTTS:
     def __init__(
         self, voice: str, voices_dir: Path, speed: float = 1.0, speaker: int | None = None

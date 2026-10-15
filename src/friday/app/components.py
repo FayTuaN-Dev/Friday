@@ -131,10 +131,10 @@ def load_components(
     if settings.tts_enabled:
         try:
             from friday.voice.player import AudioPlayer
-            from friday.voice.tts import PiperTTS
+            from friday.voice.tts import load_voice
 
-            tts = PiperTTS(settings.tts_voice, VOICES_DIR, settings.tts_speed, settings.tts_speaker)
-            tts.synthesize("Bonjour.")  # échauffement : la 1re phrase figeait la fenêtre
+            tts = load_voice(settings.tts_voice, VOICES_DIR, settings.tts_speed,
+                             settings.tts_speaker)  # fmt: skip
             player = AudioPlayer(tts.sample_rate, settings.output_device)
             name = settings.wake_words[0]
             components.speaker = Speaker(
