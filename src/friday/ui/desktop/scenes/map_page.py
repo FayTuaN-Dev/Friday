@@ -1,9 +1,11 @@
 """La page web de la scène carte : MapLibre GL (libre) et les cartes OpenFreeMap (gratuites,
 sans compte ni clé). La carte des lieux (J7) est ici ; le globe de la veille monde (J9b)
-est dans globe_js.py, les itinéraires (M1) dans route_js.py. page() assemble le tout."""
+est dans globe_js.py, les itinéraires (M1) dans route_js.py, la météo (M2) dans
+weather_js.py. page() assemble le tout."""
 
 from friday.ui.desktop.scenes.globe_js import GLOBE_CSS, GLOBE_JS
 from friday.ui.desktop.scenes.route_js import ROUTE_JS
+from friday.ui.desktop.scenes.weather_js import WEATHER_JS
 
 MAPLIBRE = "https://unpkg.com/maplibre-gl@5.8.0/dist/maplibre-gl"  # 5 : le globe
 STYLE = "https://tiles.openfreemap.org/styles/dark"  # sombre, comme Friday
@@ -88,7 +90,7 @@ TAIL = "</script></body></html>"
 
 
 def page(accent: str = "#f0a83c") -> str:
-    html = HEAD + PLACE_JS + GLOBE_JS + ROUTE_JS + TAIL
+    html = HEAD + PLACE_JS + GLOBE_JS + ROUTE_JS + WEATHER_JS + TAIL
     for key, value in (("__GLOBE_CSS__", GLOBE_CSS), ("__MAPLIBRE__", MAPLIBRE),
                        ("__STYLE__", STYLE), ("__BACKGROUND__", BACKGROUND),
                        ("__ACCENT__", accent)):  # fmt: skip

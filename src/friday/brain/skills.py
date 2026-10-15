@@ -34,7 +34,7 @@ CORE_GUIDE = """- close_popups : fermer les fenêtres que tu as affichées (rés
 SKILLS = (
     Skill("web", "internet : météo, recherche, actualité, pages web, images, cartes",
           ("get_weather", "web_search", "read_webpage", "search_images", "market_quote",
-           "show_place", "show_route"),
+           "show_place", "show_route", "show_weather_map"),
           """- get_weather : la météo (actuelle et sur 7 jours). Toujours cet outil pour la météo,
   jamais la recherche web.
 - web_search : chercher sur internet : actualité, faits récents, prix, horaires, résultats
@@ -48,7 +48,10 @@ SKILLS = (
   trouve Tokyo ? »). Pour des PHOTOS d'un lieu, c'est search_images.
 - show_route : un ITINÉRAIRE tracé sur la carte, avec distance et durée (« trace-moi la route
   de Nantes à Lyon », « combien de temps pour aller à Bordeaux ? », « c'est loin, Brest ? »).
-  Départ non dit = chez l'utilisateur (laisse origin vide). Jamais de mémoire : cet outil.""",
+  Départ non dit = chez l'utilisateur (laisse origin vide). Jamais de mémoire : cet outil.
+- show_weather_map : MONTRER le vent et/ou les températures sur une carte (« montre-moi le
+  vent », « la carte des températures en France », « le vent en Bretagne »). Pour la météo
+  d'une ville en mots (« quel temps fait-il ? »), c'est get_weather.""",
           ("meteo", "quel temps", "temps qu", "pluie", "pleu", "neige", "temperature", "degre",
            "vent ", "cherche", "recherche", "internet", "web", "actualit", "info ", "infos",
            "news", "nouvelles", "page", "lien", "article", "image", "photo ", "photos", "prix",
@@ -60,11 +63,13 @@ SKILLS = (
            "guide", "le point", "numero", "montre moi", "fais moi voir", "ou se trouve",
            "ou est situe", "carte", "en 3d", "vue du ciel", "itineraire", "trajet",
            "la route", "pour aller", "c est loin", "combien de km", "kilometres", "distance",
-           "en voiture", "a velo", "a pied", "trace moi"),
+           "en voiture", "a velo", "a pied", "trace moi", "le vent", "du vent",
+           "les vents", "temperatures", "carte meteo", "carte des"),
           ("quel temps fait-il demain", "cherche les dernières nouvelles sur la bourse",
            "montre-moi des images de chats", "qui a gagné le match hier soir",
            "lis-moi cet article", "montre-moi la tour Eiffel",
-           "trace-moi la route jusqu'à Nantes", "combien de temps pour aller à Bordeaux")),
+           "trace-moi la route jusqu'à Nantes", "combien de temps pour aller à Bordeaux",
+           "montre-moi le vent", "la carte des températures en France")),
     Skill("monde", "actualité internationale, catastrophes, ce qui peut bouger les marchés",
           ("world_news", "market_movers", "show_world"),
           """- world_news : le point sur le monde (« quoi de neuf dans le monde ? », « les infos

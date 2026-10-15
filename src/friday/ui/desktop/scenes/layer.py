@@ -11,6 +11,9 @@ from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushBut
 from friday.ui.desktop import theme
 from friday.ui.desktop.theme.stylesheet import FONT_HUD
 
+# Ce que la carte sait montrer : genre d'affichage → méthode de MapScene
+SHOWN_ON_MAP = {"place": "go", "world": "world", "route": "route", "weather_map": "weather"}
+
 TOP_SHADE, BOTTOM_SHADE = 0.22, 0.5  # part de la hauteur assombrie en haut, en bas
 
 
@@ -118,15 +121,15 @@ class SceneLayer(QFrame):
             self.scene.set_insets(top + 50, bottom)  # sous la ligne « titre · Retour »
 
     def scene_for(self, kind: str, data: dict, title: str) -> QWidget | None:
-        """Display → scène : « weather » (ciel animé), « place » (carte 3D réutilisée) ou
-        « world » (globe de la veille monde, même carte)."""
+        """Display → scène : « weather » (ciel animé), ou la carte 3D réutilisée pour un lieu,
+        le globe de la veille monde, un itinéraire ou la météo (SHOWN_ON_MAP)."""
         if kind == "weather":
             from friday.ui.desktop.scenes.weather_scene import WeatherScene
 
             return WeatherScene(data, title)
-        if kind in ("place", "world", "route"):  # la même carte : lieu, globe, itinéraire
+        if kind in SHOWN_ON_MAP:  # la même carte : lieu, globe, itinéraire, météo
             self.warm_map()
-            {"place": self.map.go, "world": self.map.world, "route": self.map.route}[kind](data)
+            getattr(self.map, SHOWN_ON_MAP[kind])(data)
             return self.map
         return None
 
