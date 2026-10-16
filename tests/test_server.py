@@ -40,6 +40,29 @@ def test_the_light_brain_reads_its_instructions_at_startup_and_stays_loaded():
     assert sent["options"]["num_predict"] == 1  # lire, pas écrire
 
 
+class DoneClient(FakeClient):
+    """Comme Ollama : le dernier morceau dit combien de jetons ont été lus et écrits."""
+
+    def chat(self, **kwargs):
+        stream = super().chat(**kwargs)
+        if stream is None:
+            return None
+        done = SimpleNamespace(message=SimpleNamespace(content="", tool_calls=None), done=True,
+                               prompt_eval_count=1900, eval_count=30)  # fmt: skip
+        return [*stream, done]
+
+
+def test_the_slow_pi_never_triggers_the_reload_meant_for_the_graphics_card():
+    # Constaté : la sécurité du PC (lecture sous 500 jetons/s → rechargement) rechargeait le
+    # modèle du Pi (22 jetons/s) presque à chaque question : 87 s de relecture
+    for guides, watched in ((None, True), ("- outil.", False)):
+        brain = Brain(SETTINGS, client=DoneClient(chunks=["Oui."]), light_guides=guides)
+        seen = []
+        brain.speed.record = seen.append
+        assert "".join(brain.reply("Bonjour")) == "Oui."
+        assert bool(seen) is watched
+
+
 class FakeBrain:
     def __init__(self, fail=False):
         self.fail, self.resets = fail, 0

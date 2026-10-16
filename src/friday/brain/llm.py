@@ -166,7 +166,8 @@ class Brain:
                     if getattr(chunk, "done", False):
                         used = (chunk.prompt_eval_count or 0) + (chunk.eval_count or 0)
                         self._prompt_tokens = used
-                        self.speed.record(chunk)
+                        if self.light_guides is None:  # le Pi est lent par nature
+                            self.speed.record(chunk)
 
                 said = "".join(parts)
                 if not calls:
