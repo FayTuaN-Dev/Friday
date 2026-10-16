@@ -153,8 +153,8 @@ window.fridayPlanes = (data, accent) => whenReady(() => {
     const b = new maplibregl.LngLatBounds(data.home, data.home);
     b.extend([focus[0], focus[1]]);
     map.fitBounds(b, {padding: 140, duration: 0, maxZoom: 10});
-  } else if (data.bbox) {
-    const [s, n, w, e] = data.bbox;
+  } else if (data.bbox) {  // cadré sur la région ; les avions autour remplissent la fenêtre
+    const [s, n, w, e] = data.fit || data.bbox;
     map.fitBounds([[w, s], [e, n]], {padding: 10, duration: 0});
   }
   flyPlanes();

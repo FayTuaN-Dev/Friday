@@ -32,6 +32,8 @@ function sample(field, lon, lat) {
 const mercY = (lat) =>
   Math.log(Math.tan(Math.PI / 4 + Math.max(-85, Math.min(85, lat)) * Math.PI / 360));
 const latOfY = (y) => (2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180 / Math.PI;
+// Les bords de l'image s'effacent : pas de cassure nette si l'on recule ou déplace la carte
+const edgeFade = (f) => Math.min(1, Math.min(f, 1 - f) / 0.12);
 function tempImage() {  // une image, ligne par ligne en projection de la carte (Mercator)
   const [s, n, w, e] = wx.bbox, W = 240, H = 240;
   const canvas = document.createElement("canvas");
@@ -42,8 +44,9 @@ function tempImage() {  // une image, ligne par ligne en projection de la carte 
     const lat = latOfY(top - (top - bottom) * (r + 0.5) / H);
     for (let c = 0; c < W; c++) {
       const [R, G, B] = tempColor(sample(wx.temp, w + (e - w) * (c + 0.5) / W, lat));
-      const o = (r * W + c) * 4;
-      img.data[o] = R; img.data[o + 1] = G; img.data[o + 2] = B; img.data[o + 3] = 255;
+      const o = (r * W + c) * 4, edge = edgeFade((r + 0.5) / H) * edgeFade((c + 0.5) / W);
+      img.data[o] = R; img.data[o + 1] = G; img.data[o + 2] = B;
+      img.data[o + 3] = Math.round(255 * edge);
     }
   }
   ctx.putImageData(img, 0, 0);
@@ -130,9 +133,9 @@ window.fridayWeather = (data) => whenReady(() => {
   clearRoute();
   clearWeather();
   wx = data;
-  const [s, n, w, e] = data.bbox;
-  map.jumpTo({pitch: 0, bearing: 0});
-  map.fitBounds([[w, s], [e, n]], {padding: 10, duration: 0});
+  const [s, n, w, e] = data.bbox, [fs, fn, fw, fe] = data.fit || data.bbox;
+  map.jumpTo({pitch: 0, bearing: 0});  // cadré sur la région ; les mesures autour la débordent
+  map.fitBounds([[fw, fs], [fe, fn]], {padding: 10, duration: 0});
   if (data.layers.includes("temp")) {
     const below = (map.getStyle().layers.find((l) => l.type === "symbol") || {}).id;
     map.addSource("wx-temp", {type: "image", url: tempImage(),

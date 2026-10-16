@@ -9,7 +9,7 @@ import httpx
 from friday.tools.base import Display, Tool, ToolResult
 from friday.tools.place import HEADERS, find_place
 from friday.tools.planes_data import Busy, Plane, bearing, distance_km, flight, model, planes_in
-from friday.tools.weather_map import SIDES, region_box, without_article
+from friday.tools.weather_map import SIDES, inside, region_box, view_box, without_article
 
 NEAR_KM = 75  # « au-dessus de chez moi » : le plus proche dans ce rayon
 BUSY = ("Dis EXACTEMENT : « Le service des avions ne répond plus pour aujourd'hui ou est "
@@ -51,22 +51,21 @@ class ShowPlanesTool(Tool):
         if found is None:
             return ToolResult(f"Dis EXACTEMENT : « Je ne trouve pas « {region} » sur la carte. »")
         name, box = found
-        try:
-            planes = planes_in(self.client, box)
+        try:  # toute la fenêtre a ses avions ; on ne compte que ceux de la région
+            planes = planes_in(self.client, view_box(box))
         except Busy:
             return ToolResult(BUSY)
-        if not planes:
+        mine = [p for p in planes if inside(box, p.lat, p.lon)]
+        if not mine:
             return ToolResult(f"Dis EXACTEMENT : « Aucun avion capté sur {name} en ce moment. »")
-        airlines = Counter(p.airline for p in planes if p.airline).most_common(2)
+        airlines = Counter(p.airline for p in mine if p.airline).most_common(2)
         mostly = " et ".join(f"{a} ({n})" for a, n in airlines)
-        facts = f"{len(planes)} avions en vol sur la carte" + (
-            f", surtout {mostly}" if mostly else ""
-        )
-        data = {"planes": [row(p) for p in planes], "bbox": list(box)}
+        facts = f"{len(mine)} avions en vol sur {name}" + (f", surtout {mostly}" if mostly else "")
+        data = {"planes": [row(p) for p in planes], "bbox": list(view_box(box)), "fit": list(box)}
         return ToolResult(
             f"Carte des avions affichée sur {name}, en direct : {facts}. Dis-le en une phrase, "
             "et qu'on peut cliquer sur un avion pour voir son vol. Rien d'autre.",
-            Display("planes", f"Avions · {without_article(name)} · {len(planes)}", data),
+            Display("planes", f"Avions · {without_article(name)} · {len(mine)}", data),
         )
 
 

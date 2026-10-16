@@ -77,6 +77,7 @@ def test_the_map_shows_wind_and_temperatures_and_says_the_essentials():
     assert result.display.title == "Vent et températures · France"
     data = result.display.data
     assert data["layers"] == ["wind", "temp"] and len(data["temp"]) == data["nx"] * data["ny"]
+    assert data["fit"] == list(FRANCE) and data["bbox"][0] < 41 < 51.5 < data["bbox"][1]
     assert " °C (au sud" in result.text and "vent d'ouest" in result.text  # chaud au sud
     assert "jusqu'à 50 km/h (au nord" in result.text
     tool.run("vent", "France")  # « et le vent ? » juste après : pas de nouvelle demande
@@ -94,9 +95,15 @@ def test_a_freshly_started_pc_still_asks_for_measures(monkeypatch):
     assert calls.count("api.open-meteo.com") == 1 and result.display is not None
 
 
-def test_a_saturated_service_is_said_plainly():
+def test_a_saturated_or_silent_service_is_said_plainly():
     result = ShowWeatherMapTool(fake_meteo([], status=429)).run("vent", "France")
     assert "saturé" in result.text and result.display is None
+
+    def silent(request):
+        raise httpx.ReadTimeout("muet", request=request)
+
+    tool = ShowWeatherMapTool(httpx.Client(transport=httpx.MockTransport(silent)))
+    assert "ne répond pas" in tool.run("vent", "France").text
 
 
 def test_the_map_page_carries_the_weather_script():
