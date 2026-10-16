@@ -19,7 +19,9 @@ from friday.voice.wake import normalize
 
 log = logging.getLogger(__name__)
 PREFIX = "plan:"  # nom de stratégie d'un plan écrit : « plan:<id> »
-TEXT_CHARS = 1500  # un plan de trading, pas un roman
+# Constaté : 1 500 coupait une stratégie complète (Turtle Traders) avant ses entrées, sans le
+# dire. Le panneau compte maintenant les caractères et refuse d'enregistrer au-delà.
+TEXT_CHARS = 4000
 
 
 def fingerprint(text: str) -> str:
