@@ -23,6 +23,7 @@ from friday.app.reply import Reply
 from friday.app.scene_gate import SceneGate
 from friday.app.stall_watch import StallWatch
 from friday.app.voice_inputs import VoiceInputs
+from friday.brain import gpu_gate
 from friday.brain.llm import BrainError
 from friday.core.config import LOGS_DIR, Settings
 from friday.files.clipboard import read_clipboard
@@ -150,6 +151,10 @@ class Assistant:
         self.inputs.close()
         self.interrupt()
         self._events.put(("stop", None))
+        brain = getattr(self.components, "brain", None)
+        if brain is not None:  # constaté : qwen restait en mémoire vidéo après avoir quitté
+            s = self.settings
+            gpu_gate.unload_mine(brain.client, (s.ollama_model, s.vision_model, s.embed_model))
 
     # --- Thread de travail ---
 

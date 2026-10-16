@@ -11,7 +11,7 @@ from friday.app import game_mode
 from friday.app.events import AssistantState
 from friday.app.game_mode import GameMode, asks_game_mode, asks_return
 from friday.brain import gpu_gate
-from friday.brain.gpu_gate import GatedClient, unload_all
+from friday.brain.gpu_gate import GatedClient, unload_all, unload_mine
 
 
 @pytest.fixture(autouse=True)
@@ -68,6 +68,15 @@ def test_unload_passes_the_closed_gate(monkeypatch):
     gpu_gate.OPEN.clear()
     assert unload_all(client) == ["qwen3:8b", "embeddinggemma:latest"]
     assert client.models == []
+
+
+def test_quitting_friday_frees_only_its_own_models(monkeypatch):
+    client = FakeOllama(["qwen3:8b", "embeddinggemma:latest", "llama3:8b"])  # llama : un autre
+    monkeypatch.setattr(ollama.Client, "generate", lambda self, model, keep_alive:
+                        self.models.remove(model))  # fmt: skip
+    assert unload_mine(client, ("qwen3:8b", "", "embeddinggemma")) == [
+        "qwen3:8b", "embeddinggemma:latest"]  # fmt: skip
+    assert client.models == ["llama3:8b"]
 
 
 class FakeSTT:
