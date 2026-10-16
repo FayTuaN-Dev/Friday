@@ -43,20 +43,22 @@ async function wxMeasure(points) {  // en paquets de 200 points ; gardés dans w
     });
   }
 }
-async function wxFollow() {
-  if (!wx || !wxFollowing) return;
+// `fresh` : les couches voulues quand rien n'est encore affiché (un bouton de la carte)
+async function wxFollow(fresh) {
+  if (!(wx || fresh) || !wxFollowing) return;
   const view = wxView(), g = wxGrid(view);
-  if (wx.sp === g.sp && covers(wx.bbox, view)) return;  // déjà tout ce qu'il faut
+  if (wx && wx.sp === g.sp && covers(wx.bbox, view)) return;  // déjà tout ce qu'il faut
   const id = ++wxAsked, points = [];
   for (let j = 0; j < g.ny; j++) for (let i = 0; i < g.nx; i++) {
     points.push([g.bbox[0] + j * g.sp, g.bbox[2] + i * g.sp]);
   }
   const old = (p) => !(wxCache.get(wxKey(...p))?.at > Date.now() - WX_KEEP);
   try { await wxMeasure(points.filter(old)); } catch (error) { return; }  // muet : on garde
-  if (id !== wxAsked || !wx) return;  // un geste plus récent, ou la météo fermée entre-temps
+  if (id !== wxAsked || !(wx || fresh)) return;  // un geste plus récent, ou la météo fermée
   const got = points.map((p) => wxCache.get(wxKey(...p)));
-  wx = {...wx, ...g, temp: got.map((m) => m.t), u: got.map((m) => m.u), v: got.map((m) => m.v)};
-  paintWeather(!!wxAnim);  // le vent repart s'il soufflait (en pause pendant l'écoute)
+  wx = {...(wx || {layers: fresh}), ...g, temp: got.map((m) => m.t), u: got.map((m) => m.u),
+    v: got.map((m) => m.v)};
+  paintWeather(!!fresh || !!wxAnim);  // le vent repart s'il soufflait (en pause : l'écoute)
 }
 // Seuls les gestes de l'utilisateur comptent (pas le cadrage fait par Friday)
 map.on("moveend", (e) => {

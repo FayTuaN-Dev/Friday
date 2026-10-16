@@ -5,6 +5,7 @@ weather_js.py, les avions (M3) dans planes_js.py, l'espace (M4) dans space_js.py
 page() assemble le tout."""
 
 from friday.ui.desktop.scenes.globe_js import GLOBE_CSS, GLOBE_JS
+from friday.ui.desktop.scenes.layers_js import LAYERS_CSS, LAYERS_JS
 from friday.ui.desktop.scenes.planes_js import PLANES_JS
 from friday.ui.desktop.scenes.route_js import ROUTE_JS
 from friday.ui.desktop.scenes.space_js import SPACE_CSS, SPACE_JS
@@ -22,7 +23,7 @@ HEAD = """<!doctype html><html><head><meta charset="utf-8">
 #map{background:transparent}
 .maplibregl-ctrl-attrib{opacity:.55;font-size:10px}
 .maplibregl-ctrl-top-right{top:96px}
-__GLOBE_CSS____SPACE_CSS__</style></head>
+__GLOBE_CSS____SPACE_CSS____LAYERS_CSS__</style></head>
 <body><canvas id="stars"></canvas><div id="map"></div><svg id="leaders"></svg>
 <div id="callouts"></div><script>
 """
@@ -94,9 +95,11 @@ TAIL = "</script></body></html>"
 
 
 def page(accent: str = "#f0a83c") -> str:
-    scripts = (PLACE_JS, GLOBE_JS, ROUTE_JS, WEATHER_JS, WEATHER_FOLLOW_JS, PLANES_JS, SPACE_JS)
+    scripts = (PLACE_JS, GLOBE_JS, ROUTE_JS, WEATHER_JS, WEATHER_FOLLOW_JS, PLANES_JS, SPACE_JS,
+               LAYERS_JS)  # fmt: skip
     html = HEAD + "".join(scripts) + TAIL
     for key, value in (("__GLOBE_CSS__", GLOBE_CSS), ("__SPACE_CSS__", SPACE_CSS),
+                       ("__LAYERS_CSS__", LAYERS_CSS),
                        ("__MAPLIBRE__", MAPLIBRE),
                        ("__STYLE__", STYLE), ("__BACKGROUND__", BACKGROUND),
                        ("__ACCENT__", accent)):  # fmt: skip

@@ -23,6 +23,16 @@ def row(plane: Plane, label: str = "", focus: bool = False) -> list:
             plane.kmh, plane.callsign, label, focus]  # fmt: skip
 
 
+def planes_here(client: httpx.Client, box: list[float]) -> list[list]:
+    """Les avions de ce que la carte montre (bouton « Avions » de la carte). Peut lever Busy."""
+    south, north, west, east = box
+    if east - west >= 360:
+        west, east = -180.0, 180.0  # tout le tour du monde : planes_in demande tout
+    else:  # OpenSky ne passe pas la ligne de changement de date : on s'arrête à ±180°
+        west, east = max(west, -180.0), min(east, 180.0)
+    return [row(p) for p in planes_in(client, (max(south, -90.0), min(north, 90.0), west, east))]
+
+
 def around(lat: float, lon: float, km: float) -> tuple:
     """La zone (sud, nord, ouest, est) d'environ `km` autour d'un point."""
     dlat = km / 111
