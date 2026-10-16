@@ -21,7 +21,8 @@ REGIONS = {
 }
 # Open-Meteo compte chaque point comme une demande (600 par minute) : constaté, 4 cartes de
 # 256 points d'affilée → « trop de demandes ». 144 points suffisent, lissés par la carte.
-GRID = (12, 12)
+GRID = (12, 12)  # sur la zone vue (view_box) : un peu plus de points, en hauteur surtout
+VIEW_GRID = (14, 16)
 WORLD_GRID = (20, 10)
 KEEP_SECONDS = 600  # « montre le vent » puis « et les températures » : pas de nouvelle demande
 LAYERS = {"vent": ("wind",), "temperatures": ("temp",), "les deux": ("wind", "temp")}
@@ -47,6 +48,23 @@ def region_box(client: httpx.Client, region: str) -> tuple[str, tuple] | None:
     wide = span / max(math.cos(math.radians(lat)), 0.3)
     name = found.get("name") or found["display_name"].split(",")[0]
     return name, (lat - span / 2, lat + span / 2, lon - wide * 0.7, lon + wide * 0.7)
+
+
+def view_box(box: tuple) -> tuple:
+    """La zone que la fenêtre montre autour de la région : constaté, la carte cadrée sur la
+    France laissait voir un « carré » de couleur sur un fond gris (fenêtre en hauteur, et la
+    conversation en bas). On mesure donc plus large, surtout en hauteur."""
+    south, north, west, east = box
+    if east - west >= 300:  # le monde : déjà tout
+        return box
+    dlat, dlon = (north - south) * 0.5, (east - west) * 0.3
+    return (max(south - dlat, -85.0), min(north + dlat, 85.0), max(west - dlon, -180.0),
+            min(east + dlon, 180.0))  # fmt: skip
+
+
+def inside(box: tuple, lat: float, lon: float) -> bool:
+    south, north, west, east = box
+    return south <= lat <= north and west <= lon <= east
 
 
 def without_article(name: str) -> str:
@@ -110,18 +128,21 @@ class ShowWeatherMapTool(Tool):
         self._kept: dict[tuple, tuple[float, list]] = {}  # zone → (quand, mesures)
 
     def _measure(self, points: list[tuple[float, float]]) -> list[dict] | None:
-        """Temps actuel de chaque point (None : service saturé)."""
+        """Temps actuel de chaque point (None : service saturé ou en panne)."""
         key = tuple(points)
         # Constaté (CI) : avec « 0 » comme date par défaut, un PC allumé depuis moins de 10 min
         # croyait avoir des mesures récentes… vides
         if key in self._kept and time.monotonic() - self._kept[key][0] < KEEP_SECONDS:
             return self._kept[key][1]
-        response = self.client.get(FORECAST_URL, params={
-            "latitude": ",".join(str(lat) for lat, _ in points),
-            "longitude": ",".join(str(lon) for _, lon in points),
-            "current": "temperature_2m,wind_speed_10m,wind_direction_10m",
-        })  # fmt: skip
-        if response.status_code == 429:
+        try:  # constaté : Open-Meteo parfois muet (plus rien, même pour un seul point)
+            response = self.client.get(FORECAST_URL, params={
+                "latitude": ",".join(str(lat) for lat, _ in points),
+                "longitude": ",".join(str(lon) for _, lon in points),
+                "current": "temperature_2m,wind_speed_10m,wind_direction_10m",
+            })  # fmt: skip
+        except httpx.TransportError:
+            return None
+        if response.status_code == 429 or response.status_code >= 500:
             return None
         response.raise_for_status()
         rows = response.json()
@@ -137,32 +158,38 @@ class ShowWeatherMapTool(Tool):
         if found is None:
             return ToolResult(f"Dis EXACTEMENT : « Je ne trouve pas « {region} » sur la carte. »")
         name, box = found
-        nx, ny = WORLD_GRID if box[3] - box[2] > 90 else GRID
-        points = grid(box, nx, ny)
+        seen = view_box(box)
+        nx, ny = WORLD_GRID if box[3] - box[2] > 90 else VIEW_GRID
+        points = grid(seen, nx, ny)
         current = self._measure(points)
         if current is None:
-            return ToolResult("Dis EXACTEMENT : « Le service météo est saturé, redemandez-moi "
-                              "dans une minute. »")  # fmt: skip
+            return ToolResult("Dis EXACTEMENT : « Le service météo est saturé ou ne répond "
+                              "pas, redemandez-moi dans une minute. »")  # fmt: skip
         temps = [round(c["temperature_2m"], 1) for c in current]
         speeds = [c["wind_speed_10m"] for c in current]
         vectors = [wind_vector(c["wind_speed_10m"], c["wind_direction_10m"]) for c in current]
         u, v = [x for x, _ in vectors], [y for _, y in vectors]
         shown = LAYERS.get(normalize(layers or ""), LAYERS["les deux"])
-        coldest, hottest = temps.index(min(temps)), temps.index(max(temps))
-        windiest = speeds.index(max(speeds))
+        # Ce qui est dit ne parle que de la région demandée (pas de la mer autour)
+        mine = [k for k, (lat, lon) in enumerate(points) if inside(box, lat, lon)] or list(
+            range(len(points)))  # fmt: skip
+        coldest = min(mine, key=lambda k: temps[k])
+        hottest = max(mine, key=lambda k: temps[k])
+        windiest = max(mine, key=lambda k: speeds[k])
         facts = []
         if "temp" in shown:
             cold, hot = side(box, *points[coldest]), side(box, *points[hottest])
             facts.append(f"températures de {round(temps[coldest])} °C ({cold}) à "
                          f"{round(temps[hottest])} °C ({hot})")  # fmt: skip
         if "wind" in shown:
-            facts.append(f"{wind_summary(u, v, speeds)}, jusqu'à {round(speeds[windiest])} km/h "
+            near = [u[k] for k in mine], [v[k] for k in mine], [speeds[k] for k in mine]
+            facts.append(f"{wind_summary(*near)}, jusqu'à {round(speeds[windiest])} km/h "
                          f"({side(box, *points[windiest])})")  # fmt: skip
-        data = {"bbox": list(box), "nx": nx, "ny": ny, "layers": list(shown), "temp": temps,
-                "u": [round(x, 1) for x in u], "v": [round(y, 1) for y in v]}  # fmt: skip
+        data = {"bbox": list(seen), "fit": list(box), "nx": nx, "ny": ny, "layers": list(shown),
+                "temp": temps, "u": [round(x, 1) for x in u],
+                "v": [round(y, 1) for y in v]}  # fmt: skip
         return ToolResult(
-            f"Carte affichée sur {name}, en ce moment, mesures de toute la zone affichée (elle "
-            f"déborde sur la mer et les pays voisins) : {' ; '.join(facts)}. Dis-le en une ou "
+            f"Carte affichée sur {name}, en ce moment : {' ; '.join(facts)}. Dis-le en une ou "
             "deux phrases (« sur la carte »), sans rien inventer.",
             Display("weather_map", f"{TITLES[shown]} · {without_article(name)}", data),
         )

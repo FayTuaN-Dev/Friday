@@ -8,11 +8,12 @@ from friday.tools.planes_data import bearing, distance_km, parse
 NANTES_PALMA = ["4ca9e1", "VOE77PD ", "Spain", 0, 0, -1.21, 46.85, 4694.0, False, 175.0, 139.0]
 HIGH = ["39de4c", "AFR1234 ", "France", 0, 0, 2.3, 48.9, 11000.0, False, 230.0, 320.0]
 RYANAIR = ["4ca123", "RYR67RD ", "Ireland", 0, 0, 1.0, 45.0, 10000.0, False, 220.0, 10.0]
+LONDON = ["40621d", "BAW12   ", "United Kingdom", 0, 0, -0.4, 52.5, 9000.0, False, 200.0, 90.0]
 GROUND = ["3c0001", "AFR9    ", "France", 0, 0, -1.6, 47.15, 0.0, True, 0.0, 0.0]
 
 
 def fake_sky(calls, states=None, status=200):
-    states = [NANTES_PALMA, HIGH, RYANAIR, GROUND] if states is None else states
+    states = [NANTES_PALMA, HIGH, RYANAIR, LONDON, GROUND] if states is None else states
 
     def handler(request):
         calls.append(request.url)
@@ -73,9 +74,11 @@ def test_the_map_of_planes_counts_airlines():
     calls = []
     result = ShowPlanesTool(fake_sky(calls)).run("")
     assert result.display.kind == "planes" and result.display.title == "Avions · France · 3"
-    assert "3 avions en vol" in result.text and "Volotea (1)" in result.text
-    params = calls[-1].params
-    assert params["lamin"] == "41.0" and params["lomax"] == "10.0"  # la zone, en une demande
+    assert "3 avions en vol sur la France" in result.text and "Volotea (1)" in result.text
+    params = calls[-1].params  # toute la fenêtre, en une demande : plus large que la France
+    assert float(params["lamin"]) < 41 and float(params["lamax"]) > 52.5
+    data = result.display.data
+    assert len(data["planes"]) == 4 and data["fit"] == [41.0, 51.5, -5.5, 10.0]  # Londres aussi
     assert ShowPlanesTool(fake_sky([], status=429)).run("").text.count("saturé") == 1
 
 
