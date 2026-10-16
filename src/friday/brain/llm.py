@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Callable, Iterator
+from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
 
@@ -18,6 +19,7 @@ from friday.brain.events import (
     ToolStarted,
 )
 from friday.brain.gpu_gate import GatedClient
+from friday.brain.light import light_context, light_system, with_context
 from friday.brain.prompts import build_system_prompt
 from friday.brain.router import SkillRouter
 from friday.brain.second_chance import forget_nudges, second_chance
@@ -69,8 +71,15 @@ class Brain:
         skill_hints: dict[str, Callable[[str], str]] | None = None,
         prefetch: Callable[[str], tuple[str, dict] | None] | None = None,
         skill_gates: dict[str, Callable[[], bool]] | None = None,
+        light_guides: str | None = None,
     ) -> None:
-        """`router` : aiguillage des compétences (sans lui, tous les outils sont donnés)."""
+        """`router` : aiguillage des compétences (sans lui, tous les outils sont donnés).
+        `light_guides` : cerveau léger (Raspberry Pi, brain/light.py) avec ces consignes
+        d'outils ; consignes fixes, le contexte du moment va avec la question."""
+        self.light_guides = light_guides
+        # Sur le Pi, la mémoire lui est réservée : le modèle reste chargé (sinon, 90 s de
+        # relecture des consignes à la première question après une pause)
+        self.keep_alive: str | int = -1 if light_guides is not None else "30m"
         self.settings = settings
         self.client = client or GatedClient(host=settings.ollama_host)
         self.toolbox = toolbox or ToolBox([])
@@ -95,13 +104,18 @@ class Brain:
         self.warmup()
 
     def warmup(self) -> None:
-        """Charge le modèle en mémoire vidéo dès le démarrage (sans générer de texte)."""
+        """Charge le modèle en mémoire vidéo dès le démarrage (sans générer de texte). Cerveau
+        léger : il lit aussi ses consignes et ses outils, gardés pour les vraies questions."""
+        light = self.light_guides is not None
         try:
             self.client.chat(
                 model=self.settings.ollama_model,
-                messages=[],
-                keep_alive="30m",
-                options={"num_ctx": self.settings.ollama_num_ctx},
+                messages=[*self._messages(), {"role": "user", "content": "Bonjour"}]
+                if light
+                else [],
+                tools=self.toolset.schemas() if light and self.toolbox else None,
+                keep_alive=self.keep_alive,
+                options={"num_ctx": self.settings.ollama_num_ctx, "num_predict": 1},
             )
         except OLLAMA_ERRORS as e:
             log.warning("Préchargement du modèle impossible : %s", e)
@@ -152,7 +166,8 @@ class Brain:
                     if getattr(chunk, "done", False):
                         used = (chunk.prompt_eval_count or 0) + (chunk.eval_count or 0)
                         self._prompt_tokens = used
-                        self.speed.record(chunk)
+                        if self.light_guides is None:  # le Pi est lent par nature
+                            self.speed.record(chunk)
 
                 said = "".join(parts)
                 if not calls:
@@ -188,8 +203,13 @@ class Brain:
     def reset(self) -> None:
         self.conversation.reset()
 
-    def _chat(self, use_tools: bool) -> Iterator[Any]:
-        messages = [
+    def _messages(self) -> list[dict[str, Any]]:
+        if self.light_guides is not None:
+            context = light_context(datetime.now(), self._memories, self.conversation.summary)
+            return [{"role": "system",
+                     "content": light_system(self.settings.user_name, self.light_guides)},
+                    *with_context(self.conversation.messages, context)]  # fmt: skip
+        return [
             {
                 "role": "system",
                 "content": build_system_prompt(
@@ -202,13 +222,16 @@ class Brain:
             },
             *self.conversation.messages,
         ]
+
+    def _chat(self, use_tools: bool) -> Iterator[Any]:
+        messages = self._messages()
         return self.client.chat(
             model=self.settings.ollama_model,
             messages=messages,
             tools=self.toolset.schemas() if use_tools else None,
             stream=True,
             think=self._think,  # réflexion seulement si utile : sinon trop lente pour la voix
-            keep_alive="30m",  # garde le modèle chargé en mémoire vidéo
+            keep_alive=self.keep_alive,  # garde le modèle chargé en mémoire vidéo
             options={
                 "num_ctx": self.settings.ollama_num_ctx,
                 "num_predict": MAX_TOKENS_THINKING if self._think else MAX_TOKENS,

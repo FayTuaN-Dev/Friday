@@ -1,0 +1,17 @@
+# Friday léger sur le Raspberry Pi (R2a) : toujours à l'écoute, relancé s'il s'arrête.
+# Installation : voir deploy/pi/LISEZMOI.md
+[Unit]
+Description=Friday léger (serveur)
+After=network-online.target ollama.service
+Wants=network-online.target ollama.service
+
+[Service]
+User=grimm
+WorkingDirectory=/home/grimm/friday
+ExecStart=/home/grimm/.local/bin/uv run --no-default-groups friday --serveur
+Restart=always
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
