@@ -68,6 +68,11 @@ class MapScene(QWidget):
 
         self.view = QWebEngineView(self)
         self.view.setPage(LinksPage(self.view))  # un article cliqué s'ouvre dans le navigateur
+        from friday.ui.desktop.scenes.map_bridge import MapBridge
+
+        self.bridge = MapBridge(accent, parent=self)  # les boutons de la carte demandent à Friday
+        self.view.page().asked.connect(self.bridge.ask)
+        self.bridge.reply.connect(self.view.page().runJavaScript)
         self.view.page().setBackgroundColor(QColor(BACKGROUND))  # pas de flash blanc
         self.view.loadFinished.connect(self._loaded)
         self.view.setHtml(page(accent), QUrl("https://friday.local/"))
