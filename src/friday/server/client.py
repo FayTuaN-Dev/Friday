@@ -41,7 +41,16 @@ def run_server(settings) -> None:
     if not server.token:
         raise SystemExit("FRIDAY_SERVER_TOKEN manquant dans le .env : le serveur ne démarre pas "
                          "sans clé.")  # fmt: skip
+    log = logging.getLogger(__name__)
     friday = build_light(settings)
+    try:  # l'oreille (R3) : la voix du téléphone, transcrite sur le Pi
+        from friday.core.config import MODELS_DIR
+        from friday.server.ear import Ear
+
+        ear = Ear(server.stt_model, MODELS_DIR, settings.wake_words[0].capitalize())
+    except ImportError:
+        log.warning("Whisper absent (uv sync --group oreille) : le texte seulement")
+        ear = None
     friday.brain.warmup()  # le modèle en mémoire, et ses consignes lues une première fois
-    logging.getLogger(__name__).info("Modèle : %s", settings.ollama_model)
-    serve(friday, server.token, server.port, settings.ollama_model)
+    log.info("Modèle : %s", settings.ollama_model)
+    serve(friday, server, settings.ollama_model, ear)

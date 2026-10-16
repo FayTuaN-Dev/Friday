@@ -85,9 +85,15 @@ def test_answers_are_sent_line_by_line_and_errors_said_plainly():
     assert list(lines_of(FakeBrain(fail=True), "?"))[0]["erreur"].startswith("Le modèle")
 
 
+class FakeEar:
+    def hear(self, data):
+        return "quel temps demain" if data == b"voix" else ""
+
+
 def serving(brain):
-    server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(
-        SimpleNamespace(brain=brain), "cle-secrete", "qwen3:4b"))  # fmt: skip
+    handler = make_handler(SimpleNamespace(brain=brain), "cle-secrete", "qwen3:4b", FakeEar(),
+                           "moi@exemple.fr")  # fmt: skip
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server, f"http://127.0.0.1:{server.server_address[1]}"
 
@@ -112,3 +118,40 @@ def test_the_server_refuses_without_the_key_and_answers_with_it():
         assert "[🌤️ Météo : Lyon]" in "".join(said) and "du soleil." in "".join(said)
     finally:
         server.shutdown()
+
+
+def test_the_phone_enters_with_its_tailscale_account_and_speaks():
+    server, url = serving(FakeBrain())
+    try:
+        mine = {"Tailscale-User-Login": "Moi@Exemple.fr"}  # ajouté par « tailscale serve »
+        other = {"Tailscale-User-Login": "quelquun@ailleurs.fr"}
+        assert httpx.get(f"{url}/api/etat", headers=other).status_code == 401
+        page = httpx.get(f"{url}/", headers=mine)
+        assert page.status_code == 200 and "F.R.I.D.A.Y." in page.text
+        assert httpx.get(f"{url}/icone-512.png", headers=mine).content[1:4] == b"PNG"
+        assert httpx.get(f"{url}/../.env", headers=mine).status_code == 404
+        heard = httpx.post(f"{url}/api/audio", content=b"voix", headers=mine).text.splitlines()
+        assert json.loads(heard[0]) == {"vous": "quel temps demain"}
+        assert json.loads(heard[-1]) == {"fin": True}
+        silence = httpx.post(f"{url}/api/audio", content=b"bruit", headers=mine).text
+        assert "rien entendu" in silence
+    finally:
+        server.shutdown()
+
+
+def test_a_recording_is_decoded_to_what_whisper_expects():
+    import io
+    import wave
+
+    import numpy as np
+
+    from friday.server.ear import decode
+
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as w:  # 1 s à 48 kHz, stéréo, comme un téléphone
+        w.setnchannels(2), w.setsampwidth(2), w.setframerate(48000)
+        tone = (np.sin(np.arange(48000) / 48000 * 2 * np.pi * 440) * 12000).astype(np.int16)
+        w.writeframes(np.repeat(tone, 2).tobytes())
+    audio = decode(buffer.getvalue())
+    assert abs(len(audio) - 16000) < 400 and audio.dtype == np.float32
+    assert 0.2 < np.abs(audio).max() <= 1.0
