@@ -2,78 +2,123 @@
 est une petite silhouette tournée vers son cap, qui avance d'elle-même à sa vitesse (les
 positions datent de la demande ; on les fait vivre au lieu de redemander sans cesse). Un clic
 sur un avion montre son vol ; l'avion « au-dessus de chez moi » est mis en valeur, avec son
-trajet en pointillés."""
+trajet en pointillés.
+
+Constaté : redonner 1 000 avions à la carte 4 fois par seconde la fait tout redécouper, et
+les avions clignotent. Ils sont donc dessinés sur notre propre calque, à chaque image, comme
+les particules de vent ; la carte ne garde que le trajet en pointillés."""
 
 PLANES_JS = """
-let planes = null, planesAnim = null, planesMarker = null, planesClick = false;
+let planes = null, planesAnim = 0, planesMarker = null, planesCanvas = null, planesHooked = false;
 const noPlanes = {type: "FeatureCollection", features: []};
-function planeIcon() {  // une silhouette blanche, nez vers le haut (le nord) ; teintée par la carte
-  const size = 48, c = document.createElement("canvas");
-  c.width = c.height = size;
+function planeSprite(color) {  // une silhouette nez vers le haut (le nord), dans la couleur voulue
+  const c = document.createElement("canvas");
+  c.width = c.height = 48;
   const g = c.getContext("2d");
-  g.fillStyle = "#ffffff";
+  g.fillStyle = color;
   g.beginPath();
   g.moveTo(24, 2); g.lineTo(28, 16); g.lineTo(46, 28); g.lineTo(46, 32); g.lineTo(28, 26);
   g.lineTo(27, 38); g.lineTo(33, 43); g.lineTo(33, 46); g.lineTo(24, 43); g.lineTo(15, 46);
   g.lineTo(15, 43); g.lineTo(21, 38); g.lineTo(20, 26); g.lineTo(2, 32); g.lineTo(2, 28);
   g.lineTo(20, 16); g.closePath(); g.fill();
-  return g.getImageData(0, 0, size, size);
+  return c;
 }
-function planeFeatures() {
-  return {type: "FeatureCollection", features: planes.list.map((p) => ({type: "Feature",
-    properties: {track: p[2], alt: p[3], kmh: p[4], cs: p[5], label: p[6], focus: p[7]},
-    geometry: {type: "Point", coordinates: [p[0], p[1]]}}))};
+function planesLayer() {  // sous les repères et les bulles de la carte, au-dessus du fond
+  if (!planesCanvas) {
+    planesCanvas = document.createElement("canvas");
+    planesCanvas.style.cssText = "position:absolute;left:0;top:0;pointer-events:none";
+    map.getCanvas().after(planesCanvas);
+    map.on("move", () => { if (planes && !planesAnim) drawPlanes(); });  // en pause : suivre
+  }
+  const m = map.getCanvas();
+  if (planesCanvas.width !== m.clientWidth || planesCanvas.height !== m.clientHeight) {
+    planesCanvas.width = m.clientWidth; planesCanvas.height = m.clientHeight;
+    planesCanvas.style.width = m.clientWidth + "px";
+    planesCanvas.style.height = m.clientHeight + "px";
+  }
+  return planesCanvas;
 }
-function stopPlanes() { if (planesAnim) { clearInterval(planesAnim); planesAnim = null; } }
-function flyPlanes() {  // 4 fois par seconde, chaque avion avance selon son cap et sa vitesse
+function planeAt(p, hours) {  // [lon, lat] maintenant, d'après le cap et la vitesse
+  const km = p[4] * hours, rad = p[2] * Math.PI / 180, lat = p[1] + km * Math.cos(rad) / 111;
+  return [p[0] + km * Math.sin(rad) / (111 * Math.max(Math.cos(lat * Math.PI / 180), 0.2)), lat];
+}
+function planeSize() {  // en pixels : petits vus de loin, plus gros quand on zoome
+  const z = map.getZoom();
+  return z <= 3 ? 10 : z <= 6 ? 10 + (z - 3) * 2.7 : Math.min(18 + (z - 6) * 2.8, 29);
+}
+function drawPlanes() {
+  const c = planesLayer(), g = c.getContext("2d");
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, c.width, c.height);
+  if (!planes) return;
+  // Au-delà de 5 min, les positions estimées deviennent fausses : on arrête de les avancer
+  const hours = Math.min(performance.now() - planes.since, 300000) / 3600000;
+  const size = planeSize(), half = size / 2, turn = -map.getBearing() * Math.PI / 180;
+  let focus = null;
+  g.globalAlpha = 0.85;
+  for (const p of planes.list) {
+    const s = map.project(planeAt(p, hours));
+    p.x = s.x; p.y = s.y;
+    if (s.x < -size || s.y < -size || s.x > c.width + size || s.y > c.height + size) continue;
+    if (p[7]) { focus = p; continue; }
+    const r = p[2] * Math.PI / 180 + turn, cos = Math.cos(r), sin = Math.sin(r);
+    g.setTransform(cos, sin, -sin, cos, s.x, s.y);
+    g.drawImage(planes.sprite, -half, -half, size, size);
+  }
+  if (focus) {  // l'avion mis en valeur : par-dessus les autres, plus gros, avec son indicatif
+    const big = size * 1.5, r = focus[2] * Math.PI / 180 + turn;
+    g.globalAlpha = 1;
+    g.setTransform(Math.cos(r), Math.sin(r), -Math.sin(r), Math.cos(r), focus.x, focus.y);
+    g.drawImage(planes.focusSprite, -big / 2, -big / 2, big, big);
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.font = "13px sans-serif"; g.textAlign = "center"; g.lineWidth = 3;
+    g.strokeStyle = "rgba(0,0,0,0.8)"; g.fillStyle = "#ffffff";
+    g.strokeText(focus[5], focus.x, focus.y + big); g.fillText(focus[5], focus.x, focus.y + big);
+  }
+}
+function nearestPlane(point) {  // l'avion sous la souris (à quelques pixels près)
+  if (!planes) return null;
+  let best = null, reach = Math.max(planeSize(), 12) ** 2;
+  for (const p of planes.list) {
+    const d = (p.x - point.x) ** 2 + (p.y - point.y) ** 2;
+    if (d < reach) { reach = d; best = p; }
+  }
+  return best;
+}
+function stopPlanes() { if (planesAnim) { cancelAnimationFrame(planesAnim); planesAnim = 0; } }
+function flyPlanes() {  // à chaque image, chaque avion avance selon son cap et sa vitesse
   stopPlanes();
-  let last = performance.now();
-  planesAnim = setInterval(() => {
-    const now = performance.now(), hours = (now - last) / 3600000;
-    last = now;
-    if (now - planes.since > 300000) { stopPlanes(); return; }  // 5 min : trop vieux
-    for (const p of planes.list) {
-      const km = p[4] * hours, rad = p[2] * Math.PI / 180;
-      p[1] += km * Math.cos(rad) / 111;
-      p[0] += km * Math.sin(rad) / (111 * Math.max(Math.cos(p[1] * Math.PI / 180), 0.2));
-    }
-    if (map.getSource("planes")) map.getSource("planes").setData(planeFeatures());
-  }, 250);
+  const frame = () => { drawPlanes(); planesAnim = requestAnimationFrame(frame); };
+  planesAnim = requestAnimationFrame(frame);
 }
 function clearPlanes() {
   stopPlanes();
-  if (map.getSource("planes")) map.getSource("planes").setData(noPlanes);
+  planes = null;
+  if (planesCanvas) drawPlanes();
   if (map.getSource("planes-path")) map.getSource("planes-path").setData(noPlanes);
   if (planesMarker) { planesMarker.remove(); planesMarker = null; }
-  planes = null;
 }
-function planeLayers(accent) {
-  if (!map.hasImage("plane")) map.addImage("plane", planeIcon(), {sdf: true});
-  if (map.getSource("planes")) return;
-  map.addSource("planes-path", {type: "geojson", data: noPlanes});
-  map.addLayer({id: "planes-path", type: "line", source: "planes-path", paint: {
-    "line-color": accent, "line-width": 2, "line-dasharray": [2, 2], "line-opacity": 0.8}});
-  map.addSource("planes", {type: "geojson", data: noPlanes});
-  map.addLayer({id: "planes", type: "symbol", source: "planes", layout: {
-    "icon-image": "plane", "icon-rotate": ["get", "track"], "icon-rotation-alignment": "map",
-    "icon-allow-overlap": true, "icon-ignore-placement": true,
-    "icon-size": ["interpolate", ["linear"], ["zoom"], 3, 0.22, 6, 0.38, 10, 0.6],
-    "text-field": ["case", ["get", "focus"], ["get", "cs"], ""], "text-offset": [0, 1.6],
-    "text-font": ["Noto Sans Regular"], "text-size": 13, "text-allow-overlap": true},
-    paint: {"icon-color": ["case", ["get", "focus"], accent, "#dfe8f5"],
-      "icon-opacity": ["case", ["get", "focus"], 1, 0.85],
-      "text-color": "#ffffff", "text-halo-color": "rgba(0,0,0,0.8)", "text-halo-width": 1.4}});
-  if (!planesClick) {  // un clic sur un avion : son vol, son altitude, sa vitesse
-    planesClick = true;
-    map.on("click", "planes", (e) => {
-      const p = e.features[0].properties;
-      const info = `<b>${p.label || p.cs || "Avion"}</b><br>${Math.round(p.alt / 100) * 100} m`
-        + ` · ${p.kmh} km/h`;
-      new maplibregl.Popup({closeButton: false}).setLngLat(e.lngLat).setHTML(info).addTo(map);
-    });
-    map.on("mouseenter", "planes", () => { map.getCanvas().style.cursor = "pointer"; });
-    map.on("mouseleave", "planes", () => { map.getCanvas().style.cursor = ""; });
+function planeLayers() {
+  if (!map.getSource("planes-path")) {
+    map.addSource("planes-path", {type: "geojson", data: noPlanes});
+    map.addLayer({id: "planes-path", type: "line", source: "planes-path", paint: {
+      "line-color": planes.accent, "line-width": 2, "line-dasharray": [2, 2],
+      "line-opacity": 0.8}});
   }
+  map.setPaintProperty("planes-path", "line-color", planes.accent);
+  if (planesHooked) return;
+  planesHooked = true;  // un clic sur un avion : son vol, son altitude, sa vitesse
+  map.on("click", (e) => {
+    const p = nearestPlane(e.point);
+    if (!p) return;
+    const info = `<b>${p[6] || p[5] || "Avion"}</b><br>${Math.round(p[3] / 100) * 100} m`
+      + ` · ${p[4]} km/h`;
+    new maplibregl.Popup({closeButton: false}).setLngLat(map.unproject([p.x, p.y]))
+      .setHTML(info).addTo(map);
+  });
+  map.on("mousemove", (e) => {
+    if (planes) map.getCanvas().style.cursor = nearestPlane(e.point) ? "pointer" : "";
+  });
 }
 // Un lieu, le globe, un itinéraire ou la météo remplace les avions ; Friday écoute : pause
 for (const name of ["fridayGo", "fridayWorld", "fridayRoute", "fridayWeather"]) {
@@ -91,9 +136,9 @@ window.fridayPlanes = (data, accent) => whenReady(() => {
   clearRoute();
   clearWeather();
   clearPlanes();
-  planeLayers(accent);
-  planes = {list: data.planes, since: performance.now()};
-  map.getSource("planes").setData(planeFeatures());
+  planes = {list: data.planes, since: performance.now(), accent: accent,
+    sprite: planeSprite("#dfe8f5"), focusSprite: planeSprite(accent)};
+  planeLayers();
   map.jumpTo({pitch: 0, bearing: 0});
   const focus = data.planes.find((p) => p[7]);
   if (data.path) {
