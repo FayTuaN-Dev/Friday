@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 
 from friday.voice.cuda import register_cuda_dlls
-from friday.voice.recorder import WHISPER_RATE
+from friday.voice.rate import WHISPER_RATE
 
 log = logging.getLogger(__name__)
 

@@ -8,10 +8,9 @@ import numpy as np
 import sounddevice as sd
 
 from friday.voice.devices import resolve_device
+from friday.voice.rate import WHISPER_RATE
 
 log = logging.getLogger(__name__)
-
-WHISPER_RATE = 16_000
 
 
 def resample(audio: np.ndarray, src_rate: int, dst_rate: int = WHISPER_RATE) -> np.ndarray:

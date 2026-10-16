@@ -63,6 +63,11 @@ bureau = [
     "winrt-windows-media-control>=3.2.1 ; sys_platform == 'win32'",
     "winrt-windows-storage-streams>=3.2.1 ; sys_platform == 'win32'",
 ]
+# L'oreille du Friday du Raspberry Pi (la voix arrive du téléphone) :
+#   uv sync --no-default-groups --group oreille
+oreille = [
+    "faster-whisper>=1.2.1",
+]
 dev = [
     "pytest>=9.1.1",
     "ruff>=0.16.10",

@@ -8,7 +8,7 @@ Wants=network-online.target ollama.service
 [Service]
 User=grimm
 WorkingDirectory=/home/grimm/friday
-ExecStart=/home/grimm/.local/bin/uv run --no-default-groups friday --serveur
+ExecStart=/home/grimm/.local/bin/uv run --no-default-groups --group oreille friday --serveur
 Restart=always
 RestartSec=10
 Environment=PYTHONUNBUFFERED=1
