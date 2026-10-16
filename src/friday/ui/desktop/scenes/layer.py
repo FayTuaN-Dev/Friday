@@ -18,6 +18,7 @@ SHOWN_ON_MAP = {
     "route": "route",
     "weather_map": "weather",
     "planes": "planes",
+    "space": "space",
 }
 
 TOP_SHADE, BOTTOM_SHADE = 0.22, 0.5  # part de la hauteur assombrie en haut, en bas

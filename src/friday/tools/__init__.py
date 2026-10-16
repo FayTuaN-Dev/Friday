@@ -65,6 +65,7 @@ def default_toolbox(
         from friday.tools.place import ShowPlaceTool
         from friday.tools.planes import PlaneOverheadTool, ShowPlanesTool
         from friday.tools.route import ShowRouteTool
+        from friday.tools.space import NextLaunchesTool, ShowSpaceTool
         from friday.tools.weather import WeatherTool
         from friday.tools.weather_map import ShowWeatherMapTool
         from friday.tools.web_page import ReadWebPageTool
@@ -83,6 +84,8 @@ def default_toolbox(
             ShowWeatherMapTool(),
             ShowPlanesTool(),
             PlaneOverheadTool(settings.home_city),
+            ShowSpaceTool(settings.home_city),
+            NextLaunchesTool(),
         ]
     if settings.files_access:
         from friday.files.folders import search_folders

@@ -34,7 +34,8 @@ CORE_GUIDE = """- close_popups : fermer les fenêtres que tu as affichées (rés
 SKILLS = (
     Skill("web", "internet : météo, recherche, actualité, pages web, images, cartes",
           ("get_weather", "web_search", "read_webpage", "search_images", "market_quote",
-           "show_place", "show_route", "show_weather_map", "show_planes", "plane_overhead"),
+           "show_place", "show_route", "show_weather_map", "show_planes", "plane_overhead",
+           "show_space", "next_launches"),
           """- get_weather : la météo (actuelle et sur 7 jours). Toujours cet outil pour la météo,
   jamais la recherche web.
 - web_search : chercher sur internet : actualité, faits récents, prix, horaires, résultats
@@ -55,7 +56,12 @@ SKILLS = (
 - show_planes : MONTRER les avions en vol, en direct, sur une carte (« montre les avions
   au-dessus de la France », « le trafic aérien en Europe »).
 - plane_overhead : l'avion qui passe au-dessus d'un lieu, avec son vol (« c'est quoi l'avion
-  au-dessus de chez moi ? »). Lieu non dit = chez l'utilisateur (laisse place vide).""",
+  au-dessus de chez moi ? »). Lieu non dit = chez l'utilisateur (laisse place vide).
+- show_space : MONTRER sur le globe l'ISS, la station chinoise Tiangong ou Hubble, en direct,
+  et quand on peut les voir passer depuis chez l'utilisateur (« montre-moi l'ISS », « quand
+  passe la station spatiale au-dessus de chez moi ? »).
+- next_launches : les prochains lancements de fusées (« c'est quand le prochain lancement
+  SpaceX ? », « les prochaines fusées »). Jamais de mémoire : cet outil.""",
           ("meteo", "quel temps", "temps qu", "pluie", "pleu", "neige", "temperature", "degre",
            "vent ", "cherche", "recherche", "internet", "web", "actualit", "info ", "infos",
            "news", "nouvelles", "page", "lien", "article", "image", "photo ", "photos", "prix",
@@ -69,13 +75,15 @@ SKILLS = (
            "la route", "pour aller", "c est loin", "combien de km", "kilometres", "distance",
            "en voiture", "a velo", "a pied", "trace moi", "le vent", "du vent",
            "les vents", "temperatures", "carte meteo", "carte des", "avion", "trafic aerien",
-           "vol ", "vols ", "aeroport"),
+           "vol ", "vols ", "aeroport", "iss ", "station spatiale", "espace", "satellite",
+           "hubble", "tiangong", "fusee", "lancement", "spacex", "ariane", "nasa"),
           ("quel temps fait-il demain", "cherche les dernières nouvelles sur la bourse",
            "montre-moi des images de chats", "qui a gagné le match hier soir",
            "lis-moi cet article", "montre-moi la tour Eiffel",
            "trace-moi la route jusqu'à Nantes", "combien de temps pour aller à Bordeaux",
            "montre-moi le vent", "la carte des températures en France",
-           "montre les avions au-dessus de la France", "c'est quoi l'avion au-dessus de chez moi")),
+           "montre les avions au-dessus de la France", "c'est quoi l'avion au-dessus de chez moi",
+           "montre-moi l'ISS", "c'est quand le prochain lancement SpaceX")),
     Skill("monde", "actualité internationale, catastrophes, ce qui peut bouger les marchés",
           ("world_news", "market_movers", "show_world"),
           """- world_news : le point sur le monde (« quoi de neuf dans le monde ? », « les infos

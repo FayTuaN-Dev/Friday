@@ -103,6 +103,11 @@ class MapScene(QWidget):
         args = ", ".join(json.dumps(v) for v in (data, self.accent))
         self._run(f"window.fridayPlanes && window.fridayPlanes({args});")
 
+    def space(self, data: dict) -> None:
+        """Les stations spatiales ou les bases des prochains lancements, sur le globe (M4)."""
+        args = ", ".join(json.dumps(v) for v in (data, self.accent))
+        self._run(f"window.fridaySpace && window.fridaySpace({args});")
+
     def world(self, data: dict) -> None:
         """Le globe de la veille monde (J9b)."""
         self._run(world_script(data))

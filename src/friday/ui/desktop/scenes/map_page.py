@@ -1,11 +1,13 @@
 """La page web de la scène carte : MapLibre GL (libre) et les cartes OpenFreeMap (gratuites,
 sans compte ni clé). La carte des lieux (J7) est ici ; le globe de la veille monde (J9b)
 est dans globe_js.py, les itinéraires (M1) dans route_js.py, la météo (M2) dans
-weather_js.py, les avions (M3) dans planes_js.py. page() assemble le tout."""
+weather_js.py, les avions (M3) dans planes_js.py, l'espace (M4) dans space_js.py.
+page() assemble le tout."""
 
 from friday.ui.desktop.scenes.globe_js import GLOBE_CSS, GLOBE_JS
 from friday.ui.desktop.scenes.planes_js import PLANES_JS
 from friday.ui.desktop.scenes.route_js import ROUTE_JS
+from friday.ui.desktop.scenes.space_js import SPACE_CSS, SPACE_JS
 from friday.ui.desktop.scenes.weather_js import WEATHER_JS
 
 MAPLIBRE = "https://unpkg.com/maplibre-gl@5.8.0/dist/maplibre-gl"  # 5 : le globe
@@ -19,7 +21,7 @@ HEAD = """<!doctype html><html><head><meta charset="utf-8">
 #map{background:transparent}
 .maplibregl-ctrl-attrib{opacity:.55;font-size:10px}
 .maplibregl-ctrl-top-right{top:96px}
-__GLOBE_CSS__</style></head>
+__GLOBE_CSS____SPACE_CSS__</style></head>
 <body><canvas id="stars"></canvas><div id="map"></div><svg id="leaders"></svg>
 <div id="callouts"></div><script>
 """
@@ -91,8 +93,9 @@ TAIL = "</script></body></html>"
 
 
 def page(accent: str = "#f0a83c") -> str:
-    html = HEAD + PLACE_JS + GLOBE_JS + ROUTE_JS + WEATHER_JS + PLANES_JS + TAIL
-    for key, value in (("__GLOBE_CSS__", GLOBE_CSS), ("__MAPLIBRE__", MAPLIBRE),
+    html = HEAD + PLACE_JS + GLOBE_JS + ROUTE_JS + WEATHER_JS + PLANES_JS + SPACE_JS + TAIL
+    for key, value in (("__GLOBE_CSS__", GLOBE_CSS), ("__SPACE_CSS__", SPACE_CSS),
+                       ("__MAPLIBRE__", MAPLIBRE),
                        ("__STYLE__", STYLE), ("__BACKGROUND__", BACKGROUND),
                        ("__ACCENT__", accent)):  # fmt: skip
         html = html.replace(key, value)
