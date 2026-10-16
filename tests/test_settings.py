@@ -156,3 +156,27 @@ def test_settings_live_in_the_window_and_save_only_when_changed(env, tmp_path):
     QTest.qWait(400)
     assert not w.settings_showing  # refermé (caché, gardé pour la prochaine fois)
     w.close()
+
+
+def test_settings_prepared_before_loading_are_rebuilt_once_friday_is_ready(env, tmp_path):
+    # Constaté : préparés avant le chargement (S2), les réglages n'avaient pas « Mes plans de
+    # trading » (ni le journal, le briefing, la bibliothèque, les comptes)
+    from test_desktop import StubAssistant
+
+    from friday.ui.desktop.main_window import MainWindow
+
+    assistant = StubAssistant()
+    assistant.components = None  # Friday se charge encore
+    w = MainWindow(SETTINGS, assistant=assistant, preferences_path=tmp_path / "i.json")
+    w.prepare_settings()
+    early = w.settings_window
+    assert early.components is None
+    assistant.components = SimpleNamespace(briefing=None, google=None)  # chargée
+    w.prepare_settings()
+    from PySide6.QtTest import QTest
+
+    QTest.qWait(50)  # l'ancien panneau est détruit : il ne doit pas effacer le nouveau
+    assert w.settings_window is not early and w.settings_window.components is assistant.components
+    w.prepare_settings()  # rien de neuf : gardé tel quel
+    assert w.settings_window.components is assistant.components
+    w.close()

@@ -3,7 +3,7 @@ fil de discussion, barre de saisie. Toute l'interface suit la couleur choisie.""
 
 from pathlib import Path
 
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent, Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QApplication,
@@ -255,6 +255,15 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         from friday.ui.desktop.settings.overlay import SettingsOverlay
         from friday.ui.desktop.settings.window import SettingsWindow
 
+        window = self.settings_window
+        # Constaté : préparés AVANT le chargement (S2), les réglages n'avaient ni les plans de
+        # trading ni le journal, ni le briefing, la bibliothèque ou les comptes. Une fois
+        # Friday prête, ils sont reconstruits (sauf ouverts : à la prochaine ouverture).
+        if (window is not None and window.components is not self.assistant.components
+                and not self.settings_showing):  # fmt: skip
+            window.destroyed.disconnect(self._forget_settings)
+            self._settings_overlay.deleteLater()  # le panneau avec lui
+            self.settings_window = None
         if self.settings_window is None:
             self.settings_window = SettingsWindow(self)
             self.settings_window.destroyed.connect(self._forget_settings)
@@ -330,6 +339,7 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.input.mic.setEnabled(self.assistant.can_listen)
         self.input.set_voice(self.assistant.voice_on)
         self.input.edit.setFocus()
+        QTimer.singleShot(1500, self.prepare_settings)  # réglages complets, au repos
 
     def _welcome_glance(self) -> None:
         from friday.app.glance import glance

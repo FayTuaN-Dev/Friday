@@ -49,6 +49,7 @@ class SettingsWindow(QFrame):
         self.main_window = main_window
         self._saved = False  # enregistré, redémarrage pas encore fait
         components = main_window.assistant.components
+        self.components = components  # None : construite avant la fin du chargement (S2)
         env = read_env()
         self.forms = [FormPage(section, env) for section in SECTIONS]
         by_name = {form_section.name: form for form_section, form in zip(SECTIONS, self.forms,
