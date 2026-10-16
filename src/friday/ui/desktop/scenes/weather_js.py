@@ -33,7 +33,7 @@ const mercY = (lat) =>
   Math.log(Math.tan(Math.PI / 4 + Math.max(-85, Math.min(85, lat)) * Math.PI / 360));
 const latOfY = (y) => (2 * Math.atan(Math.exp(y)) - Math.PI / 2) * 180 / Math.PI;
 // Les bords de l'image s'effacent : pas de cassure nette si l'on recule ou déplace la carte
-const edgeFade = (f) => Math.min(1, Math.min(f, 1 - f) / 0.12);
+const edgeFade = (f) => Math.min(1, Math.min(f, 1 - f) / 0.06);
 function tempImage() {  // une image, ligne par ligne en projection de la carte (Mercator)
   const [s, n, w, e] = wx.bbox, W = 240, H = 240;
   const canvas = document.createElement("canvas");
@@ -125,21 +125,15 @@ window.fridayMove = () => {
   if (wx && wx.layers.includes("wind") && !wxAnim) { startWind(); return; }
   moveOn();
 };
-window.fridayWeather = (data) => whenReady(() => {
-  stopSpin();
-  leaveWorld();
-  place = null;
-  if (marker) { marker.remove(); marker = null; }
-  clearRoute();
-  clearWeather();
-  wx = data;
-  const [s, n, w, e] = data.bbox, [fs, fn, fw, fe] = data.fit || data.bbox;
-  map.jumpTo({pitch: 0, bearing: 0});  // cadré sur la région ; les mesures autour la débordent
-  map.fitBounds([[fw, fs], [fe, fn]], {padding: 10, duration: 0});
-  if (data.layers.includes("temp")) {
+// Dessine (ou redessine, quand la carte suit le regard : weather_follow_js.py) la météo de wx
+function paintWeather(wind) {
+  const [s, n, w, e] = wx.bbox, corners = [[w, n], [e, n], [e, s], [w, s]];
+  if (wx.layers.includes("temp") && map.getSource("wx-temp")) {
+    map.getSource("wx-temp").updateImage({url: tempImage(), coordinates: corners});
+    map.getSource("wx-labels").setData(tempLabels());
+  } else if (wx.layers.includes("temp")) {
     const below = (map.getStyle().layers.find((l) => l.type === "symbol") || {}).id;
-    map.addSource("wx-temp", {type: "image", url: tempImage(),
-      coordinates: [[w, n], [e, n], [e, s], [w, s]]});
+    map.addSource("wx-temp", {type: "image", url: tempImage(), coordinates: corners});
     map.addLayer({id: "wx-temp", type: "raster", source: "wx-temp",
       paint: {"raster-opacity": 0.55, "raster-fade-duration": 0}}, below);
     map.addSource("wx-labels", {type: "geojson", data: tempLabels()});
@@ -149,6 +143,19 @@ window.fridayWeather = (data) => whenReady(() => {
       paint: {"text-color": "#ffffff", "text-halo-color": "rgba(0,0,0,0.75)",
         "text-halo-width": 1.4}});
   }
-  if (data.layers.includes("wind")) startWind();
+  if (wind && wx.layers.includes("wind")) startWind();
+}
+window.fridayWeather = (data) => whenReady(() => {
+  stopSpin();
+  leaveWorld();
+  place = null;
+  if (marker) { marker.remove(); marker = null; }
+  clearRoute();
+  clearWeather();
+  wx = data;
+  const [fs, fn, fw, fe] = data.fit || data.bbox;
+  map.jumpTo({pitch: 0, bearing: 0});  // cadré sur la région ; les mesures autour la débordent
+  map.fitBounds([[fw, fs], [fe, fn]], {padding: 10, duration: 0});
+  paintWeather(true);
 });
 """

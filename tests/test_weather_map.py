@@ -111,3 +111,4 @@ def test_the_map_page_carries_the_weather_script():
     from friday.ui.desktop.scenes.map_page import page
 
     assert "window.fridayWeather" in page() and SHOWN_ON_MAP["weather_map"] == "weather"
+    assert "async function wxFollow" in page()  # la météo suit les gestes sur la carte

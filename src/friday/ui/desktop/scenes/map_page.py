@@ -8,6 +8,7 @@ from friday.ui.desktop.scenes.globe_js import GLOBE_CSS, GLOBE_JS
 from friday.ui.desktop.scenes.planes_js import PLANES_JS
 from friday.ui.desktop.scenes.route_js import ROUTE_JS
 from friday.ui.desktop.scenes.space_js import SPACE_CSS, SPACE_JS
+from friday.ui.desktop.scenes.weather_follow_js import WEATHER_FOLLOW_JS
 from friday.ui.desktop.scenes.weather_js import WEATHER_JS
 
 MAPLIBRE = "https://unpkg.com/maplibre-gl@5.8.0/dist/maplibre-gl"  # 5 : le globe
@@ -93,7 +94,8 @@ TAIL = "</script></body></html>"
 
 
 def page(accent: str = "#f0a83c") -> str:
-    html = HEAD + PLACE_JS + GLOBE_JS + ROUTE_JS + WEATHER_JS + PLANES_JS + SPACE_JS + TAIL
+    scripts = (PLACE_JS, GLOBE_JS, ROUTE_JS, WEATHER_JS, WEATHER_FOLLOW_JS, PLANES_JS, SPACE_JS)
+    html = HEAD + "".join(scripts) + TAIL
     for key, value in (("__GLOBE_CSS__", GLOBE_CSS), ("__SPACE_CSS__", SPACE_CSS),
                        ("__MAPLIBRE__", MAPLIBRE),
                        ("__STYLE__", STYLE), ("__BACKGROUND__", BACKGROUND),
