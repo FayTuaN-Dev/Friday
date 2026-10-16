@@ -25,6 +25,7 @@ dependencies = [
     "pyside6>=6.11.2",
     "python-docx>=1.2.0",
     "python-dotenv>=1.2.4",
+    "sgp4>=2.27",
     "sounddevice>=0.5.6",
     "trafilatura>=2.3.0",
     "winrt-windows-foundation>=3.2.1 ; sys_platform == 'win32'",
