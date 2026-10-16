@@ -51,3 +51,19 @@ def unload_all(client: ollama.Client) -> list[str]:
     for name in names:
         wait_unloaded(client, name)
     return names
+
+
+def unload_mine(client: ollama.Client, mine: tuple[str, ...]) -> list[str]:
+    """En quittant Friday : retire SES modèles de la carte graphique, sans attendre (elle
+    les gardait 30 min après la dernière réponse). Ceux d'autres logiciels restent."""
+    try:
+        loaded = [m.model for m in client.ps().models]
+    except Exception:  # Ollama injoignable : rien à libérer
+        return []
+    names = [n for n in loaded if any(n in (m, f"{m}:latest") for m in mine if m)]
+    for name in names:
+        try:
+            ollama.Client.generate(client, model=name, keep_alive=0)
+        except Exception as error:
+            log.warning("%s non déchargé en quittant (%s)", name, error)
+    return names
