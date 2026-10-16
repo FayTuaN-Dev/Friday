@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Callable, Iterator
+from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
 
@@ -18,6 +19,7 @@ from friday.brain.events import (
     ToolStarted,
 )
 from friday.brain.gpu_gate import GatedClient
+from friday.brain.light import light_context, light_system, with_context
 from friday.brain.prompts import build_system_prompt
 from friday.brain.router import SkillRouter
 from friday.brain.second_chance import forget_nudges, second_chance
@@ -69,8 +71,12 @@ class Brain:
         skill_hints: dict[str, Callable[[str], str]] | None = None,
         prefetch: Callable[[str], tuple[str, dict] | None] | None = None,
         skill_gates: dict[str, Callable[[], bool]] | None = None,
+        light_guides: str | None = None,
     ) -> None:
-        """`router` : aiguillage des compétences (sans lui, tous les outils sont donnés)."""
+        """`router` : aiguillage des compétences (sans lui, tous les outils sont donnés).
+        `light_guides` : cerveau léger (Raspberry Pi, brain/light.py) avec ces consignes
+        d'outils ; consignes fixes, le contexte du moment va avec la question."""
+        self.light_guides = light_guides
         self.settings = settings
         self.client = client or GatedClient(host=settings.ollama_host)
         self.toolbox = toolbox or ToolBox([])
@@ -188,8 +194,13 @@ class Brain:
     def reset(self) -> None:
         self.conversation.reset()
 
-    def _chat(self, use_tools: bool) -> Iterator[Any]:
-        messages = [
+    def _messages(self) -> list[dict[str, Any]]:
+        if self.light_guides is not None:
+            context = light_context(datetime.now(), self._memories, self.conversation.summary)
+            return [{"role": "system",
+                     "content": light_system(self.settings.user_name, self.light_guides)},
+                    *with_context(self.conversation.messages, context)]  # fmt: skip
+        return [
             {
                 "role": "system",
                 "content": build_system_prompt(
@@ -202,6 +213,9 @@ class Brain:
             },
             *self.conversation.messages,
         ]
+
+    def _chat(self, use_tools: bool) -> Iterator[Any]:
+        messages = self._messages()
         return self.client.chat(
             model=self.settings.ollama_model,
             messages=messages,
