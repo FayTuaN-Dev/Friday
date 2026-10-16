@@ -44,7 +44,9 @@ function clearSpace() {
   stopSpace();
   spaceMarkers.forEach((m) => m.remove());
   spaceMarkers = [];
-  if (map.getSource("space-tracks")) map.getSource("space-tracks").setData(noSpace);
+  for (const id of ["space-tracks", "space-focus"]) {
+    if (map.getSource(id)) map.getSource(id).setData(noSpace);
+  }
   space = null;
 }
 function spaceLayers() {
@@ -54,6 +56,25 @@ function spaceLayers() {
     layout: {"line-join": "round", "line-cap": "round"},
     paint: {"line-color": ["get", "color"], "line-width": ["get", "width"],
       "line-opacity": ["get", "opacity"]}});
+  // La trace mise en valeur s'estompe (dégradé le long de la ligne : il faut ses mesures)
+  map.addSource("space-focus", {type: "geojson", data: noSpace, lineMetrics: true});
+  map.addLayer({id: "space-focus", type: "line", source: "space-focus",
+    layout: {"line-join": "round", "line-cap": "round"}, paint: {"line-width": 2.5}});
+}
+function rgba(hex, alpha) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+// Constaté : un tour et demi tracé à pleine couleur, la fin du tour suivant (décalée par la
+// rotation de la Terre) s'arrêtait net au milieu de nulle part. Légère derrière la station,
+// vive devant elle, puis elle s'efface.
+function fadingTrack(sat, accent) {
+  const here = Math.min(Math.max(-sat.t0 / sat.step / (sat.track.length - 1), 0.01), 0.9);
+  map.getSource("space-focus").setData({type: "Feature", properties: {},
+    geometry: {type: "LineString", coordinates: sat.track}});
+  map.setPaintProperty("space-focus", "line-gradient", ["interpolate", ["linear"],
+    ["line-progress"], 0, rgba(accent, 0.1), here, rgba(accent, 0.95),
+    here + (1 - here) * 0.5, rgba(accent, 0.6), 1, rgba(accent, 0)]);
 }
 // Un lieu, le globe, un itinéraire, la météo ou les avions remplacent l'espace
 for (const name of ["fridayGo", "fridayWorld", "fridayRoute", "fridayWeather", "fridayPlanes"]) {
@@ -78,10 +99,10 @@ window.fridaySpace = (data, accent) => whenReady(() => {
   spaceLayers();
   space = {sats: data.sats, since: performance.now(), dots: []};
   const features = [];
-  for (const sat of data.sats) {  // la trace : estompée, celle demandée bien visible
-    const color = sat.focus ? accent : "#9fb3d1";
-    features.push({type: "Feature", properties: {color, width: sat.focus ? 2.5 : 1.2,
-      opacity: sat.focus ? 0.9 : 0.45}, geometry: {type: "LineString", coordinates: sat.track}});
+  for (const sat of data.sats) {  // la trace : discrète, celle demandée bien visible
+    if (sat.focus) fadingTrack(sat, accent);
+    else features.push({type: "Feature", properties: {color: "#9fb3d1", width: 1.2,
+      opacity: 0.45}, geometry: {type: "LineString", coordinates: sat.track}});
     const dot = new maplibregl.Marker({element: spaceTag(sat.label, sat.focus ? "focus" : "",
       accent)}).setLngLat(satAt(sat, 0)).addTo(map);
     space.dots.push(dot);
