@@ -98,6 +98,11 @@ class MapScene(QWidget):
         """Le vent et les températures sur la carte (M2)."""
         self._run(f"window.fridayWeather && window.fridayWeather({json.dumps(data)});")
 
+    def planes(self, data: dict) -> None:
+        """Les avions en direct (M3)."""
+        args = ", ".join(json.dumps(v) for v in (data, self.accent))
+        self._run(f"window.fridayPlanes && window.fridayPlanes({args});")
+
     def world(self, data: dict) -> None:
         """Le globe de la veille monde (J9b)."""
         self._run(world_script(data))

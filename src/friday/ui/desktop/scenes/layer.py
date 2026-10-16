@@ -12,7 +12,13 @@ from friday.ui.desktop import theme
 from friday.ui.desktop.theme.stylesheet import FONT_HUD
 
 # Ce que la carte sait montrer : genre d'affichage → méthode de MapScene
-SHOWN_ON_MAP = {"place": "go", "world": "world", "route": "route", "weather_map": "weather"}
+SHOWN_ON_MAP = {
+    "place": "go",
+    "world": "world",
+    "route": "route",
+    "weather_map": "weather",
+    "planes": "planes",
+}
 
 TOP_SHADE, BOTTOM_SHADE = 0.22, 0.5  # part de la hauteur assombrie en haut, en bas
 

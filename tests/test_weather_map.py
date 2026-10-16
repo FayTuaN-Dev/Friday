@@ -85,6 +85,15 @@ def test_the_map_shows_wind_and_temperatures_and_says_the_essentials():
     assert wind_only.display.data["layers"] == ["wind"] and "températures" not in wind_only.text
 
 
+def test_a_freshly_started_pc_still_asks_for_measures(monkeypatch):
+    from friday.tools import weather_map
+
+    monkeypatch.setattr(weather_map.time, "monotonic", lambda: 30.0)  # allumé il y a 30 s
+    calls = []
+    result = ShowWeatherMapTool(fake_meteo(calls)).run("vent", "France")
+    assert calls.count("api.open-meteo.com") == 1 and result.display is not None
+
+
 def test_a_saturated_service_is_said_plainly():
     result = ShowWeatherMapTool(fake_meteo([], status=429)).run("vent", "France")
     assert "saturé" in result.text and result.display is None
