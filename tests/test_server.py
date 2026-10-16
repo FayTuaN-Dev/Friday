@@ -31,6 +31,15 @@ def test_the_light_brain_keeps_its_instructions_identical_from_one_question_to_t
     assert brain.conversation.messages[0]["content"] == "Bonjour"  # l'historique, lui, intact
 
 
+def test_the_light_brain_reads_its_instructions_at_startup_and_stays_loaded():
+    client = FakeClient(chunks=["."])
+    brain = Brain(SETTINGS, client=client, light_guides="- get_weather : la météo.")
+    brain.warmup()
+    sent = client.calls[0]
+    assert sent["keep_alive"] == -1 and sent["messages"][0]["role"] == "system"
+    assert sent["options"]["num_predict"] == 1  # lire, pas écrire
+
+
 class FakeBrain:
     def __init__(self, fail=False):
         self.fail, self.resets = fail, 0
@@ -40,7 +49,7 @@ class FakeBrain:
             raise BrainError("Ollama absent")
         yield ToolStarted("get_weather", {}, "🌤️ Météo : Lyon")
         yield "Demain, "
-        yield "du soleil."
+        yield "du soleil. 😊"
 
     def reset(self):
         self.resets += 1
@@ -48,7 +57,7 @@ class FakeBrain:
 
 def test_answers_are_sent_line_by_line_and_errors_said_plainly():
     assert list(lines_of(FakeBrain(), "météo ?")) == [
-        {"outil": "🌤️ Météo : Lyon"}, {"texte": "Demain, "}, {"texte": "du soleil."},
+        {"outil": "🌤️ Météo : Lyon"}, {"texte": "Demain, "}, {"texte": "du soleil. "},
         {"fin": True}]  # fmt: skip
     assert list(lines_of(FakeBrain(fail=True), "?"))[0]["erreur"].startswith("Le modèle")
 

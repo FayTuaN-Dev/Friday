@@ -77,6 +77,9 @@ class Brain:
         `light_guides` : cerveau léger (Raspberry Pi, brain/light.py) avec ces consignes
         d'outils ; consignes fixes, le contexte du moment va avec la question."""
         self.light_guides = light_guides
+        # Sur le Pi, la mémoire lui est réservée : le modèle reste chargé (sinon, 90 s de
+        # relecture des consignes à la première question après une pause)
+        self.keep_alive: str | int = -1 if light_guides is not None else "30m"
         self.settings = settings
         self.client = client or GatedClient(host=settings.ollama_host)
         self.toolbox = toolbox or ToolBox([])
@@ -101,13 +104,18 @@ class Brain:
         self.warmup()
 
     def warmup(self) -> None:
-        """Charge le modèle en mémoire vidéo dès le démarrage (sans générer de texte)."""
+        """Charge le modèle en mémoire vidéo dès le démarrage (sans générer de texte). Cerveau
+        léger : il lit aussi ses consignes et ses outils, gardés pour les vraies questions."""
+        light = self.light_guides is not None
         try:
             self.client.chat(
                 model=self.settings.ollama_model,
-                messages=[],
-                keep_alive="30m",
-                options={"num_ctx": self.settings.ollama_num_ctx},
+                messages=[*self._messages(), {"role": "user", "content": "Bonjour"}]
+                if light
+                else [],
+                tools=self.toolset.schemas() if light and self.toolbox else None,
+                keep_alive=self.keep_alive,
+                options={"num_ctx": self.settings.ollama_num_ctx, "num_predict": 1},
             )
         except OLLAMA_ERRORS as e:
             log.warning("Préchargement du modèle impossible : %s", e)
@@ -222,7 +230,7 @@ class Brain:
             tools=self.toolset.schemas() if use_tools else None,
             stream=True,
             think=self._think,  # réflexion seulement si utile : sinon trop lente pour la voix
-            keep_alive="30m",  # garde le modèle chargé en mémoire vidéo
+            keep_alive=self.keep_alive,  # garde le modèle chargé en mémoire vidéo
             options={
                 "num_ctx": self.settings.ollama_num_ctx,
                 "num_predict": MAX_TOKENS_THINKING if self._think else MAX_TOKENS,

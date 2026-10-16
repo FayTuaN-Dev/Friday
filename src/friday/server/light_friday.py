@@ -12,7 +12,8 @@ from friday.memory.service import format_memories
 
 log = logging.getLogger(__name__)
 
-GUIDES = """- get_weather : la météo (maintenant, demain, la semaine). Jamais de mémoire.
+GUIDES = """- get_weather : la météo (maintenant, demain, la semaine). Jamais de mémoire. Ville non
+  dite, « chez moi », « ici » : laisse city VIDE (c'est la ville de l'utilisateur).
 - web_search : chercher sur internet (actualité, prix, horaires, faits récents, ou au moindre
   doute). Ne réponds jamais de mémoire à une question d'actualité.
 - add_note, list_notes : noter quelque chose, relire les notes.

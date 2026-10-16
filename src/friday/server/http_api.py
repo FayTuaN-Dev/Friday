@@ -11,6 +11,7 @@ Une seule réponse à la fois (un seul modèle sur le Pi) : les autres attendent
 import hmac
 import json
 import logging
+import re
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -19,6 +20,8 @@ from friday.brain.llm import BrainError
 
 log = logging.getLogger(__name__)
 MAX_BODY = 20_000
+# Constaté : le petit modèle glisse des émojis malgré ses consignes ; la voix les lirait
+EMOJI = re.compile("[🀀-🫿☀-➿️‍]")
 
 
 def lines_of(brain, text: str):
@@ -26,7 +29,8 @@ def lines_of(brain, text: str):
     try:
         for event in brain.reply(text):
             if isinstance(event, str):
-                yield {"texte": event}
+                if text_ := EMOJI.sub("", event):
+                    yield {"texte": text_}
             elif isinstance(event, ToolStarted):
                 yield {"outil": event.label}
             elif isinstance(event, ConfirmationRequest):
