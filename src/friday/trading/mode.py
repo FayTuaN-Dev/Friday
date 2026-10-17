@@ -105,6 +105,9 @@ COMPARE = ("compare les strategies", "compare mes strategies", "quelle strategie
 MARKETS = ("tous les marches", "tous mes marches", "chaque marche", "tous les instruments",
            "tous mes instruments", "plusieurs marches")  # fmt: skip
 TRY = ("compare", "teste", "tester", "backtest", "essaie", "fonctionne", "rapporte")
+REVIEW_SETUPS = ("bilan des setups", "bilan du carnet", "avis de claude aide",
+                 "l avis de claude aide", "claude a raison", "claude avait raison")  # fmt: skip
+SETUPS = ("derniers setups", "mes setups", "carnet des setups")
 WATCH = ("surveille", "surveiller", "surveillance")
 STOP = ("arrete", "arreter", "stoppe", "coupe", "plus besoin", "fin de")
 CHOOSE = ("choisis", "prends", "adopte", "utilise", "passe a", "passe sur", "reviens a",
@@ -123,6 +126,10 @@ def strategy_request(text: str) -> tuple[str, dict] | None:
         return ("translate_plan", {})
     found = detect(text)
     instrument = found.symbol if found else ""
+    if any(f" {w}" in padded for w in REVIEW_SETUPS):
+        return ("setup_review", {})
+    if any(f" {w}" in padded for w in SETUPS):
+        return ("recent_setups", {})
     wide = any(f" {w} " in padded for w in MARKETS) or " les marches " in padded
     if wide and any(f" {w}" in padded for w in WATCH):  # P2 : surveiller plusieurs marchés
         return ("watch_markets", {"strategy": strategy_named(text) or "",
