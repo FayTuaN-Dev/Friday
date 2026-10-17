@@ -48,7 +48,7 @@ def lab_with(tmp_path, markets):
                               instrument_for=lambda q: by_symbol("XAUUSD"))  # fmt: skip
     lab = StrategyLab(trading)
 
-    def results(instrument):
+    def results(instrument, only=None):
         if instrument.symbol not in markets:
             raise MarketUnavailable("Yahoo muet")
         return "du 06/01/2025 au 01/10/2026", markets[instrument.symbol]

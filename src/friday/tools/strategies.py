@@ -27,21 +27,24 @@ class StrategyLab:
 
     def __init__(self, trading, history=load_history) -> None:
         self.trading, self.history = trading, history
-        self._results: dict[str, tuple[float, str, list[Result]]] = {}
+        self._results: dict[tuple, tuple[float, str, list[Result]]] = {}
 
-    def results(self, instrument: Instrument) -> tuple[str, list[Result]]:
-        """(période, résultats du meilleur au moins bon)."""
-        stamp, period, found = self._results.get(instrument.symbol, (0.0, "", []))
+    def results(self, instrument: Instrument, only: str | None = None) -> tuple[str, list[Result]]:
+        """(période, résultats du meilleur au moins bon) ; `only` : cette stratégie seule.
+        Constaté : « compare Turtle sur tous les marchés » rejouait les 7 stratégies (1 min 52)."""
+        key = (instrument.symbol, only)
+        stamp, period, found = self._results.get(key, (0.0, "", []))
         if found and time.monotonic() - stamp < KEEP_SECONDS:
             return period, found
         hourly, daily = self.history(instrument)
         rules = load_rules(self.trading.rules_path)
         choice = getattr(self.trading, "choice", None)
         strategies = choice.available() if choice is not None else STRATEGIES
-        strategies = tuple(s for s in strategies if s.covers(instrument))  # ses marchés
+        strategies = tuple(s for s in strategies if s.covers(instrument)  # ses marchés
+                           and (only is None or s.name == only))  # fmt: skip
         found = compare(hourly, daily, rules, spread_of(instrument, hourly[-1].close), strategies)
         period = f"du {hourly[0].time:%d/%m/%Y} au {hourly[-1].time:%d/%m/%Y}"
-        self._results[instrument.symbol] = (time.monotonic(), period, found)
+        self._results[key] = (time.monotonic(), period, found)
         return period, found
 
     def instruments(self, everything: bool, named: str) -> list[Instrument]:
@@ -55,13 +58,13 @@ class StrategyLab:
             symbols += [a.symbol for a in alerts.store.all() if a.kind == "setup"]
         return [by_symbol(s) for s in dict.fromkeys(symbols)]
 
-    def many(self, instruments: list[Instrument]) -> list[tuple]:
+    def many(self, instruments: list[Instrument], only: str | None = None) -> list[tuple]:
         """[(marché, période, résultats ou l'erreur)…], plusieurs marchés lus à la fois."""
         from friday.trading.market import MarketUnavailable
 
         def one(item: Instrument) -> tuple:
             try:
-                return (item, *self.results(item))
+                return (item, *(self.results(item, only) if only else self.results(item)))
             except MarketUnavailable as error:
                 return item, "", error
 
@@ -137,7 +140,10 @@ class CompareStrategiesTool(Tool):
         return self._said(spoken, items)
 
     def _markets(self, chosen: list[Instrument], name: str | None) -> ToolResult:
-        found = self.lab.many(chosen)
+        if name:  # une seule stratégie : ses marchés seulement, elle seule rejouée
+            strategy = self.choice.named(name)
+            chosen = [m for m in chosen if strategy.covers(m)] or chosen
+        found = self.lab.many(chosen, name)
         markets = [(m, r) for m, _, r in found if not isinstance(r, Exception)]
         if not markets:
             return ToolResult("Dis EXACTEMENT : « Les historiques des marchés sont "

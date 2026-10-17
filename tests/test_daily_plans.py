@@ -79,3 +79,30 @@ def test_a_plan_follows_only_the_market_families_ticked(tmp_path):
     book.save_translation(plan["id"], turtle(), "Cassure des 20 jours")  # retraduit : gardé
     assert book.get(plan["id"])["familles"] == ["matieres", "indices"]
     assert book.duplicate(plan["id"])["familles"] == ["matieres", "indices"]
+
+
+def test_one_plan_on_all_markets_replays_only_it_and_only_its_markets(tmp_path):
+    from types import SimpleNamespace
+
+    from friday.tools.strategies import CompareStrategiesTool, StrategyLab
+    from friday.trading.strategy_choice import StrategyChoice
+
+    book = PlanBook(tmp_path / "plans.json")
+    plan = book.add("Turtle", "Cassure des 20 jours")
+    book.save_translation(plan["id"], turtle(), "Cassure des 20 jours")
+    book.set_families(plan["id"], ["crypto"])
+    choice = StrategyChoice(tmp_path / "s.json", book)
+    read = []
+    daily = days([100.0] * 30 + [100 + i for i in range(1, 40)])
+
+    def history(instrument):
+        read.append(instrument.symbol)
+        return daily[-5:], daily
+
+    trading = SimpleNamespace(rules_path=tmp_path / "r.json", alerts=None, choice=choice,
+                              instrument_for=lambda q: None)  # fmt: skip
+    lab = StrategyLab(trading, history)
+    text = CompareStrategiesTool(lab, choice).run(everything=True, request="compare Turtle").text
+    assert sorted(read) == ["BTCUSD", "ETHUSD"]  # les devises ne sont même pas lues
+    assert "sur 2 marchés en même temps, en journalier depuis 2020" in text
+    assert all(len(found) == 1 for _, _, found in lab._results.values())  # elle seule
