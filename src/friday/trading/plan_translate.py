@@ -20,9 +20,15 @@ Format :
    seulement en dessous ; null si le plan ne filtre pas par la tendance),
  "achat": [conditions, TOUTES vraies en même temps], "vente": [conditions],
  "stop": {{"type": "atr", "multiple": 1.5}} ou {{"type": "creux", "bougies": 10}}  (creux : sous le
-   plus bas des N dernières bougies à l'achat, au-dessus du plus haut à la vente),
+   plus bas des N dernières bougies à l'achat, au-dessus du plus haut à la vente) ; un stop en
+   ATR de JOURS (« 2 N », N = ATR 20 jours) : {{"type": "atr", "multiple": 2, "journalier": true,
+   "periode": 20}},
  "objectif": {{"type": "r", "valeur": 2}} (en multiple du risque) ou
-   {{"type": "indicateur", "indicateur": opérande}},
+   {{"type": "indicateur", "indicateur": opérande}} ou {{"type": "aucun"}} (le plan laisse courir
+   les gains : il faut alors une sortie),
+ "sortie": {{"bougies": 480}} ou null  (sortie suiveuse : à l'achat, sortie à la cassure du plus
+   bas des N bougies précédentes, en vente du plus haut ; ex. « sortie sur le plus bas des 20
+   jours » = 480),
  "heures": [9, 17] ou null  (heure de Paris de la clôture de la bougie, bornes comprises),
  "non_traduit": ["ce qui ne peut pas s'exprimer ainsi, et tes interprétations, en français"]}}
 

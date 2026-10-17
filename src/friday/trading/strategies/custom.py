@@ -4,7 +4,7 @@ fois ; « plus haut / plus bas des bougies précédentes » exclut la bougie `i`
 
 from datetime import timedelta
 
-from friday.trading.backtest.series import atr_series, ema_series, rsi_series
+from friday.trading.backtest.series import atr_series, ema_series, extreme_series, rsi_series
 from friday.trading.calendar import PARIS
 from friday.trading.strategies.base import Entry, State, Strategy
 from friday.trading.strategies.spec import describe
@@ -26,11 +26,6 @@ def _bands(values: list[float], period: int, k: float, sign: int) -> list:
         std = (sum((x - mean[i]) ** 2 for x in window) / period) ** 0.5
         out[i] = mean[i] + sign * k * std
     return out
-
-
-def _extreme(values: list[float], period: int, pick) -> list:
-    """Extrême des `period` bougies AVANT i (exclue)."""
-    return [pick(values[i - period : i]) if i >= period else None for i in range(len(values))]
 
 
 class CustomStrategy(Strategy):
@@ -60,8 +55,8 @@ class CustomStrategy(Strategy):
                 "rsi": lambda: rsi_series(closes, p), "atr": lambda: atr_series(h, p),
                 "bollinger_haute": lambda: _bands(closes, p, o.get("ecarts", 2), 1),
                 "bollinger_basse": lambda: _bands(closes, p, o.get("ecarts", 2), -1),
-                "plus_haut": lambda: _extreme([c.high for c in h], p, max),
-                "plus_bas": lambda: _extreme([c.low for c in h], p, min),
+                "plus_haut": lambda: extreme_series([c.high for c in h], p, True),
+                "plus_bas": lambda: extreme_series([c.low for c in h], p, False),
             }  # fmt: skip
             state.extra[key] = make[o["indicateur"]]()
         return state.extra[key]
@@ -105,10 +100,17 @@ class CustomStrategy(Strategy):
         for side in self.sides(state, i, day):
             conditions = self.spec[side]
             if conditions and all(self.holds(state, c, i) for c in conditions):
-                return self._trade(state, i, side)
+                return self._trade(state, i, side, day)
         return None
 
-    def _trade(self, state: State, i: int, side: str) -> Entry | None:
+    def daily_atr(self, state: State, period: int, day: int) -> float | None:
+        """L'ATR des `period` dernières JOURNÉES terminées (le « N » des Turtles)."""
+        key = ("atr_jour", period)
+        if key not in state.extra:
+            state.extra[key] = atr_series(state.daily, period)
+        return state.extra[key][day] if day >= 0 else None
+
+    def _trade(self, state: State, i: int, side: str, day: int = -1) -> Entry | None:
         close, sign, width = state.closes[i], 1 if side == "achat" else -1, state.atr[i]
         stop_rule, target_rule = self.spec["stop"], self.spec["objectif"]
         if not width:
@@ -117,10 +119,19 @@ class CustomStrategy(Strategy):
             recent = state.hourly[max(0, i - stop_rule["bougies"] + 1) : i + 1]
             stop = min(c.low for c in recent) if sign > 0 else max(c.high for c in recent)
         else:
+            if stop_rule.get("journalier"):
+                width = self.daily_atr(state, stop_rule["periode"], day)
+                if not width:
+                    return None  # pas encore assez de journées
             stop = close - sign * stop_rule["multiple"] * width
         entry = self.by_risk(state, i, side, stop=stop)  # au moins le stop minimal du risque
         if entry is None:
             return None
+        if self.spec.get("sortie"):
+            entry.trail = self.spec["sortie"]["bougies"]
+        if target_rule["type"] == "aucun":
+            entry.target = None  # on laisse courir : la sortie suiveuse (ou le stop) décide
+            return entry
         if target_rule["type"] == "r":
             entry.target = close + sign * target_rule["valeur"] * abs(close - entry.stop)
             return entry
