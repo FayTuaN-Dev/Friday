@@ -37,6 +37,16 @@ class State:
     extra: dict = field(default_factory=dict)  # séries propres à une stratégie
 
 
+def bars_for(strategy: "Strategy", hourly: list[Candle], daily: list[Candle]) -> list[Candle]:
+    """Les bougies sur lesquelles la stratégie décide : 1 h, ou la journée (Turtles)."""
+    return daily if strategy.unit == "jour" else hourly
+
+
+def closed_days(daily: list[Candle], moment) -> list[Candle]:
+    """Les journées terminées avant `moment` (Yahoo renvoie aussi la journée en cours)."""
+    return daily[: finished_day(daily, moment) + 1]
+
+
 def finished_day(daily: list[Candle], moment, start: int = -1) -> int:
     """Indice de la dernière journée terminée avant `moment` (-1 : aucune)."""
     day = start
@@ -50,6 +60,14 @@ class Strategy:
     label = ""  # pour parler : « la cassure de range »
     summary = ""  # en une phrase
     trend_filter = True  # ne trade que dans le sens de l'EMA journalière (si la règle existe)
+    unit = "heure"  # « jour » : décide à la clôture de chaque JOURNÉE (Turtles)
+    families: tuple[str, ...] | None = None  # familles de marchés suivies (None : toutes)
+
+    def covers(self, instrument) -> bool:
+        """La stratégie suit-elle ce marché ? (familles choisies dans Réglages → Trading)"""
+        from friday.trading.instruments import family
+
+        return self.families is None or family(instrument) in self.families
 
     def prepare(self, hourly: list[Candle], daily: list[Candle], rules: PlanRules) -> State:
         closes = [c.close for c in hourly]

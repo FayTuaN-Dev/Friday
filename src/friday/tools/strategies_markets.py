@@ -53,8 +53,10 @@ def one_strategy(name: str, markets: list[tuple]) -> tuple[str, list[dict]]:
     whole = portfolio(pairs[0][1].strategy, [r for _, r in pairs])
     traded = sorted((p for p in pairs if p[1].report.count),
                     key=lambda p: -p[1].report.total)  # fmt: skip
+    since = min((r.since for _, r in pairs if r.since), default=None)
+    daily = f", en journalier depuis {since:%Y}" if since and whole.strategy.unit == "jour" else ""
     spoken = (
-        f"{whole.strategy.label} sur {len(pairs)} marchés en même temps : "
+        f"{whole.strategy.label} sur {len(pairs)} marchés en même temps{daily} : "
         f"{_figures(whole)} ; verdict : {_verdict(whole)}"
     )
     if traded:

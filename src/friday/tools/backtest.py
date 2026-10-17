@@ -13,6 +13,7 @@ from friday.trading.backtest.report import FEW, Report, r_text, variants
 from friday.trading.instruments import Instrument
 from friday.trading.market import Candle, MarketUnavailable, fetch
 from friday.trading.plan_rules import load_rules
+from friday.trading.strategies.base import bars_for
 
 KEEP_SECONDS = 3600  # l'historique est gardé une heure en mémoire
 SPREAD_PIPS = {"forex": 1, "metal": 3, "energie": 3, "indice": 1}  # spread typique
@@ -20,9 +21,11 @@ SPREAD_SHARE = 0.0005  # crypto, actions : 0,05 % du cours
 
 
 def load_history(instrument: Instrument) -> tuple[list[Candle], list[Candle]]:
-    """(bougies 1 h sur 730 jours, bougies journalières sur 5 ans pour l'EMA200)."""
+    """(bougies 1 h sur 730 jours ; journalières sur 25 ans : l'EMA200, et les stratégies
+    journalières comme les Turtles, rejouées sur ~20 ans). Yahoo : au-delà de 25 ans
+    (« max »), il ne rend plus que des bougies mensuelles (constaté)."""
     _, hourly = fetch(instrument.yahoo, "1h", "730d")
-    _, daily = fetch(instrument.yahoo, "1d", "5y")
+    _, daily = fetch(instrument.yahoo, "1d", "25y")
     return hourly, daily
 
 
@@ -94,9 +97,10 @@ class BacktestTool(Tool):
             mine = replace(rules, min_rr=objectif or rules.min_rr, stop_atr=stop or rules.stop_atr)
             runs.insert(1, (_variant_label(objectif, stop), mine))
         spread = spread_of(item, hourly[-1].close)
-        reports = [Report(label, simulate(hourly, daily, r, spread, strategy))
+        bars = bars_for(strategy, hourly, daily) if strategy is not None else hourly
+        reports = [Report(label, simulate(bars, daily, r, spread, strategy))
                    for label, r in runs]  # fmt: skip
-        return self._result(item, hourly, reports)
+        return self._result(item, bars, reports, daily=bars is not hourly)
 
     def _load(self, item: Instrument):
         stamp, data = self._cache.get(item.yahoo, (0.0, None))
@@ -105,10 +109,12 @@ class BacktestTool(Tool):
             self._cache[item.yahoo] = (time.monotonic(), data)
         return data
 
-    def _result(self, item: Instrument, hourly: list[Candle], reports: list[Report]) -> ToolResult:
+    def _result(self, item: Instrument, hourly: list[Candle], reports: list[Report],
+                daily: bool = False) -> ToolResult:  # fmt: skip
         plan = reports[0]
         period = f"du {hourly[0].time:%d/%m/%Y} au {hourly[-1].time:%d/%m/%Y}"
-        spoken = f"Sur {item.name}, {period}, en bougies 1 h : {plan.short()}"
+        unit = "en bougies journalières" if daily else "en bougies 1 h"
+        spoken = f"Sur {item.name}, {period}, {unit} : {plan.short()}"
         if plan.count and plan.count < FEW:
             spoken += f". Attention : moins de {FEW} trades, c'est trop peu pour conclure"
         better = [r for r in reports[1:] if r.count >= FEW and plan.count >= FEW

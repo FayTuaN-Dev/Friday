@@ -10,12 +10,16 @@ from friday.tools.claude_code import ClaudeCodeJob
 from friday.trading.analyst import ISOLATED
 from friday.trading.strategies.spec import INDICATORS, MAX_PERIOD, OPS, validate
 
-RULES = f"""Tu traduis le plan de trading d'un utilisateur en règles que du code exécutera sur des
-bougies d'UNE HEURE, à la clôture de chaque bougie. Tu n'as AUCUN outil. Réponds UNIQUEMENT
-par un objet JSON valide, sans texte autour ni bloc de code.
+RULES = f"""Tu traduis le plan de trading d'un utilisateur en règles que du code exécutera à la
+clôture de chaque bougie : d'UNE HEURE, ou d'UNE JOURNÉE si le plan raisonne en jours. Tu n'as
+AUCUN outil. Réponds UNIQUEMENT par un objet JSON valide, sans texte autour ni bloc de code.
 
 Format :
 {{"nom": "…", "resume": "le plan en une phrase",
+ "unite": "heure" ou "jour"  ("jour" quand le plan est un système journalier, en jours ou en
+   semaines (cassure des 55 jours, Turtles, swing sur le graphique journalier) : TOUTES les
+   périodes, sorties et creux sont alors en JOURS (55, pas 1320) et "heures" est null ;
+   "heure" pour un plan intraday),
  "tendance": {{"ema": 200}} ou null  (EMA sur le JOURNALIER : achats seulement au-dessus, ventes
    seulement en dessous ; null si le plan ne filtre pas par la tendance),
  "achat": [conditions, TOUTES vraies en même temps], "vente": [conditions],
@@ -28,7 +32,7 @@ Format :
    les gains : il faut alors une sortie),
  "sortie": {{"bougies": 480}} ou null  (sortie suiveuse : à l'achat, sortie à la cassure du plus
    bas des N bougies précédentes, en vente du plus haut ; ex. « sortie sur le plus bas des 20
-   jours » = 480),
+   jours » = 20 en "jour", 480 en "heure"),
  "heures": [9, 17] ou null  (heure de Paris de la clôture de la bougie, bornes comprises),
  "non_traduit": ["ce qui ne peut pas s'exprimer ainsi, et tes interprétations, en français"]}}
 
@@ -38,7 +42,7 @@ condition : {{"gauche": opérande, "op": opérateur, "droite": opérande}}
 opérande : {{"indicateur": nom, "periode": 14, "decalage": 0}} ou {{"valeur": 30}}
   indicateurs : {", ".join(INDICATORS)}
   (« periode » pour ema, sma, rsi, atr, bollinger_*, plus_haut, plus_bas, de 1 à {MAX_PERIOD}
-  bougies d'une heure (un jour de marché = 24 bougies) ; « ecarts » pour les
+  bougies (en "heure", un jour de marché = 24 bougies) ; « ecarts » pour les
   bandes de Bollinger ; plus_haut / plus_bas : extrême des N bougies AVANT la bougie actuelle ;
   « decalage » : 1 = la bougie précédente).
 

@@ -7,16 +7,19 @@
   moitié perdante) ;
 - ❌ « n'a pas fonctionné ».
 
-Mêmes données, même moteur, même spread, même gestion du risque pour toutes.
+Mêmes données, même moteur, même spread, même gestion du risque pour toutes ; une stratégie
+journalière (Turtles) est rejouée sur les journées, donc sur bien plus d'années.
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 
 from friday.trading.backtest.engine import simulate
 from friday.trading.backtest.report import FEW, Report
 from friday.trading.market import Candle
 from friday.trading.plan_rules import PlanRules
 from friday.trading.strategies import STRATEGIES, Strategy
+from friday.trading.strategies.base import bars_for
 
 WORKED, PROMISING, FAILED = "a fonctionné", "prometteuse", "n'a pas fonctionné"
 ICONS = {WORKED: "✅", PROMISING: "🟡", FAILED: "❌"}
@@ -27,6 +30,7 @@ class Result:
     strategy: Strategy
     report: Report
     halves: tuple[Report, Report]
+    since: datetime | None = None  # début des bougies rejouées (journalières : bien plus tôt)
 
     @property
     def verdict(self) -> str:
@@ -52,12 +56,15 @@ class Result:
 def compare(hourly: list[Candle], daily: list[Candle], rules: PlanRules, spread: float = 0.0,
             strategies: tuple[Strategy, ...] = STRATEGIES) -> list[Result]:  # fmt: skip
     """Toutes les stratégies, de la meilleure à la moins bonne (gain moyen par trade)."""
-    middle = hourly[len(hourly) // 2].time if hourly else None
     results = []
     for strategy in strategies:
-        trades = simulate(hourly, daily, rules, spread, strategy)
+        bars = bars_for(strategy, hourly, daily)
+        if not bars:
+            continue
+        middle = bars[len(bars) // 2].time
+        trades = simulate(bars, daily, rules, spread, strategy)
         halves = (Report("1re moitié", [t for t in trades if t.opened < middle]),
                   Report("2de moitié", [t for t in trades if t.opened >= middle]))  # fmt: skip
-        results.append(Result(strategy, Report(strategy.label, trades), halves))
+        results.append(Result(strategy, Report(strategy.label, trades), halves, bars[0].time))
     order = {WORKED: 0, PROMISING: 1, FAILED: 2}
     return sorted(results, key=lambda x: (order[x.verdict], -(x.report.expectancy or -99)))

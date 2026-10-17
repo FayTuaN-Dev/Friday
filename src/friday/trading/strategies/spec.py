@@ -2,7 +2,9 @@
 que le CODE vérifie avant de s'en servir, et qu'il redit en français (« ce que Friday a
 compris »). Rien n'est exécuté d'autre que ces conditions sur des indicateurs.
 
-{"nom", "resume", "tendance": {"ema": 200} | null, "achat": [conditions], "vente": [...],
+{"nom", "resume", "unite": "heure" | "jour"  (bougies d'une heure, ou journalières : les
+ périodes sont alors en jours, comme les Turtles),
+ "tendance": {"ema": 200} | null, "achat": [conditions], "vente": [...],
  "stop": {"type": "atr", "multiple": 1.5, "journalier": false, "periode": 20}
          | {"type": "creux", "bougies": 10},
  "objectif": {"type": "r", "valeur": 2} | {"type": "indicateur", "indicateur": opérande}
@@ -104,6 +106,7 @@ def _validate(data: dict) -> dict:
     spec = {
         "nom": str(data.get("nom") or "Mon plan")[:60],
         "resume": str(data.get("resume") or "")[:300],
+        "unite": "jour" if data.get("unite") == "jour" else "heure",
         "tendance": {"ema": int(trend["ema"])} if isinstance(trend, dict) and trend.get("ema")
         else None,
     }  # fmt: skip
@@ -134,7 +137,8 @@ def _validate(data: dict) -> dict:
     else:
         spec["objectif"] = {"type": "r", "valeur": _bounded(target.get("valeur", 2), 0.3, 20)}
     valid_hours = isinstance(hours, list) and len(hours) == 2
-    spec["heures"] = [int(hours[0]), int(hours[1])] if valid_hours else None
+    daily = spec["unite"] == "jour"  # une journée n'a pas d'heure de clôture à choisir
+    spec["heures"] = [int(hours[0]), int(hours[1])] if valid_hours and not daily else None
     spec["non_traduit"] = [short(str(x)) for x in data.get("non_traduit") or []][:12]
     return spec
 
@@ -166,6 +170,9 @@ def say_condition(c: dict) -> str:
 def describe(spec: dict) -> list[str]:
     """Ce que Friday a compris, ligne par ligne, en français."""
     lines = []
+    in_days = spec.get("unite") == "jour"
+    if in_days:
+        lines.append("Bougies : journalières (les périodes sont en jours)")
     if spec["tendance"]:
         lines.append(f"Tendance : achats seulement au-dessus de l'EMA {spec['tendance']['ema']} "
                      "journalière, ventes seulement en dessous")  # fmt: skip
@@ -192,5 +199,12 @@ def describe(spec: dict) -> list[str]:
     if spec["heures"]:
         lines.append(f"Heures : entrées sur les bougies qui ferment entre {spec['heures'][0]} h "
                      f"et {spec['heures'][1]} h (Paris)")  # fmt: skip
+    if in_days:  # « des 20 bougies précédentes » → « des 20 jours précédents »
+        for a, b in DAY_WORDS:
+            lines = [line.replace(a, b) for line in lines]
     lines += [f"À noter : {x}" for x in spec["non_traduit"]]
     return lines
+
+
+DAY_WORDS = (("bougies précédentes", "jours précédents"), ("dernières bougies", "derniers jours"),
+             ("bougie(s)", "jour(s)"))  # fmt: skip

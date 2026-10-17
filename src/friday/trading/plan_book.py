@@ -69,6 +69,8 @@ class PlanBook:
     def strategy(self, plan: dict) -> CustomStrategy:
         found = CustomStrategy(plan["spec"])
         found.name, found.label = PREFIX + plan["id"], f"ton plan « {plan['nom']} »"
+        families = plan.get("familles")
+        found.families = tuple(families) if isinstance(families, list) else None
         return found
 
     def outdated(self, plan: dict) -> bool:
@@ -105,6 +107,9 @@ class PlanBook:
         if source is None:
             return None
         copy = self.add(f"{source['nom']} (copie)", source["texte"])
+        if source.get("familles") is not None:
+            self.set_families(copy["id"], source["familles"])
+            copy["familles"] = source["familles"]
         return copy
 
     def delete(self, plan_id: str) -> bool:
@@ -112,6 +117,15 @@ class PlanBook:
         kept = [p for p in plans if p["id"] != plan_id]
         self._save(kept)
         return len(kept) < len(plans)
+
+    def set_families(self, plan_id: str, families: list[str] | None) -> None:
+        """Les familles de marchés que le plan suit (None : toutes) : un choix de
+        l'utilisateur, gardé quand le plan est retraduit."""
+        plans = self.plans()
+        for plan in plans:
+            if plan["id"] == plan_id:
+                plan["familles"] = None if families is None else list(families)
+        self._save(plans)
 
     def save_translation(self, plan_id: str, spec: dict, texte: str) -> None:
         plans = self.plans()
