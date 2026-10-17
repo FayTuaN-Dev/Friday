@@ -23,7 +23,8 @@ GUIDES = """- get_weather : la météo (maintenant, demain, la semaine). Jamais 
   dépassé s'il corrige) ; forget_memory : oublier ; list_memories : ce que tu sais de lui."""
 PC_GUIDES = """
 - wake_pc : allumer le PC de la maison ; pc_state : est-il allumé ? ; shutdown_pc : l'éteindre
-  (l'utilisateur confirme sur son téléphone)."""
+  (l'utilisateur confirme sur son téléphone). L'état du PC change : appelle TOUJOURS l'outil,
+  ne réponds jamais d'après une réponse précédente."""
 
 
 @dataclass
