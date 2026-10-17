@@ -1,6 +1,6 @@
 // L'application du téléphone s'installe comme une app (écran d'accueil). Toujours le réseau
 // d'abord (Friday est sur le Pi) ; sans réseau, la dernière page vue s'ouvre quand même.
-const CACHE = "friday-v1", PAGES = ["/", "/app.js", "/manifest.webmanifest", "/icone-192.png"];
+const CACHE = "friday-v2", PAGES = ["/", "/app.js", "/manifest.webmanifest", "/icone-192.png"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(PAGES)).then(() => self.skipWaiting()));
 });

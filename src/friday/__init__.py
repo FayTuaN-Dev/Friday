@@ -16,6 +16,8 @@ def main() -> None:
     hint = "Friday léger sans fenêtre, à l'écoute du réseau (sur le Raspberry Pi)"
     parser.add_argument("--serveur", action="store_true", help=hint)
     parser.add_argument("--parle-au-pi", metavar="TEXTE", help="une question au Friday du Pi")
+    hint = "l'agent du PC, lancé au démarrage de Windows : le Pi l'allume, le voit, l'éteint"
+    parser.add_argument("--agent-pc", action="store_true", help=hint)
     args = parser.parse_args()
 
     # La console Windows n'est pas en UTF-8 par défaut : sans ça, les accents sont illisibles.
@@ -31,6 +33,10 @@ def main() -> None:
         from friday.server.settings import load_server_settings
 
         talk(load_server_settings(), args.parle_au_pi)
+    elif args.agent_pc:
+        from friday.pc_agent import run_agent
+
+        run_agent(settings)
     elif args.serveur:
         from friday.server.client import run_server
 
