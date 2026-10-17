@@ -256,8 +256,9 @@ SKILLS = (
 - set_price_alert (« préviens-moi si l'or passe 4 150 »), watch_setup (« surveille l'or » :
   le setup du plan), list_alerts, cancel_alert : les alertes de PRIX, surveillées sur le PC
   et annoncées à la voix (une alerte à une heure est un rappel). Répète la phrase telle quelle.
-- compare_strategies (« compare les stratégies sur l'or ») et choose_strategy (« choisis la
-  cassure de range pour l'or ») : la bibliothèque de stratégies. Répète la phrase telle quelle.
+- compare_strategies (« compare les stratégies sur l'or », « compare Turtle sur tous les
+  marchés ») et choose_strategy (« choisis la cassure de range pour l'or ») : la bibliothèque
+  de stratégies. Répète la phrase telle quelle.
 - translate_plan : traduire son plan écrit en règles (« traduis mon plan »), après aperçu.
 - past_analyses : les dernières analyses de Claude et le cours depuis (« mes dernières
   analyses »). Répète la phrase donnée telle quelle.

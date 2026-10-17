@@ -131,9 +131,10 @@ def test_strategies_are_recognized_by_the_code():
     assert strategy_named("retour à la moyenne") == "retour"
     assert strategy_named("rien de connu") is None
     assert strategy_request("compare les stratégies sur l'or") == (
-        "compare_strategies", {"instrument": "XAUUSD", "everything": False})  # fmt: skip
+        "compare_strategies",
+        {"instrument": "XAUUSD", "everything": False, "strategy": ""})  # fmt: skip
     assert strategy_request("quelle stratégie marche sur tous mes instruments ?") == (
-        "compare_strategies", {"instrument": "", "everything": True})  # fmt: skip
+        "compare_strategies", {"instrument": "", "everything": True, "strategy": ""})  # fmt: skip
     assert strategy_request("choisis la cassure de range pour l'or") == (
         "choose_strategy", {"strategy": "cassure", "instrument": "XAUUSD"})  # fmt: skip
     assert strategy_request("reviens à mon plan sur l'EUR/USD")[1]["strategy"] == "mon_plan"
