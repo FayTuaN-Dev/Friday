@@ -1,6 +1,7 @@
 """Le setup de la stratégie choisie (le plan par défaut) se forme-t-il ? Sur la dernière
-bougie 1 h FERMÉE, exactement la règle d'entrée du backtest (strategies/) : ce qui s'annonce
-est ce qui a été testé sur l'historique. Le texte annoncé est construit ici, par le code."""
+bougie 1 h FERMÉE (la dernière JOURNÉE fermée pour une stratégie journalière, comme les
+Turtles), exactement la règle d'entrée du backtest (strategies/) : ce qui s'annonce est ce qui
+a été testé sur l'historique. Le texte annoncé est construit ici, par le code."""
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -10,6 +11,7 @@ from friday.trading.market import Candle, _digits
 from friday.trading.plan_rules import PlanRules
 from friday.trading.sessions import french
 from friday.trading.strategies import Strategy, finished_day
+from friday.trading.strategies.base import closed_days
 from friday.trading.strategies.plan import PlanStrategy
 
 
@@ -36,10 +38,31 @@ def closed(hourly: list[Candle], now: datetime) -> list[Candle]:
 
 def detect(hourly: list[Candle], daily: list[Candle], rules: PlanRules,
            strategy: Strategy | None = None) -> Setup | None:  # fmt: skip
-    """Le setup sur la DERNIÈRE bougie de `hourly` (déjà limitée aux bougies fermées)."""
+    """Le setup sur la DERNIÈRE bougie de `hourly` (déjà limitée aux bougies fermées) ; ou,
+    pour une stratégie journalière, sur la dernière journée fermée."""
     strategy = strategy or PlanStrategy()
-    if len(hourly) < 2:
+    return _on(bars_of(hourly, daily, strategy), daily, rules, strategy)
+
+
+def lasting(hourly: list[Candle], daily: list[Candle], rules: PlanRules,
+            strategy: Strategy | None, found: Setup) -> bool:  # fmt: skip
+    """Le setup était-il déjà là sur la bougie d'avant (une heure, ou une journée) ?"""
+    strategy = strategy or PlanStrategy()
+    before = _on(bars_of(hourly, daily, strategy)[:-1], daily, rules, strategy)
+    return before is not None and before.side == found.side
+
+
+def bars_of(hourly: list[Candle], daily: list[Candle], strategy: Strategy) -> list[Candle]:
+    if strategy.unit != "jour":
+        return hourly
+    return closed_days(daily, hourly[-1].time + timedelta(hours=1)) if hourly else []
+
+
+def _on(bars: list[Candle], daily: list[Candle], rules: PlanRules,
+        strategy: Strategy) -> Setup | None:  # fmt: skip
+    if len(bars) < 2:
         return None
+    hourly = bars
     state = strategy.prepare(hourly, daily, rules)
     i, bar = len(hourly) - 1, hourly[-1]
     entry = strategy.entry(state, i, finished_day(daily, bar.time))
@@ -56,11 +79,13 @@ def announcement(instrument: Instrument, setup: Setup, rules: PlanRules, shift: 
     p = lambda x: f"{x - shift:,.{digits}f}".replace(",", " ").replace(".", ",")  # noqa: E731
     hour = french(setup.bar.time + timedelta(hours=1), with_day=False)[-5:]
     strategy = setup.strategy or PlanStrategy()
+    in_days = strategy.unit == "jour"
     named = "" if strategy.name == "mon_plan" else f" « {strategy.label} »"
     parts = [f"Alerte setup{named} sur {instrument.name} : {setup.side}"]
     if rules.trend_ema and strategy.trend_filter:
         parts[0] += f" dans le sens de l'EMA{rules.trend_ema} journalière"
-    parts.append(f"bougie 1 h fermée à {hour} à {p(setup.bar.close)}")
+    parts.append(f"journée du {setup.bar.time:%d/%m} fermée à {p(setup.bar.close)}" if in_days
+                 else f"bougie 1 h fermée à {hour} à {p(setup.bar.close)}")  # fmt: skip
     if setup.line is not None:
         gap = abs(setup.bar.close - setup.line) / setup.width
         parts.append(f"à {gap:.1f} ATR de l'EMA{rules.pullback_ema} 1 h".replace(".", ","))
@@ -68,8 +93,9 @@ def announcement(instrument: Instrument, setup: Setup, rules: PlanRules, shift: 
     parts.append(f"RSI {setup.rsi_now:.0f} qui {way}")
     if setup.target is None:  # Turtles : on laisse courir
         edge = "plus bas" if setup.side == "achat" else "plus haut"
+        span = "jours précédents" if in_days else "bougies précédentes"
         parts.append(f"stop indicatif {p(setup.stop)}, pas d'objectif : sortie à la cassure du "
-                     f"{edge} des {setup.trail} bougies précédentes")  # fmt: skip
+                     f"{edge} des {setup.trail} {span}")  # fmt: skip
     else:
         reward = abs(setup.target - setup.bar.close) / abs(setup.bar.close - setup.stop)
         rr = f"{round(reward, 1):g}".replace(".", ",")

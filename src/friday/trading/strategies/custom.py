@@ -36,6 +36,7 @@ class CustomStrategy(Strategy):
         self.spec = spec
         self.summary = spec.get("resume") or "; ".join(describe(spec)[:2])
         self.trend_filter = spec.get("tendance") is not None
+        self.unit = spec.get("unite", "heure")
 
     def add_series(self, state: State) -> None:
         if self.trend_filter:

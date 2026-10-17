@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
 
 from friday.trading.plan_book import TEXT_CHARS
 from friday.trading.strategies.spec import describe
+from friday.ui.desktop.settings.plan_markets import PlanMarkets
 
 PLACEHOLDER = (
     "Exemple :\n- Style : intraday, graphique 1 h, dans le sens de l'EMA200 journalière.\n- "
@@ -62,6 +63,8 @@ class TradingPlanRow(QFrame):
         self.count = QLabel(objectName="Hint")  # au-delà de la limite : pas d'enregistrement
         self.editor.textChanged.connect(self._count)
         layout.addWidget(self.count)
+        self.markets = PlanMarkets(book)
+        layout.addWidget(self.markets)
         line = QHBoxLayout()
         self.status = QLabel(objectName="Hint", wordWrap=True)
         line.addWidget(self.status, 1)
@@ -136,6 +139,7 @@ class TradingPlanRow(QFrame):
         plan = self.current()
         self.name.setText(plan["nom"] if plan else "")
         self.editor.setPlainText(plan["texte"] if plan else "")
+        self.markets.show_plan(plan)
         self._confirm_delete = False
         self.delete_button.setText("Supprimer")
         self.delete_button.setEnabled(plan is not None)

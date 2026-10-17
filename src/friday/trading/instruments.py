@@ -94,6 +94,17 @@ EXCHANGE_CURRENCY = {
 _PAIR = re.compile(r"\b(" + "|".join(MAJORS) + r")\s*[/ -]?\s*(" + "|".join(MAJORS) + r")\b", re.I)
 
 
+# Les familles de marchés (une stratégie peut n'en suivre que certaines)
+FAMILIES = {"devises": "Devises", "matieres": "Matières premières", "indices": "Indices",
+            "crypto": "Crypto", "actions": "Actions"}  # fmt: skip
+_FAMILY = {"forex": "devises", "metal": "matieres", "energie": "matieres", "indice": "indices",
+           "crypto": "crypto", "action": "actions"}  # fmt: skip
+
+
+def family(instrument: Instrument) -> str:
+    return _FAMILY.get(instrument.kind, "actions")
+
+
 def by_symbol(symbol: str) -> Instrument | None:
     """Fiche d'un symbole (« EURUSD », « OANDA:XAUUSD », « GOLD », « AAPL »)."""
     raw = symbol.strip().upper().split(":")[-1].replace("/", "").replace(" ", "")

@@ -38,6 +38,7 @@ class StrategyLab:
         rules = load_rules(self.trading.rules_path)
         choice = getattr(self.trading, "choice", None)
         strategies = choice.available() if choice is not None else STRATEGIES
+        strategies = tuple(s for s in strategies if s.covers(instrument))  # ses marchés
         found = compare(hourly, daily, rules, spread_of(instrument, hourly[-1].close), strategies)
         period = f"du {hourly[0].time:%d/%m/%Y} au {hourly[-1].time:%d/%m/%Y}"
         self._results[instrument.symbol] = (time.monotonic(), period, found)
@@ -69,8 +70,9 @@ class StrategyLab:
 
 
 def _figures(r: Result) -> str:
-    rep = r.report
-    return f"{r_text(rep.expectancy)} par trade sur {rep.count} trades"
+    rep, daily = r.report, r.strategy.unit == "jour" and r.since is not None
+    since = f", en journalier depuis {r.since:%Y}" if daily else ""
+    return f"{r_text(rep.expectancy)} par trade sur {rep.count} trades{since}"
 
 
 def _one(instrument: Instrument, period: str, results: list[Result], current: str) -> str:
@@ -87,8 +89,9 @@ def _one(instrument: Instrument, period: str, results: list[Result], current: st
             f"{r.strategy.label} ({_figures(r)}, {r.why()})" for r in by[PROMISING]))  # fmt: skip
     if by[FAILED]:
         parts.append(f"n'ont pas fonctionné : {', '.join(r.strategy.label for r in by[FAILED])}")
-    mine = next(r for r in results if r.strategy.name == current)
-    parts.append(f"ta stratégie actuelle : {mine.strategy.label} ({mine.verdict})")
+    mine = next((r for r in results if r.strategy.name == current), None)
+    if mine is not None:
+        parts.append(f"ta stratégie actuelle : {mine.strategy.label} ({mine.verdict})")
     return " ; ".join(parts) + "."
 
 
@@ -128,7 +131,8 @@ class CompareStrategiesTool(Tool):
                               f"({results}). »")  # fmt: skip
         spoken = _one(item, period, results, self.choice.get(item.symbol).name)
         items = [{"text": f"{ICONS[r.verdict]} {item.name} · {r.strategy.label}",
-                  "meta": f"{r.report.summary()}" + (f" — {r.why()}" if r.why() else "")}
+                  "meta": f"{r.report.summary()}" + (f" — {r.why()}" if r.why() else "")
+                  + (f" — journalier depuis {r.since:%Y}" if r.strategy.unit == "jour" else "")}
                  for r in results]  # fmt: skip
         return self._said(spoken, items)
 
@@ -196,7 +200,10 @@ class ChooseStrategyTool(Tool):
             _, results = self.lab.results(item)
         except (ValueError, MarketUnavailable) as error:
             return ToolResult(f"Choix impossible : {error} Dis-le simplement.")
-        found = next(r for r in results if r.strategy.name == name)
+        found = next((r for r in results if r.strategy.name == name), None)
+        if found is None:  # un plan qui ne suit pas cette famille de marchés
+            return ToolResult("Dis EXACTEMENT : « Ce plan ne suit pas ce marché : coche sa "
+                              "famille dans Réglages → Trading → Mes plans. »")  # fmt: skip
         label = found.strategy.label
         if found.verdict == FAILED and not name.startswith(PREFIX):
             spoken = (f"Je ne la mets pas : {label} n'a pas fonctionné sur {item.name} "
