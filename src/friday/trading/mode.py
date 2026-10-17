@@ -101,6 +101,10 @@ def briefing_request(text: str, strict: bool = False) -> str | None:
 COMPARE = ("compare les strategies", "compare mes strategies", "quelle strategie",
            "quelles strategies", "meilleure strategie", "bibliotheque de strategies",
            "strategies qui marchent", "strategie qui marche")  # fmt: skip
+# « compare Turtle sur tous les marchés » : une stratégie nommée, sur tous les marchés
+MARKETS = ("tous les marches", "tous mes marches", "chaque marche", "tous les instruments",
+           "tous mes instruments", "plusieurs marches")  # fmt: skip
+TRY = ("compare", "teste", "tester", "backtest", "essaie", "fonctionne", "rapporte")
 CHOOSE = ("choisis", "prends", "adopte", "utilise", "passe a", "passe sur", "reviens a",
           "garde")  # fmt: skip
 
@@ -117,10 +121,12 @@ def strategy_request(text: str) -> tuple[str, dict] | None:
         return ("translate_plan", {})
     found = detect(text)
     instrument = found.symbol if found else ""
-    if any(f" {w}" in padded for w in COMPARE):
-        everything = any(f" {w} " in padded for w in ("tous", "toutes", "chaque"))
+    wide = any(f" {w} " in padded for w in MARKETS)
+    if any(f" {w}" in padded for w in COMPARE) or (wide and any(f" {w}" in padded for w in TRY)):
+        everything = any(f" {w} " in padded for w in ("tous", "toutes", "chaque", "plusieurs"))
         return ("compare_strategies", {"instrument": "" if everything else instrument,
-                                       "everything": everything and not found})  # fmt: skip
+                                       "everything": everything and not found,
+                                       "strategy": strategy_named(text) or ""})  # fmt: skip
     name = strategy_named(text)
     plan = " mon plan" in padded or " ton plan" in padded or "strategie" in padded
     if name and any(f" {w} " in padded for w in CHOOSE) and (plan or name != "mon_plan"):

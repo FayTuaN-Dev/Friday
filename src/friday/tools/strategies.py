@@ -4,11 +4,14 @@ l'or » : chacune backtestée (même moteur, même spread, même risque) avec un
 et du briefing (une stratégie qui n'a pas fonctionné est refusée). Tout sur le PC."""
 
 import time
+from concurrent.futures import ThreadPoolExecutor
 
 from friday.tools.backtest import load_history, spread_of
 from friday.tools.base import Display, Tool, ToolResult
+from friday.tools.strategies_markets import all_strategies, asked_strategy, one_strategy
 from friday.trading import risk_calc
 from friday.trading.backtest.compare import FAILED, ICONS, PROMISING, WORKED, Result, compare
+from friday.trading.backtest.portfolio import UNIVERSE
 from friday.trading.backtest.report import r_text
 from friday.trading.instruments import Instrument, by_symbol
 from friday.trading.plan_book import PREFIX
@@ -16,7 +19,7 @@ from friday.trading.plan_rules import load_rules
 from friday.trading.strategies import BY_NAME, STRATEGIES, strategy_named
 
 KEEP_SECONDS = 3600
-DEFAULT = ("XAUUSD", "XAGUSD", "EURUSD", "GBPUSD", "USDJPY")  # « tous mes instruments »
+LOADERS = 4  # marchés lus en même temps chez Yahoo (20 marchés : ~3 s, mesuré)
 
 
 class StrategyLab:
@@ -45,11 +48,24 @@ class StrategyLab:
             return [risk_calc.resolve(named)]
         if not everything:
             return [self.trading.instrument_for("")]
-        symbols = list(DEFAULT)
+        symbols = list(UNIVERSE)
         alerts = getattr(self.trading, "alerts", None)
         if alerts is not None:
             symbols += [a.symbol for a in alerts.store.all() if a.kind == "setup"]
         return [by_symbol(s) for s in dict.fromkeys(symbols)]
+
+    def many(self, instruments: list[Instrument]) -> list[tuple]:
+        """[(marché, période, résultats ou l'erreur)…], plusieurs marchés lus à la fois."""
+        from friday.trading.market import MarketUnavailable
+
+        def one(item: Instrument) -> tuple:
+            try:
+                return (item, *self.results(item))
+            except MarketUnavailable as error:
+                return item, "", error
+
+        with ThreadPoolExecutor(LOADERS) as pool:
+            return list(pool.map(one, instruments))
 
 
 def _figures(r: Result) -> str:
@@ -80,12 +96,14 @@ class CompareStrategiesTool(Tool):
     name = "compare_strategies"
     description = (
         "Compare les stratégies de la bibliothèque sur l'historique d'un instrument (ou de tous "
-        "ses instruments) : lesquelles ont fonctionné (« compare les stratégies sur l'or », "
-        "« quelle stratégie marche sur l'EUR/USD ? »)."
+        "les marchés, aussi pour une seule stratégie) : lesquelles ont fonctionné (« compare les "
+        "stratégies sur l'or », « compare Turtle sur tous les marchés »)."
     )
     parameters = {
         "instrument": {"type": "string", "description": "Seulement s'il en nomme un"},
-        "everything": {"type": "boolean", "description": "true : tous ses instruments"},
+        "everything": {"type": "boolean", "description": "true : tous les marchés"},
+        "strategy": {"type": "string", "description": "La stratégie nommée, s'il en nomme une"},
+        "request": {"type": "string", "description": "La phrase de l'utilisateur"},
     }
     timeout = 120
 
@@ -95,42 +113,41 @@ class CompareStrategiesTool(Tool):
     def label(self, args: dict) -> str:
         return "📚 Comparaison des stratégies"
 
-    def run(self, instrument: str = "", everything: bool = False) -> ToolResult:
-        from friday.trading.market import MarketUnavailable
-
+    def run(self, instrument: str = "", everything: bool = False, strategy: str = "",
+            request: str = "") -> ToolResult:  # fmt: skip
         try:
             chosen = self.lab.instruments(everything, instrument)
         except ValueError as error:
             return ToolResult(f"{error} Demande lequel.")
-        said, items = [], []
-        for item in chosen:
-            try:
-                period, results = self.lab.results(item)
-            except MarketUnavailable as error:
-                said.append(f"{item.name} : historique indisponible ({error})")
-                continue
-            current = self.choice.get(item.symbol).name
-            said.append(_one(item, period, results, current) if len(chosen) == 1
-                        else _short(item, results))  # fmt: skip
-            items += [{"text": f"{ICONS[r.verdict]} {item.name} · {r.strategy.label}",
-                       "meta": f"{r.report.summary()}" + (f" — {r.why()}" if r.why() else "")}
-                      for r in results]  # fmt: skip
-        spoken = (
-            " ".join(said)
-            if len(chosen) == 1
-            else "Comparaison des stratégies : " + " ; ".join(said) + "."
-        )
+        if len(chosen) > 1:
+            return self._markets(chosen, asked_strategy(self.choice, strategy, request))
+        item = chosen[0]
+        _, period, results = self.lab.many(chosen)[0]
+        if isinstance(results, Exception):
+            return ToolResult(f"Dis EXACTEMENT : « {item.name} : historique indisponible "
+                              f"({results}). »")  # fmt: skip
+        spoken = _one(item, period, results, self.choice.get(item.symbol).name)
+        items = [{"text": f"{ICONS[r.verdict]} {item.name} · {r.strategy.label}",
+                  "meta": f"{r.report.summary()}" + (f" — {r.why()}" if r.why() else "")}
+                 for r in results]  # fmt: skip
+        return self._said(spoken, items)
+
+    def _markets(self, chosen: list[Instrument], name: str | None) -> ToolResult:
+        found = self.lab.many(chosen)
+        markets = [(m, r) for m, _, r in found if not isinstance(r, Exception)]
+        if not markets:
+            return ToolResult("Dis EXACTEMENT : « Les historiques des marchés sont "
+                              "indisponibles pour le moment (Yahoo). »")  # fmt: skip
+        spoken, items = one_strategy(name, markets) if name else all_strategies(markets)
+        if missing := [m.name for m, _, r in found if isinstance(r, Exception)]:
+            spoken += f" Historique indisponible : {', '.join(missing)}."
+        return self._said(spoken, items)
+
+    def _said(self, spoken: str, items: list[dict]) -> ToolResult:
         return ToolResult(
             f"Dis EXACTEMENT : « {spoken} » Le détail est affiché. Le passé ne garantit rien.",
             Display("items", "Bibliothèque de stratégies", {"icon": "📚", "items": items}),
         )
-
-
-def _short(instrument: Instrument, results: list[Result]) -> str:
-    best = results[0]
-    if best.verdict == FAILED:
-        return f"{instrument.name} : aucune n'a fonctionné"
-    return f"{instrument.name} : {best.strategy.label} {best.verdict} ({_figures(best)})"
 
 
 class ChooseStrategyTool(Tool):
