@@ -30,6 +30,15 @@ MAX_CONDITIONS = 8
 MAX_PERIOD = 1500
 
 
+NOTE_CHARS = 400  # constaté : à 200, les notes de Turtle Traders coupées en plein mot
+
+
+def short(text: str, limit: int = NOTE_CHARS) -> str:
+    """Une note du traducteur, coupée entre deux mots si elle est trop longue."""
+    text = text.strip()
+    return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + " …"
+
+
 class SpecError(ValueError):
     """Message pour l'utilisateur."""
 
@@ -112,7 +121,7 @@ def _validate(data: dict) -> dict:
         spec["objectif"] = {"type": "r", "valeur": _bounded(target.get("valeur", 2), 0.3, 20)}
     valid_hours = isinstance(hours, list) and len(hours) == 2
     spec["heures"] = [int(hours[0]), int(hours[1])] if valid_hours else None
-    spec["non_traduit"] = [str(x)[:200] for x in data.get("non_traduit") or []][:10]
+    spec["non_traduit"] = [short(str(x)) for x in data.get("non_traduit") or []][:12]
     return spec
 
 

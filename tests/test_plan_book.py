@@ -198,3 +198,12 @@ def test_long_breakouts_like_the_turtles_fit_in_the_rules():
     breakout["achat"][0]["droite"]["periode"] = MAX_PERIOD + 1
     with pytest.raises(SpecError, match="période hors limites"):
         validate(breakout)
+
+
+def test_translator_notes_are_kept_whole_or_cut_between_words():
+    from friday.trading.strategies.spec import short
+
+    note = "Stop : le plan fixe 2 N, N étant l'ATR de 20 jours sur données journalières."
+    assert short(note) == note
+    cut = short("mot " * 200)
+    assert cut.endswith("mot …") and len(cut) <= 402
