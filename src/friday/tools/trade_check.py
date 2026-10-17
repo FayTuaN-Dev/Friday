@@ -20,9 +20,10 @@ log = logging.getLogger(__name__)
 
 
 def load_market(instrument: Instrument, chart: float | None) -> Market:
-    """Cours, bougies de 1 h (1 mois) et journalières (2 ans, pour l'EMA200). Contrat à terme
-    (l'or…) : les niveaux sont recalés sur le cours du graphique TradingView s'il est visible."""
-    quote, hourly = fetch(instrument.yahoo, "1h", "1mo")
+    """Cours, bougies de 1 h (6 mois : les longues périodes d'un plan, cf. spec.py) et
+    journalières (2 ans, pour l'EMA200). Contrat à terme (l'or…) : les niveaux sont recalés
+    sur le cours du graphique TradingView s'il est visible."""
+    quote, hourly = fetch(instrument.yahoo, "1h", "6mo")
     _, daily = fetch(instrument.yahoo, "1d", "2y")
     if not instrument.note:
         return Market(quote.price, daily, hourly)

@@ -181,3 +181,20 @@ def test_a_plan_too_long_is_refused_out_loud_not_cut_silently(tmp_path):
     row._translate()
     assert asked == ["Turtle Traders"] and "10 caractères de trop" in row.status.text()
     assert len(book.get("p1")["texte"]) < TEXT_CHARS  # l'ancienne version, intacte
+
+
+def test_long_breakouts_like_the_turtles_fit_in_the_rules():
+    # Constaté : la cassure des 55 jours (Turtle Traders) = 1 320 bougies d'une heure, refusée
+    import pytest
+
+    from friday.trading.strategies.spec import MAX_PERIOD, SpecError, validate
+
+    high = {"indicateur": "plus_haut", "periode": 1320}
+    breakout = {
+        **BREAKOUT,
+        "achat": [{"gauche": {"indicateur": "cours"}, "op": ">", "droite": high}],
+    }
+    assert validate(breakout)["achat"][0]["droite"]["periode"] == 1320
+    breakout["achat"][0]["droite"]["periode"] = MAX_PERIOD + 1
+    with pytest.raises(SpecError, match="période hors limites"):
+        validate(breakout)

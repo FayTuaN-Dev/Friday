@@ -25,6 +25,9 @@ OPS = {">": "est au-dessus de", "<": "est en dessous de", ">=": "est au moins à
        "monte": "monte", "baisse": "baisse"}  # fmt: skip
 ALONE = {"monte", "baisse"}  # sans opérande de droite
 MAX_CONDITIONS = 8
+# En bougies d'une heure : ~62 jours. Constaté : Turtle Traders (cassure des 55 jours) traduit
+# en 1 320 bougies, refusé à 400. Les alertes et la check-list lisent donc 6 mois de bougies.
+MAX_PERIOD = 1500
 
 
 class SpecError(ValueError):
@@ -44,7 +47,7 @@ def _operand(data, where: str) -> dict:
     out = {"indicateur": name, "decalage": int(data.get("decalage", 0))}
     if INDICATORS[name][1]:
         period = int(data.get("periode", 14))
-        if not 1 <= period <= 400:
+        if not 1 <= period <= MAX_PERIOD:
             raise SpecError(f"{where} : période hors limites ({period})")
         out["periode"] = period
     if name.startswith("bollinger"):

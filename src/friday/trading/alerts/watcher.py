@@ -31,8 +31,9 @@ def yahoo_price(instrument: Instrument) -> float:
 
 
 def yahoo_history(instrument: Instrument):
-    """(bougies 1 h sur un mois, journalières sur 2 ans pour l'EMA200)."""
-    return fetch(instrument.yahoo, "1h", "1mo")[1], fetch(instrument.yahoo, "1d", "2y")[1]
+    """(bougies 1 h sur 6 mois : de quoi calculer une période de 1 500 bougies, cf. spec.py ;
+    journalières sur 2 ans pour l'EMA200)."""
+    return fetch(instrument.yahoo, "1h", "6mo")[1], fetch(instrument.yahoo, "1d", "2y")[1]
 
 
 class AlertWatcher:
