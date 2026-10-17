@@ -19,7 +19,8 @@ from friday.trading.plan_rules import PlanRules
 class Entry:
     side: str  # « achat » ou « vente »
     stop: float
-    target: float
+    target: float | None  # None : pas d'objectif, la sortie suiveuse décide (Turtles)
+    trail: int | None = None  # sortie suiveuse : cassure inverse des N bougies précédentes
 
 
 @dataclass

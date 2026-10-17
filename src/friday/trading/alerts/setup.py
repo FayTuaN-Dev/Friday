@@ -22,8 +22,9 @@ class Setup:
     rsi_now: float
     rsi_before: float
     stop: float  # indicatif : celui de la stratégie, au moins N ATR (comme le backtest)
-    target: float
+    target: float | None  # None : pas d'objectif, sortie suiveuse (`trail` bougies)
     strategy: Strategy | None = None
+    trail: int | None = None
 
 
 def closed(hourly: list[Candle], now: datetime) -> list[Candle]:
@@ -46,7 +47,7 @@ def detect(hourly: list[Candle], daily: list[Candle], rules: PlanRules,
         return None
     pull = state.extra.get("pull")
     return Setup(entry.side, bar, pull[i] if pull else None, state.atr[i], state.rsi[i],
-                 state.rsi[i - 1], entry.stop, entry.target, strategy)  # fmt: skip
+                 state.rsi[i - 1], entry.stop, entry.target, strategy, entry.trail)  # fmt: skip
 
 
 def announcement(instrument: Instrument, setup: Setup, rules: PlanRules, shift: float) -> str:
@@ -65,7 +66,12 @@ def announcement(instrument: Instrument, setup: Setup, rules: PlanRules, shift: 
         parts.append(f"à {gap:.1f} ATR de l'EMA{rules.pullback_ema} 1 h".replace(".", ","))
     way = "remonte" if setup.rsi_now > setup.rsi_before else "baisse"
     parts.append(f"RSI {setup.rsi_now:.0f} qui {way}")
-    reward = abs(setup.target - setup.bar.close) / abs(setup.bar.close - setup.stop)
-    rr = f"{round(reward, 1):g}".replace(".", ",")
-    parts.append(f"stop indicatif {p(setup.stop)}, objectif {rr} R {p(setup.target)}")
+    if setup.target is None:  # Turtles : on laisse courir
+        edge = "plus bas" if setup.side == "achat" else "plus haut"
+        parts.append(f"stop indicatif {p(setup.stop)}, pas d'objectif : sortie à la cassure du "
+                     f"{edge} des {setup.trail} bougies précédentes")  # fmt: skip
+    else:
+        reward = abs(setup.target - setup.bar.close) / abs(setup.bar.close - setup.stop)
+        rr = f"{round(reward, 1):g}".replace(".", ",")
+        parts.append(f"stop indicatif {p(setup.stop)}, objectif {rr} R {p(setup.target)}")
     return ", ".join(parts) + ". Vérifie avec la check-list avant d'entrer."

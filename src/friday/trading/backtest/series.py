@@ -55,3 +55,23 @@ def atr_series(candles: list[Candle], period: int = 14) -> Series:
 
 def _rsi(gains: float, losses: float) -> float:
     return 100.0 if losses == 0 else 100 - 100 / (1 + gains / losses)
+
+
+def extreme_series(values: list[float], period: int, highest: bool) -> Series:
+    """Le plus haut (ou le plus bas) des `period` valeurs AVANT chaque bougie (elle exclue : pas
+    de futur). Une seule passe (file des candidats) : avec des périodes de 1 320 bougies sur deux
+    ans d'historique, recalculer chaque fenêtre coûtait des millions d'opérations."""
+    from collections import deque
+
+    out: Series = [None] * len(values)
+    window: deque[int] = deque()  # indices, valeurs décroissantes (plus haut) ou croissantes
+    better = (lambda a, b: a >= b) if highest else (lambda a, b: a <= b)
+    for i, value in enumerate(values):
+        while window and window[0] < i - period:
+            window.popleft()
+        if i >= period:
+            out[i] = values[window[0]]
+        while window and better(value, values[window[-1]]):
+            window.pop()
+        window.append(i)
+    return out

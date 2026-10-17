@@ -3,8 +3,12 @@ que le CODE vérifie avant de s'en servir, et qu'il redit en français (« ce qu
 compris »). Rien n'est exécuté d'autre que ces conditions sur des indicateurs.
 
 {"nom", "resume", "tendance": {"ema": 200} | null, "achat": [conditions], "vente": [...],
- "stop": {"type": "atr", "multiple": 1.5} | {"type": "creux", "bougies": 10},
- "objectif": {"type": "r", "valeur": 2} | {"type": "indicateur", "indicateur": opérande},
+ "stop": {"type": "atr", "multiple": 1.5, "journalier": false, "periode": 20}
+         | {"type": "creux", "bougies": 10},
+ "objectif": {"type": "r", "valeur": 2} | {"type": "indicateur", "indicateur": opérande}
+             | {"type": "aucun"}  (on laisse courir : il faut alors une sortie),
+ "sortie": {"bougies": 480} | null  (sortie suiveuse : cassure inverse du plus bas / plus haut
+           des N bougies précédentes, comme les Turtles),
  "heures": [9, 18] | null, "non_traduit": ["…"]}
 condition : {"gauche": opérande, "op": OP, "droite": opérande, "k": 1}
 opérande  : {"indicateur": INDICATEUR, "periode": 14, "ecarts": 2, "decalage": 0} | {"valeur": 30}
@@ -114,7 +118,17 @@ def _validate(data: dict) -> dict:
         spec["stop"] = {"type": "creux", "bougies": int(_bounded(stop.get("bougies", 10), 2, 100))}
     else:
         spec["stop"] = {"type": "atr", "multiple": _bounded(stop.get("multiple", 1.5), 0.1, 20)}
-    if target.get("type") == "indicateur":
+        if stop.get("journalier"):  # « 2 N » des Turtles : l'ATR des 20 derniers JOURS
+            days = int(_bounded(stop.get("periode", 20), 2, 100))
+            spec["stop"] |= {"journalier": True, "periode": days}
+    exit_rule = data.get("sortie")
+    spec["sortie"] = ({"bougies": int(_bounded(exit_rule.get("bougies", 240), 2, MAX_PERIOD))}
+                      if isinstance(exit_rule, dict) else None)  # fmt: skip
+    if target.get("type") == "aucun":
+        if spec["sortie"] is None:
+            raise SpecError("objectif « aucun » sans sortie : le trade ne finirait jamais")
+        spec["objectif"] = {"type": "aucun"}
+    elif target.get("type") == "indicateur":
         level = _operand(target.get("indicateur"), "objectif")
         spec["objectif"] = {"type": "indicateur", "indicateur": level}
     else:
@@ -160,13 +174,21 @@ def describe(spec: dict) -> list[str]:
             lines.append(f"{side.capitalize()} quand : " + " ; ".join(
                 say_condition(c) for c in spec[side]))  # fmt: skip
     stop = spec["stop"]
-    lines.append(f"Stop : {stop['multiple']:g} ATR".replace(".", ",") if stop["type"] == "atr"
+    daily = ""
+    if stop.get("journalier"):
+        daily = f" journaliers (ATR des {stop['periode']} derniers jours)"
+    lines.append(f"Stop : {stop['multiple']:g} ATR{daily}".replace(".", ",")
+                 if stop["type"] == "atr"
                  else f"Stop : sous le dernier creux (au-dessus du dernier sommet en vente) des "
                       f"{stop['bougies']} dernières bougies")  # fmt: skip
     target = spec["objectif"]
-    lines.append(f"Objectif : {target['valeur']:g} fois le risque".replace(".", ",")
+    lines.append("Objectif : aucun, on laisse courir la tendance" if target["type"] == "aucun"
+                 else f"Objectif : {target['valeur']:g} fois le risque".replace(".", ",")
                  if target["type"] == "r"
                  else f"Objectif : {say_operand(target['indicateur'])}")  # fmt: skip
+    if spec.get("sortie"):
+        lines.append(f"Sortie : à la cassure du plus bas des {spec['sortie']['bougies']} bougies "
+                     "précédentes (du plus haut en vente), qui suit le prix")  # fmt: skip
     if spec["heures"]:
         lines.append(f"Heures : entrées sur les bougies qui ferment entre {spec['heures'][0]} h "
                      f"et {spec['heures'][1]} h (Paris)")  # fmt: skip
