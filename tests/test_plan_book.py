@@ -116,7 +116,8 @@ def test_translation_of_the_named_plan(tmp_path):
     packet = tool.preview(asked)
     assert "5 000" not in packet.items[0].text  # masqué
     packet.approved = True
-    tool.run(**asked)
+    launched = tool.run(**asked).text  # une phrase fixe : rien d'inventé avant la réponse
+    assert launched.startswith("Dis EXACTEMENT") and "je te préviens" in launched
     wait(done)
     assert book.get("p1")["spec"] is not None and book.get("p2")["spec"] is None
     assert "Le plan « Cassure Londres » est traduit en règles" in done[0].text
@@ -155,3 +156,54 @@ def test_the_settings_edit_several_plans(tmp_path):
     assert strategies.box.itemText(0) == "Ton plan « Cassure Londres »"
     strategies.box.setCurrentIndex(strategies.box.findData("retour"))
     assert choice.get("XAUUSD").name == "retour"
+
+
+def test_a_plan_too_long_is_refused_out_loud_not_cut_silently(tmp_path):
+    # Constaté : Turtle Traders, coupé à 1 500 caractères avant ses entrées → « aucune
+    # condition d'entrée », sans que rien ne le dise
+    from PySide6.QtWidgets import QApplication
+
+    from friday.trading.plan_book import TEXT_CHARS
+    from friday.ui.desktop.settings.trading_plan import TradingPlanRow
+
+    QApplication.instance() or QApplication([])
+    book = PlanBook(tmp_path / "plans.json")
+    asked = []
+    row = TradingPlanRow(book, asked.append)
+    row._new()
+    row.name.setText("Turtle Traders")
+    row.editor.setPlainText("Entrée : cassure du plus haut de 20 jours. " * 60)  # ~2 600
+    assert "/ 4 000 caractères" in row.count.text() and "trop long" not in row.count.text()
+    row._translate()
+    assert asked == ["Turtle Traders"] and len(book.get("p1")["texte"]) > 2500  # gardé entier
+    row.editor.setPlainText("x" * (TEXT_CHARS + 10))
+    assert "trop long" in row.count.text()
+    row._translate()
+    assert asked == ["Turtle Traders"] and "10 caractères de trop" in row.status.text()
+    assert len(book.get("p1")["texte"]) < TEXT_CHARS  # l'ancienne version, intacte
+
+
+def test_long_breakouts_like_the_turtles_fit_in_the_rules():
+    # Constaté : la cassure des 55 jours (Turtle Traders) = 1 320 bougies d'une heure, refusée
+    import pytest
+
+    from friday.trading.strategies.spec import MAX_PERIOD, SpecError, validate
+
+    high = {"indicateur": "plus_haut", "periode": 1320}
+    breakout = {
+        **BREAKOUT,
+        "achat": [{"gauche": {"indicateur": "cours"}, "op": ">", "droite": high}],
+    }
+    assert validate(breakout)["achat"][0]["droite"]["periode"] == 1320
+    breakout["achat"][0]["droite"]["periode"] = MAX_PERIOD + 1
+    with pytest.raises(SpecError, match="période hors limites"):
+        validate(breakout)
+
+
+def test_translator_notes_are_kept_whole_or_cut_between_words():
+    from friday.trading.strategies.spec import short
+
+    note = "Stop : le plan fixe 2 N, N étant l'ATR de 20 jours sur données journalières."
+    assert short(note) == note
+    cut = short("mot " * 200)
+    assert cut.endswith("mot …") and len(cut) <= 402

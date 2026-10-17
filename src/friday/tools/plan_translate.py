@@ -87,8 +87,10 @@ class TranslatePlanTool(Tool):
         self.job.task = packet.question
         threading.Thread(target=self._work, args=(content, sent_id, dict(self._plan)),
                          daemon=True, name="plan-translate").start()  # fmt: skip
-        return ToolResult("C'est envoyé : Claude traduit ton plan (moins d'une minute en "
-                          "général). Dis-le en une phrase.")  # fmt: skip
+        # Constaté : « dis-le en une phrase » → le modèle annonçait des règles inventées (stop,
+        # objectif) avant la réponse de Claude ; la vraie arrive plus tard (on_done)
+        return ToolResult("Dis EXACTEMENT : « C'est parti : Claude traduit ton plan, je te "
+                          "préviens dès que c'est prêt. »")  # fmt: skip
 
     def _work(self, content: str, sent_id: int, plan: dict) -> None:
         try:

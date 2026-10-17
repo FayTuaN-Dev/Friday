@@ -8,7 +8,7 @@ from pathlib import Path
 
 from friday.tools.claude_code import ClaudeCodeJob
 from friday.trading.analyst import ISOLATED
-from friday.trading.strategies.spec import INDICATORS, OPS, validate
+from friday.trading.strategies.spec import INDICATORS, MAX_PERIOD, OPS, validate
 
 RULES = f"""Tu traduis le plan de trading d'un utilisateur en règles que du code exécutera sur des
 bougies d'UNE HEURE, à la clôture de chaque bougie. Tu n'as AUCUN outil. Réponds UNIQUEMENT
@@ -31,7 +31,8 @@ condition : {{"gauche": opérande, "op": opérateur, "droite": opérande}}
   « monte » et « baisse » (valeur actuelle contre bougie précédente) n'ont pas de "droite".
 opérande : {{"indicateur": nom, "periode": 14, "decalage": 0}} ou {{"valeur": 30}}
   indicateurs : {", ".join(INDICATORS)}
-  (« periode » pour ema, sma, rsi, atr, bollinger_*, plus_haut, plus_bas ; « ecarts » pour les
+  (« periode » pour ema, sma, rsi, atr, bollinger_*, plus_haut, plus_bas, de 1 à {MAX_PERIOD}
+  bougies d'une heure (un jour de marché = 24 bougies) ; « ecarts » pour les
   bandes de Bollinger ; plus_haut / plus_bas : extrême des N bougies AVANT la bougie actuelle ;
   « decalage » : 1 = la bougie précédente).
 

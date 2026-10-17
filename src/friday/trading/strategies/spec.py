@@ -25,6 +25,18 @@ OPS = {">": "est au-dessus de", "<": "est en dessous de", ">=": "est au moins à
        "monte": "monte", "baisse": "baisse"}  # fmt: skip
 ALONE = {"monte", "baisse"}  # sans opérande de droite
 MAX_CONDITIONS = 8
+# En bougies d'une heure : ~62 jours. Constaté : Turtle Traders (cassure des 55 jours) traduit
+# en 1 320 bougies, refusé à 400. Les alertes et la check-list lisent donc 6 mois de bougies.
+MAX_PERIOD = 1500
+
+
+NOTE_CHARS = 400  # constaté : à 200, les notes de Turtle Traders coupées en plein mot
+
+
+def short(text: str, limit: int = NOTE_CHARS) -> str:
+    """Une note du traducteur, coupée entre deux mots si elle est trop longue."""
+    text = text.strip()
+    return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + " …"
 
 
 class SpecError(ValueError):
@@ -44,7 +56,7 @@ def _operand(data, where: str) -> dict:
     out = {"indicateur": name, "decalage": int(data.get("decalage", 0))}
     if INDICATORS[name][1]:
         period = int(data.get("periode", 14))
-        if not 1 <= period <= 400:
+        if not 1 <= period <= MAX_PERIOD:
             raise SpecError(f"{where} : période hors limites ({period})")
         out["periode"] = period
     if name.startswith("bollinger"):
@@ -109,7 +121,7 @@ def _validate(data: dict) -> dict:
         spec["objectif"] = {"type": "r", "valeur": _bounded(target.get("valeur", 2), 0.3, 20)}
     valid_hours = isinstance(hours, list) and len(hours) == 2
     spec["heures"] = [int(hours[0]), int(hours[1])] if valid_hours else None
-    spec["non_traduit"] = [str(x)[:200] for x in data.get("non_traduit") or []][:10]
+    spec["non_traduit"] = [short(str(x)) for x in data.get("non_traduit") or []][:12]
     return spec
 
 

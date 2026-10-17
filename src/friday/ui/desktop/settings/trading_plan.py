@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from friday.trading.plan_book import TEXT_CHARS
 from friday.trading.strategies.spec import describe
 
 PLACEHOLDER = (
@@ -58,6 +59,9 @@ class TradingPlanRow(QFrame):
         self.editor = QPlainTextEdit(placeholderText=PLACEHOLDER)
         self.editor.setMinimumHeight(150)
         layout.addWidget(self.editor)
+        self.count = QLabel(objectName="Hint")  # au-delà de la limite : pas d'enregistrement
+        self.editor.textChanged.connect(self._count)
+        layout.addWidget(self.count)
         line = QHBoxLayout()
         self.status = QLabel(objectName="Hint", wordWrap=True)
         line.addWidget(self.status, 1)
@@ -90,13 +94,28 @@ class TradingPlanRow(QFrame):
         self.picker.blockSignals(False)
         self._show()
 
-    def save(self) -> None:
+    def _count(self) -> None:
+        size = len(self.editor.toPlainText().strip())
+        over = size > TEXT_CHARS
+        self.count.setText(f"{size:,} / {TEXT_CHARS:,} caractères".replace(",", " ")
+                           + (" : trop long, raccourcis-le" if over else ""))  # fmt: skip
+        self.count.setStyleSheet("color: #e5675b;" if over else "")
+
+    def save(self) -> bool:
+        """False : trop long, rien n'est enregistré (ni envoyé à traduire)."""
+        size = len(self.editor.toPlainText().strip())
+        if size > TEXT_CHARS:
+            self.status.setText(f"Pas enregistré : {size - TEXT_CHARS} caractères de trop "
+                                f"(limite {TEXT_CHARS}). Garde l'essentiel : marchés, entrées, "
+                                "sorties, stop, risque.")  # fmt: skip
+            return False
         plan = self.current()
         if plan is None:
             plan = self.book.add(self.name.text() or "Mon plan")
         self.book.update(plan["id"], nom=self.name.text(), texte=self.editor.toPlainText())
         self.reload(plan["id"])
         self.status.setText("Plan enregistré.")
+        return True
 
     def refresh_rules(self) -> None:
         plan = self.current()
@@ -147,7 +166,8 @@ class TradingPlanRow(QFrame):
         self.status.setText(f"Plan « {plan['nom']} » supprimé.")
 
     def _translate(self) -> None:
-        self.save()
+        if not self.save():
+            return  # trop long : l'ancienne version ne part pas à sa place
         plan = self.current()
         if plan is not None:
             self.translate(plan["nom"])
