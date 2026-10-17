@@ -52,6 +52,23 @@ def lasting(hourly: list[Candle], daily: list[Candle], rules: PlanRules,
     return before is not None and before.side == found.side
 
 
+def fresh_days(daily: list[Candle], now: datetime, rules: PlanRules, strategy: Strategy,
+               back: int = 3) -> list[Setup]:  # fmt: skip
+    """Les setups APPARUS sur les `back` dernières journées fermées (du plus ancien au plus
+    récent) : Friday éteint le week-end ne rate pas celui du samedi (crypto)."""
+    days = closed_days(daily, now)
+    found = []
+    for k in range(back - 1, -1, -1):
+        bars = days[: len(days) - k]
+        setup = _on(bars, daily, rules, strategy)
+        if setup is None:
+            continue
+        before = _on(bars[:-1], daily, rules, strategy)
+        if before is None or before.side != setup.side:
+            found.append(setup)
+    return found
+
+
 def bars_of(hourly: list[Candle], daily: list[Candle], strategy: Strategy) -> list[Candle]:
     if strategy.unit != "jour":
         return hourly

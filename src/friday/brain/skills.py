@@ -242,7 +242,8 @@ SKILLS = (
           ("position_size", "pip_value", "risk_reward", "log_trade", "annotate_trade", "close_trade",
            "trade_stats", "open_journal", "trade_check", "backtest_plan", "set_price_alert",
            "watch_setup", "list_alerts", "cancel_alert", "trading_briefing", "past_analyses",
-           "compare_strategies", "choose_strategy", "translate_plan"),
+           "compare_strategies", "choose_strategy", "translate_plan", "watch_markets",
+           "recent_setups"),
           """- Outils de trading du PC (rien ne part en ligne, sauf translate_plan après aperçu).
   position_size, pip_value, risk_reward : calculs EXACTS faits sur le PC ; extrais les
   chiffres de la demande, n'en invente aucun (demande ceux qui manquent), puis répète le
@@ -256,6 +257,9 @@ SKILLS = (
 - set_price_alert (« préviens-moi si l'or passe 4 150 »), watch_setup (« surveille l'or » :
   le setup du plan), list_alerts, cancel_alert : les alertes de PRIX, surveillées sur le PC
   et annoncées à la voix (une alerte à une heure est un rappel). Répète la phrase telle quelle.
+- watch_markets (« surveille tous les marchés avec Turtle », « arrête de surveiller les
+  marchés ») et recent_setups (« mes derniers setups ») : la surveillance de plusieurs
+  marchés et son carnet. Répète la phrase telle quelle.
 - compare_strategies (« compare les stratégies sur l'or », « compare Turtle sur tous les
   marchés ») et choose_strategy (« choisis la cassure de range pour l'or ») : la bibliothèque
   de stratégies. Répète la phrase telle quelle.

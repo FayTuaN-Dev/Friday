@@ -181,6 +181,11 @@ def default_toolbox(
 
             tools += [PriceAlertTool(trading.alerts), WatchSetupTool(trading.alerts),
                       ListAlertsTool(trading.alerts), CancelAlertTool(trading.alerts)]  # fmt: skip
+            if trading.choice is not None:
+                from friday.tools.market_watch import RecentSetupsTool, WatchMarketsTool
+
+                tools += [WatchMarketsTool(trading.alerts, trading.choice),
+                          RecentSetupsTool(trading.alerts)]  # fmt: skip
     if library is not None:
         from friday.tools.library import ListLibraryTool, SearchLibraryTool, UpdateLibraryTool
 

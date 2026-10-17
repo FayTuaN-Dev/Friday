@@ -54,6 +54,14 @@ class AlertStore:
             self._save()
         return removed
 
+    def remove_setups(self) -> int:
+        """Fin de la surveillance des marchés : les alertes de prix restent."""
+        with self._lock:
+            kept = [a for a in self._alerts if a.kind != "setup"]
+            count, self._alerts = len(self._alerts) - len(kept), kept
+        self._save()
+        return count
+
     def clear(self) -> int:
         with self._lock:
             count, self._alerts = len(self._alerts), []
