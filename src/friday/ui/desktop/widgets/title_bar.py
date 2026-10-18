@@ -1,5 +1,5 @@
-"""Barre de titre maison : réglages à gauche, nom au centre, réduire / agrandir / fermer à
-droite (la couleur se choisit dans les réglages).
+"""Barre de titre maison : menu des pages (☰), réglages et mode jeu à gauche, nom au centre,
+réduire / agrandir / fermer à droite (la couleur se choisit dans les réglages).
 On déplace la fenêtre en l'attrapant ; un double-clic l'agrandit ou la restaure."""
 
 from PySide6.QtCore import QSize, Qt
@@ -21,6 +21,7 @@ class TitleBar(QWidget):
         row.setContentsMargins(12, 8, 10, 0)
         row.setSpacing(2)
 
+        self.menu_button = self._button("Pages : Conversation, Trading", "TitleButton")
         self.settings_button = self._button("Réglages", "TitleButton")
         self.game_button = self._button("Mode jeu : libérer la carte graphique", "TitleButton")
         self.minimize = self._button("Réduire", "TitleButton", window.showMinimized)
@@ -33,6 +34,8 @@ class TitleBar(QWidget):
         left = QWidget()
         left_row = QHBoxLayout(left)
         left_row.setContentsMargins(0, 0, 0, 0)
+        left_row.setSpacing(2)
+        left_row.addWidget(self.menu_button)
         left_row.addWidget(self.settings_button)
         left_row.addWidget(self.game_button)
         left_row.addStretch()
@@ -67,6 +70,7 @@ class TitleBar(QWidget):
         self.title.style().polish(self.title)
 
     def refresh(self, palette: Palette) -> None:
+        self.menu_button.setIcon(icon("menu", palette.accent, 16))
         self.settings_button.setIcon(icon("settings", palette.accent, 16))
         self.game_button.setIcon(icon("gamepad", palette.accent, 16))
         self.minimize.setIcon(icon("minimize", palette.muted, 15))

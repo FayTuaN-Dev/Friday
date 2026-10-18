@@ -3,25 +3,27 @@ premières, indices, crypto, actions), à cocher. Constaté sur 20 ans : Turtle 
 matières et les indices mais perd sur les devises depuis 2016 ; la crypto, à part, se coche ou
 se décoche. Un plan qui ne suit pas un marché n'y est ni comparé, ni surveillé."""
 
-from PySide6.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QWidget
+from PySide6.QtWidgets import QCheckBox, QGridLayout, QLabel, QWidget
 
 from friday.trading.instruments import FAMILIES
+
+COLUMNS = 3
 
 
 class PlanMarkets(QWidget):
     def __init__(self, book) -> None:
         super().__init__()
         self.book, self.plan_id = book, None
-        layout = QHBoxLayout(self)
+        layout = QGridLayout(self)  # sur trois colonnes : tient dans une fenêtre étroite
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(QLabel("Marchés suivis :", objectName="Hint"))
+        layout.addWidget(QLabel("Marchés suivis :", objectName="Hint"), 0, 0, 1, COLUMNS)
         self.boxes: dict[str, QCheckBox] = {}
-        for key, label in FAMILIES.items():
+        for index, (key, label) in enumerate(FAMILIES.items()):
             box = QCheckBox(label)
             box.toggled.connect(self._changed)
-            layout.addWidget(box)
+            layout.addWidget(box, 1 + index // COLUMNS, index % COLUMNS)
             self.boxes[key] = box
-        layout.addStretch(1)
+        layout.setColumnStretch(COLUMNS, 1)
 
     def show_plan(self, plan: dict | None) -> None:
         self.plan_id = plan["id"] if plan else None

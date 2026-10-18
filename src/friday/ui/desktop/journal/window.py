@@ -1,6 +1,7 @@
-"""Fenêtre « Journal de trading » : le bilan en R, ce que dit le journal (constats), tous les
-trades, et les actions (nouveau, compléter setup / plan / état d'esprit, voir la capture,
-clôturer au prix de sortie, supprimer en deux clics, exporter en CSV). Tout reste sur le PC.
+"""Le journal de trading (onglet « Journal » de la page Trading) : le bilan en R, ce que dit
+le journal (constats), tous les trades, et les actions (nouveau, compléter setup / plan /
+état d'esprit, voir la capture, clôturer au prix de sortie, supprimer en deux clics, exporter
+en CSV). Tout reste sur le PC.
 Elle se met à jour seule quand le journal change (par exemple un trade noté à la voix)."""
 
 from pathlib import Path
@@ -19,6 +20,7 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
+    QWidget,
 )
 
 from friday.trading.instruments import parse_price
@@ -27,7 +29,6 @@ from friday.ui.desktop.journal.equity_chart import EquityChart, fr
 from friday.ui.desktop.journal.insights import Insights
 from friday.ui.desktop.journal.notes import TradeNotes
 from friday.ui.desktop.journal.trade_form import TradeForm
-from friday.ui.desktop.popups.base import Popup
 
 COLUMNS = ("N°", "Ouvert le", "Instrument", "Sens", "Entrée", "Stop", "Objectif", "R/R prévu",
            "Sortie", "Résultat", "Setup", "Plan", "Esprit", "📷", "Raison")  # fmt: skip
@@ -51,10 +52,12 @@ def stats_text(journal: TradeJournal) -> str:
     )
 
 
-class JournalWindow(Popup):
+class JournalView(QWidget):
     def __init__(self, journal: TradeJournal, snapshot=None, folder: Path | None = None) -> None:
         """`snapshot`, `folder` : capture d'entrée (voir TradeForm)."""
-        super().__init__("📒", "Journal de trading", (1080, 880))
+        super().__init__()
+        self.body = QVBoxLayout(self)
+        self.body.setContentsMargins(0, 0, 0, 0)
         self.journal = journal
         self.stats = QLabel(objectName="SettingsTitle", wordWrap=True)
         self.body.addWidget(self.stats)
@@ -77,6 +80,7 @@ class JournalWindow(Popup):
         header.setSectionResizeMode(QHeaderView.ResizeToContents)
         header.setSectionResizeMode(len(COLUMNS) - 1, QHeaderView.Stretch)
         self.table.itemSelectionChanged.connect(self._selected)
+        self.table.setMinimumHeight(260)  # une dizaine de trades visibles
         self.body.addWidget(self.table, 1)
         self.body.addLayout(self._actions())
         self.form = TradeForm(journal, snapshot, folder)
