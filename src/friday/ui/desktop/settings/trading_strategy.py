@@ -22,7 +22,8 @@ class StrategyRow(QFrame):
             "Celle que suivent le backtest, les alertes, la check-list et le briefing. « Compare "
             "les stratégies sur l'or » dit lesquelles ont fonctionné sur l'historique.",
             objectName="Hint", wordWrap=True))  # fmt: skip
-        self.box = QComboBox()
+        self.box = QComboBox(minimumContentsLength=16)  # se rétrécit : fenêtre étroite
+        self.box.setSizeAdjustPolicy(QComboBox.AdjustToMinimumContentsLengthWithIcon)
         self.box.currentIndexChanged.connect(self._changed)
         layout.addWidget(self.box)
         self.note = QLabel(objectName="Hint", wordWrap=True)
