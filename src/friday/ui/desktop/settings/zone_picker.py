@@ -103,13 +103,13 @@ class ChartZoneRow(QFrame):
     def __init__(self, capture) -> None:
         super().__init__(objectName="SettingsRow")
         self.capture = capture
-        line = QHBoxLayout(self)
-        line.setContentsMargins(14, 10, 14, 10)
-        texts = QVBoxLayout()
+        texts = QVBoxLayout(self)  # les boutons sous le texte : tient dans une fenêtre étroite
+        texts.setContentsMargins(14, 10, 14, 10)
         texts.addWidget(QLabel("Zone du graphique envoyée", objectName="SettingsLabel"))
         self.status = QLabel(objectName="Hint", wordWrap=True)
         texts.addWidget(self.status)
-        line.addLayout(texts, 1)
+        line = QHBoxLayout()
+        texts.addLayout(line)
         pick = QPushButton("Choisir la zone…", objectName="SettingsSmall")
         reset = QPushButton("Toute la fenêtre", objectName="SettingsSmall")
         pick.clicked.connect(self._pick)
@@ -117,6 +117,7 @@ class ChartZoneRow(QFrame):
         for button in (pick, reset):
             button.setEnabled(capture is not None)
             line.addWidget(button)
+        line.addStretch(1)
         self.refresh()
 
     def refresh(self, message: str = "") -> None:

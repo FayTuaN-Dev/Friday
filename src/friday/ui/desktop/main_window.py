@@ -25,6 +25,7 @@ from friday.ui.desktop.bridge import QtBridge
 from friday.ui.desktop.popups.manager import PopupManager
 from friday.ui.desktop.scenes.backdrop import BackdropMixin
 from friday.ui.desktop.stage import ORB_STYLES, STAGE_FULL, BootSignal, StageMixin, make_orb
+from friday.ui.desktop.trading.opener import TradingPageMixin
 from friday.ui.desktop.widgets.chat import ChatView
 from friday.ui.desktop.widgets.frame import ResizableFrame
 from friday.ui.desktop.widgets.input_bar import InputBar
@@ -39,7 +40,7 @@ def dropped_files(mime) -> list[Path]:
     return [path for path in paths if path.is_file()]
 
 
-class MainWindow(BackdropMixin, StageMixin, QMainWindow):
+class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
     def __init__(self, settings: Settings, assistant: Assistant | None = None,
                  preferences_path: Path = preferences.PATH) -> None:  # fmt: skip
         super().__init__()
@@ -85,7 +86,6 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.notifier = Notifier(self, icon("pulse", theme.current().accent, 32), self.toggle_game,
                                  icon("gamepad", theme.current().muted, 32))  # fmt: skip
         self.settings_window = None  # fenêtre des réglages (ouverte à la demande)
-        self.journal_window = None  # journal de trading (ouvert à la demande)
         self._build_layout()
         from friday.ui.desktop.freeze_watch import FreezeWatch
 
@@ -186,6 +186,7 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.input.mic_released.connect(a.stop_listening)
         self.input.voice_toggled.connect(lambda: self.input.set_voice(a.toggle_voice()))
         self.input.reset_clicked.connect(self._reset)
+        self.title_bar.menu_button.clicked.connect(self.open_menu)
         self.title_bar.settings_button.clicked.connect(self.open_settings)
         self.title_bar.game_button.clicked.connect(self.toggle_game)
 
@@ -271,6 +272,9 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
 
     def open_settings(self, page: str = "") -> None:
         """Les réglages, en panneau dans la fenêtre (U7) : il glisse depuis la droite."""
+        if page == "Trading":  # le trading a sa page (menu ☰)
+            self.open_trading("Réglages")
+            return
         self.prepare_settings()
         if page:
             self.settings_window.show_page(page)
@@ -287,32 +291,6 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
 
     def _forget_settings(self) -> None:
         self.settings_window = None
-
-    def open_journal(self) -> None:
-        """La fenêtre du journal de trading (une seule à la fois)."""
-        from friday.ui.desktop.journal.window import JournalWindow
-
-        trading = getattr(self.assistant.components, "trading", None)
-        if trading is None:
-            self.chat.add_notice("Le mode trading est désactivé (Réglages → Fonctions).")
-            return
-        if self.journal_window is not None and self.journal_window.isVisible():
-            self.journal_window.raise_()
-            self.journal_window.activateWindow()
-            return
-        from friday.core.config import DATA_DIR
-
-        snapshot = getattr(trading, "entry_capture", None)  # capture d'entrée, si possible
-        self.journal_window = JournalWindow(trading.journal, snapshot,
-                                            DATA_DIR / "journal_captures")  # fmt: skip
-        self.journal_window.destroyed.connect(self._forget_journal)
-        center = self.frameGeometry().center()
-        self.journal_window.move(center.x() - self.journal_window.width() // 2,
-                                 center.y() - self.journal_window.height() // 2)  # fmt: skip
-        self.journal_window.show_animated()
-
-    def _forget_journal(self) -> None:
-        self.journal_window = None
 
     def restart(self) -> None:
         """Relance Friday (réglages du .env pris en compte) : nouveau processus, puis fermeture."""
@@ -340,6 +318,7 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.input.set_voice(self.assistant.voice_on)
         self.input.edit.setFocus()
         QTimer.singleShot(1500, self.prepare_settings)  # réglages complets, au repos
+        QTimer.singleShot(2500, self.prepare_trading)  # page Trading, au repos aussi
 
     def _welcome_glance(self) -> None:
         from friday.app.glance import glance
@@ -374,10 +353,15 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
         self.place_scene()
         if self.settings_window is not None:
             self._settings_overlay.setGeometry(self._settings_area())
+        if self.trading_page is not None:
+            self._trading_overlay.setGeometry(self._settings_area())
 
     def keyPressEvent(self, event) -> None:
         if event.key() == Qt.Key_Escape and self.settings_showing:
             self.settings_window.close()  # Échap : les réglages se referment d'abord
+            return
+        if event.key() == Qt.Key_Escape and self.trading_showing:
+            self.trading_page.close()
             return
         if event.key() == Qt.Key_Escape and self.scene_layer.showing:  # Échap : retour
             self.scene_layer.close_scene()
@@ -405,8 +389,7 @@ class MainWindow(BackdropMixin, StageMixin, QMainWindow):
             return
         self.popups.close_all()
         self.playing.close_poller()
-        for window in (self.settings_window, self.journal_window):
-            if window is not None:
-                window.close()
+        if self.settings_window is not None:
+            self.settings_window.close()
         self.assistant.shutdown()
         super().closeEvent(event)

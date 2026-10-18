@@ -7,7 +7,7 @@ from PySide6.QtWidgets import QApplication
 
 from friday.trading.journal import TradeJournal
 from friday.ui.desktop.journal.trade_form import FormError, TradeForm, validate
-from friday.ui.desktop.journal.window import JournalWindow, planned_ratio, stats_text
+from friday.ui.desktop.journal.window import JournalView, planned_ratio, stats_text
 
 app = QApplication.instance() or QApplication([])
 
@@ -79,7 +79,7 @@ def test_form_adds_a_trade(journal):
 
 def test_window_shows_stats_closes_and_deletes(journal):
     trade = journal.open_trade("EURUSD", "achat", 1.1000, 1.0980, 1.1060, reason="cassure")
-    window = JournalWindow(journal)
+    window = JournalView(journal)
     assert window.table.rowCount() == 1 and "Aucun trade clôturé" in window.stats.text()
     assert window.table.item(0, 7).text() == planned_ratio(trade) == "1 : 3.0"
     window.table.selectRow(0)
@@ -97,7 +97,7 @@ def test_window_shows_stats_closes_and_deletes(journal):
 
 
 def test_window_follows_trades_noted_by_voice(journal):
-    window = JournalWindow(journal)
+    window = JournalView(journal)
     journal.open_trade("XAUUSD", "vente", 4160, 4180)  # comme l'outil log_trade
     window._follow()
     assert window.table.rowCount() == 1 and "1 en cours" in window.stats.text()
@@ -105,7 +105,7 @@ def test_window_follows_trades_noted_by_voice(journal):
     window.close()
 
 
-def test_open_journal_by_voice_and_from_settings(tmp_path):
+def test_open_journal_by_voice_opens_the_trading_page(tmp_path):
     from types import SimpleNamespace
 
     from fakes import SETTINGS
@@ -120,7 +120,8 @@ def test_open_journal_by_voice_and_from_settings(tmp_path):
     w = MainWindow(SETTINGS, assistant=assistant, preferences_path=tmp_path / "i.json")
     w.bridge.on_display(OpenJournalTool().run().display)
     app.processEvents()
-    assert w.journal_window is not None and w.popups.popups == []
+    assert w.trading_showing and w.trading_page.current_tab == "Journal"
+    assert w.popups.popups == []
     w.close()
 
 

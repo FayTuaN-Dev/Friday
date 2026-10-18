@@ -142,7 +142,7 @@ def test_settings_live_in_the_window_and_save_only_when_changed(env, tmp_path):
     assert panel.bar.isHidden()  # rien de changé : pas de barre
     groups = [panel.nav.item(r).text() for r in range(panel.nav.count())
               if panel.nav.item(r).data(Qt.UserRole) is None]  # fmt: skip
-    assert groups == ["FRIDAY", "SERVICES", "TRADING", "SYSTÈME"]
+    assert groups == ["FRIDAY", "SERVICES", "SYSTÈME"]  # le trading a sa page (menu ☰)
     name = panel.forms[0]._controls["FRIDAY_USER_NAME"][0]
     name.setText("Valentin")
     assert not panel.bar.isHidden() and panel.banner.text() == "1 réglage modifié"
