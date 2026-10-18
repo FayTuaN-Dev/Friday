@@ -5,7 +5,7 @@
 const $ = (id) => document.getElementById(id);
 const fil = $("fil"), etat = $("etat"), texte = $("texte"), micro = $("micro");
 const envoyer = $("envoyer"), son = $("son"), aide = $("aide");
-let occupe = false, enregistreur = null, morceaux = [], debut = 0, flux = null;
+let occupe = false, enregistreur = null, morceaux = [], debut = 0, flux = null, cerveau = "";
 
 function retenu(cle, defaut) {  // une préférence de ce téléphone (peut être indisponible)
   try { const v = localStorage.getItem(cle); return v === null ? defaut : v === "1"; }
@@ -76,7 +76,8 @@ function attendre(occupeMaintenant) {
   clearInterval(attendre.t);
   if (!occupe) { signaler("ok", "prête"); return; }
   const depuis = Date.now();
-  const tic = () => signaler("busy", `réfléchit · ${Math.round((Date.now() - depuis) / 1000)} s`);
+  const tic = () => signaler("busy", `réfléchit${cerveau === "PC" ? " (PC)" : ""} · `
+    + `${Math.round((Date.now() - depuis) / 1000)} s`);
   tic();
   attendre.t = setInterval(tic, 1000);
 }
@@ -99,6 +100,8 @@ async function demander(adresse, corps, type) {
         tampon = tampon.slice(i + 1);
         if (!ligne) continue;
         const d = JSON.parse(ligne);
+        if (d.cerveau) cerveau = d.cerveau;  // le PC pense pour le Pi quand il est allumé (R5)
+        if (d.confirmer) fil.insertBefore(choix(d), attente);
         if (d.vous) { attente.before(bulle("msg vous", d.vous)); fil.append(attente); }
         if (d.outil) { fil.insertBefore(bulle("outil", d.outil), attente); }
         if (d.texte) {
@@ -118,6 +121,29 @@ async function demander(adresse, corps, type) {
     attendre(false);
     signaler("off", "injoignable");
   }
+}
+function choix(d) {  // « J'éteins le PC dans une minute ? » : Oui / Non, sur le téléphone
+  const el = bulle("msg friday", d.confirmer);
+  const ligne = document.createElement("div");
+  ligne.className = "choix";
+  const repondre = async (oui) => {
+    ligne.querySelectorAll("button").forEach((b) => { b.disabled = true; });
+    clearTimeout(el.t);
+    await fetch("/api/confirmer", {method: "POST", headers: {"Content-Type": "application/json"},
+                                   body: JSON.stringify({id: d.id, oui})}).catch(() => {});
+  };
+  for (const [texte, oui] of [["Oui", true], ["Non", false]]) {
+    const b = document.createElement("button");
+    b.textContent = texte;
+    if (oui) b.className = "oui";
+    b.onclick = () => repondre(oui);
+    ligne.append(b);
+  }
+  el.append(ligne);
+  el.t = setTimeout(() => ligne.querySelectorAll("button").forEach((b) => { b.disabled = true; }),
+                    (d.delai || 60) * 1000);  // passé ce délai, Friday a déjà renoncé
+  dire(d.confirmer);
+  return el;
 }
 function envoyerTexte() {
   const t = texte.value.trim();
