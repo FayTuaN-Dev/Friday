@@ -16,7 +16,6 @@ from friday.app.events import AssistantState
 from friday.ui.desktop import theme
 from friday.ui.desktop.widgets.fast_points import PointBuffer
 from friday.ui.desktop.widgets.freeze import freeze
-from friday.ui.desktop.widgets.glass import pool
 from friday.ui.desktop.widgets.holo.orb import FPS, speech_envelope
 
 POINTS = 2600
@@ -171,7 +170,6 @@ class ParticleSphere(QWidget):
         depth = np.clip((z + 1.4) / 2.8, 0, 1)  # 0 : au fond, 1 : devant
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        pool(painter, cx, cy, size, min(w, h) / 2)  # verre : une flaque sombre sous la lumière
         painter.setCompositionMode(QPainter.CompositionMode_Plus)  # lumière additive
         r, g, b = self.color
         halo = QRadialGradient(cx, cy, size * 1.5)

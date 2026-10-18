@@ -102,7 +102,7 @@ class BackdropMixin:
         titre ; la conversation garde le bas."""
         self.scene_layer.setGeometry(self.shell.rect())
         self.scene_layer.lower()
-        self.glass.lower()  # le fond verre sous la scène elle-même
+        self.glass.lower()  # le fond sous la scène elle-même
         top = self.title_bar.geometry().bottom() + 1
         self.veil.setGeometry(0, top, self.shell.width(), self.shell.height() - top)
         if self.scene_mode:

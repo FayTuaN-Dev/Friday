@@ -1,6 +1,4 @@
-"""L'ambiance « verre » (ST1) : palette claire, fond de verre, choix gardé."""
-
-import json
+"""Le style (ST1) : fond à lueur d'accent, cartes de côté en verre sombre."""
 
 from PySide6.QtGui import QColor, QImage, QPainter
 from PySide6.QtWidgets import QApplication
@@ -9,63 +7,37 @@ from test_desktop import make_window
 from friday.ui.desktop import theme
 from friday.ui.desktop.side.hud import style as hud_style
 from friday.ui.desktop.theme import PRESETS, build_palette
+from friday.ui.desktop.widgets.glass import paint_glass
 
 app = QApplication.instance() or QApplication([])
 
 
-def lightness(name: str) -> float:
-    return QColor(name).lightnessF()
-
-
-def test_glass_palette_is_light_with_dark_readable_text():
+def test_side_cards_are_dark_glass():
     for preset in PRESETS.values():
-        dark, light = build_palette(QColor(preset)), build_palette(QColor(preset), light=True)
-        assert not dark.light and light.light
-        assert lightness(light.bg) > 0.85 and lightness(dark.bg) < 0.1
-        assert lightness(light.text) < 0.25  # du foncé sur du clair
-        assert lightness(light.accent) < 0.5  # l'accent assombri reste lisible
-        assert light.card != "transparent" and dark.card == "transparent"
-    assert light.card in hud_style(light)  # les cartes de côté givrées
+        p = build_palette(QColor(preset))
+        assert QColor(p.bg).lightnessF() < 0.1  # tout reste sombre
+        card = QColor(*map(int, p.card[5:-1].split(", ")))
+        assert card.alpha() < 255 and card.lightnessF() < 0.2  # translucide et sombre
+        assert p.card in hud_style(p) and p.card_border in hud_style(p)
 
 
-def test_orb_pool_only_in_glass():
-    from friday.ui.desktop.widgets.glass import pool
-
-    image = QImage(100, 100, QImage.Format_ARGB32)
-    for light, darkened in ((False, False), (True, True)):
-        image.fill(QColor("#ffffff"))
-        theme.apply_theme(app, QColor(PRESETS["Cyan"]), light=light)
-        painter = QPainter(image)
-        pool(painter, 50, 50, 30, 50)
-        painter.end()
-        assert (image.pixelColor(50, 50).lightnessF() < 0.5) == darkened
+def test_backdrop_glows_behind_the_sphere_and_darkens_the_edges():
+    theme.apply_theme(app, QColor(PRESETS["Cyan"]))
+    image = QImage(400, 300, QImage.Format_ARGB32)
+    image.fill(QColor(0, 0, 0, 0))
+    painter = QPainter(image)
+    paint_glass(painter, 400, 300, 0)
+    painter.end()
+    bg = QColor(theme.current().bg)
+    centre, corner = image.pixelColor(200, 90), image.pixelColor(2, 298)
+    assert centre.blue() > bg.blue() + 10  # la lueur de l'accent derrière la sphère
+    assert corner.lightnessF() <= bg.lightnessF()  # la vignette
     theme.apply_theme(app, QColor(PRESETS["Or"]))
 
 
-def test_ambiance_switches_live_and_is_remembered(tmp_path):
+def test_backdrop_follows_the_window(tmp_path):
     window = make_window(tmp_path)
-    assert window.ambiance == "sombre" and window.glass.isHidden()
-    window.set_ambiance("verre")
-    assert theme.current().light and not window.glass.isHidden()
+    assert not window.glass.isHidden()
     window.resize(900, 700)
     window.glass.repaint()  # le dessin ne plante pas
     assert window.glass.size() == window.shell.size()
-    saved = json.loads((tmp_path / "interface.json").read_text("utf-8"))
-    assert saved["ambiance"] == "verre"
-    again = make_window(tmp_path)
-    assert again.ambiance == "verre" and theme.current().light
-    again.set_ambiance("sombre")
-    assert not theme.current().light and again.glass.isHidden()
-
-
-def test_appearance_page_offers_the_two_ambiances():
-    from friday.ui.desktop.settings.other_pages import AppearancePage
-
-    chosen = []
-    page = AppearancePage(QColor("#3cc8ff"), lambda c: None, ambiance="sombre",
-                          set_ambiance=chosen.append)  # fmt: skip
-    buttons = page.ambiance_buttons
-    assert buttons["sombre"].isChecked() and not buttons["verre"].isChecked()
-    buttons["verre"].click()
-    assert chosen == ["verre"] and buttons["verre"].isChecked()
-    assert not buttons["sombre"].isChecked()

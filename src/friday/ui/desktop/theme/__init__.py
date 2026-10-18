@@ -24,10 +24,9 @@ def current() -> Palette:
     return _current
 
 
-def apply_theme(app: QApplication, base: QColor, light: bool = False) -> Palette:
-    """`light` : l'ambiance « verre » (claire) plutôt que la sombre."""
+def apply_theme(app: QApplication, base: QColor) -> Palette:
     global _current
-    _current = build_palette(base, light)
+    _current = build_palette(base)
     app.setStyleSheet(stylesheet(_current))
     links = app.palette()  # couleur des liens cliquables (non réglable par feuille de style)
     links.setColor(QPalette.Link, QColor(_current.accent))

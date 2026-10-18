@@ -49,20 +49,13 @@ class AppearancePage(QWidget):
     def __init__(self, current: QColor, apply_color: Callable[[QColor], None],
                  orb_style: str = "sphere", apply_style: Callable[[str], None] | None = None,
                  widgets: dict[str, bool] | None = None,
-                 set_widget: Callable[[str, bool], None] | None = None,
-                 ambiance: str = "sombre",
-                 set_ambiance: Callable[[str], None] | None = None) -> None:  # fmt: skip
+                 set_widget: Callable[[str, bool], None] | None = None) -> None:  # fmt: skip
         super().__init__(objectName="SettingsPage")
         self.current, self.apply_color = QColor(current), apply_color
         layout = QVBoxLayout(self)
         layout.setContentsMargins(4, 0, 4, 0)
         layout.setSpacing(8)
         layout.addWidget(title("Apparence"))
-        if set_ambiance is not None:
-            layout.addWidget(QLabel("Ambiance", objectName="SettingsLabel"))
-            layout.addLayout(self._choices((("sombre", "Sombre"), ("verre", "Verre clair")),
-                                           ambiance, set_ambiance, "ambiance_buttons"))  # fmt: skip
-            layout.addSpacing(10)
         layout.addWidget(QLabel("Couleur de Friday (toute l'interface et l'hologramme suivent)",
                                 objectName="SettingsLabel"))  # fmt: skip
         grid = QGridLayout()
@@ -100,25 +93,6 @@ class AppearancePage(QWidget):
             self.widgets = widget_toggles(widgets or {}, set_widget)
             layout.addWidget(self.widgets)
         layout.addStretch()
-
-    def _choices(self, options, current: str, apply: Callable[[str], None],
-                 name: str) -> QHBoxLayout:  # fmt: skip
-        """Une rangée de boutons dont un seul est coché ; `apply(valeur)` au clic."""
-        row, buttons = QHBoxLayout(), {}
-        for value, label in options:
-            button = QPushButton(label, objectName="SettingsSmall", checkable=True)
-            button.setChecked(value == current)
-            button.clicked.connect(lambda _=False, v=value: self._chosen(buttons, v, apply))
-            buttons[value] = button
-            row.addWidget(button)
-        row.addStretch()
-        setattr(self, name, buttons)
-        return row
-
-    def _chosen(self, buttons: dict, value: str, apply: Callable[[str], None]) -> None:
-        for name, button in buttons.items():
-            button.setChecked(name == value)
-        apply(value)
 
     def _pick(self) -> None:
         chosen = QColorDialog.getColor(self.current, self, "Couleur de Friday")

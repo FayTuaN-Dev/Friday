@@ -13,7 +13,6 @@ from PySide6.QtWidgets import QWidget
 from friday.app.events import AssistantState
 from friday.ui.desktop import theme
 from friday.ui.desktop.widgets.freeze import freeze
-from friday.ui.desktop.widgets.glass import pool
 from friday.ui.desktop.widgets.holo.painter import HoloPainter, PainterThread
 from friday.ui.desktop.widgets.holo.scene import RINGS, HoloScene, rotation
 
@@ -153,7 +152,5 @@ class HoloOrb(QWidget):
             return
         self._shown, image = frame
         painter = QPainter(self)
-        w, h = self.width(), self.height()
-        pool(painter, w / 2, h / 2, min(w, h) * 0.33, min(w, h) / 2)  # verre : fond sombre
         painter.drawImage(self.rect(), image)  # une seule opération pour l'interface
         painter.end()

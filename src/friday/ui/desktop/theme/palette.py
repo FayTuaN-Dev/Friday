@@ -1,5 +1,4 @@
-"""Palette de l'interface, entièrement déduite d'UNE couleur de base (réglable) et de
-l'ambiance : « sombre » (le fond noir d'origine) ou « verre » (clair, façon verre dépoli).
+"""Palette de l'interface, entièrement déduite d'UNE couleur de base (réglable).
 
 Le fond, les panneaux, les bulles, les textes et les couleurs d'état en découlent, pour que
 toute l'application reste assortie à l'hologramme quelle que soit la couleur choisie.
@@ -70,9 +69,8 @@ class Palette:
     muted: str
     error: str
     states: dict  # AssistantState → nom de couleur
-    card: str = "transparent"  # fond des cartes de côté (givré en ambiance verre)
+    card: str = "transparent"  # fond des cartes de côté (verre sombre, légèrement teinté)
     card_border: str = ""  # leur contour (vide : accent_glow)
-    light: bool = False  # ambiance « verre » : fond clair, textes foncés
 
     def state(self, state: AssistantState) -> QColor:
         return QColor(self.states[state])
@@ -83,9 +81,7 @@ def state_color(base: QColor, state: AssistantState) -> QColor:
     return hsl(base, hue_shift, saturation, light_factor=light)
 
 
-def build_palette(base: QColor, light: bool = False) -> Palette:
-    if light:
-        return _glass(base)
+def build_palette(base: QColor) -> Palette:
     return Palette(
         base=base,
         accent=hsl(base, lightness=0.66).name(),
@@ -99,29 +95,6 @@ def build_palette(base: QColor, light: bool = False) -> Palette:
         muted=hsl(base, saturation=0.15, lightness=0.6).name(),
         error=ERROR.name(),
         states={s: state_color(base, s).name() for s in AssistantState},
-    )
-
-
-def _glass(base: QColor) -> Palette:
-    """Ambiance « verre » : fond gris-bleu très clair, panneaux blancs translucides, textes
-    foncés ; l'accent est assombri pour rester lisible sur le clair."""
-    return Palette(
-        base=base,
-        accent=hsl(base, lightness=0.40).name(),
-        accent_soft=rgba(hsl(base, lightness=0.5), 0.20),
-        accent_glow=rgba(hsl(base, lightness=0.45), 0.28),
-        bg=hsl(base, saturation=0.14, lightness=0.92).name(),
-        surface=rgba(QColor("#ffffff"), 0.62),
-        surface_hi=rgba(QColor("#ffffff"), 0.85),
-        user_bubble=rgba(hsl(base, saturation=0.55, lightness=0.86), 0.9),
-        text=hsl(base, saturation=0.25, lightness=0.15).name(),
-        muted=hsl(base, saturation=0.12, lightness=0.42).name(),
-        error="#d93a4a",
-        states={
-            s: hsl(state_color(base, s), lightness=0.38 if s.name != "PAUSED" else 0.5).name()
-            for s in AssistantState
-        },  # fmt: skip
-        card=rgba(QColor("#ffffff"), 0.46),
-        card_border=rgba(QColor("#ffffff"), 0.9),
-        light=True,
+        card=rgba(hsl(base, saturation=0.3, lightness=0.10), 0.55),
+        card_border=rgba(base, 0.2),
     )

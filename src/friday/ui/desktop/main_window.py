@@ -58,8 +58,6 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self._preferences_path = preferences_path
         saved = preferences.load(preferences_path).get("color")
         self.base = theme.parse_color(saved or settings.interface_color)
-        ambiance = preferences.load(preferences_path).get("ambiance")
-        self.ambiance = ambiance if ambiance in ("sombre", "verre") else "sombre"
 
         self.bridge = QtBridge()
         self.assistant = assistant or Assistant(settings, self.bridge)
@@ -156,7 +154,7 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self.veil = Curtain(shell)  # fondu par le noir autour des scènes (U8)
         from friday.ui.desktop.widgets.glass import GlassBackdrop
 
-        self.glass = GlassBackdrop(shell)  # le fond de l'ambiance verre, sous tout le reste
+        self.glass = GlassBackdrop(shell)  # le fond (lueur de l'accent), sous tout le reste
         outer = QVBoxLayout(shell)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
@@ -203,8 +201,7 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
     def apply_color(self, base: QColor, save: bool = True) -> None:
         """Change la couleur de toute l'interface, à chaud (pop-ups ouverts compris)."""
         self.base = QColor(base)
-        palette = theme.apply_theme(QApplication.instance(), self.base,
-                                    light=self.ambiance == "verre")  # fmt: skip
+        palette = theme.apply_theme(QApplication.instance(), self.base)
         self.glass.refresh()
         self.limits.refresh()
         self.title_bar.refresh(palette)
@@ -221,12 +218,6 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self.show_state(self.state)
         if save:
             preferences.save({"color": self.base.name()}, self._preferences_path)
-
-    def set_ambiance(self, ambiance: str) -> None:
-        """Réglages → Apparence : « sombre » ou « verre » (claire), appliquée à chaud, gardée."""
-        self.ambiance = ambiance
-        preferences.save({"ambiance": ambiance}, self._preferences_path)
-        self.apply_color(self.base, save=False)
 
     def focus_ring(self, text: str) -> None:
         """Fin d'un tour de concentration (carte de côté) : carillon, et bulle si caché."""
