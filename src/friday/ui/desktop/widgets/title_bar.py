@@ -1,9 +1,10 @@
 """Barre de titre maison : menu des pages (☰), réglages et mode jeu à gauche, nom au centre,
-réduire / agrandir / fermer à droite (la couleur se choisit dans les réglages).
+réduire / agrandir / fermer à droite (la couleur se choisit dans les réglages), et dessous un
+trait fin de la couleur d'accent qui s'efface vers les bords.
 On déplace la fenêtre en l'attrapant ; un double-clic l'agrandit ou la restaure."""
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QColor
+from PySide6.QtGui import QColor, QLinearGradient, QPainter
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
 from friday.ui.desktop.icons import icon
@@ -16,6 +17,7 @@ class TitleBar(QWidget):
     def __init__(self, window: QWidget, base: QColor) -> None:
         super().__init__(objectName="TitleBar")
         self._window = window
+        self._line: QColor | None = None  # le trait sous la barre (refresh)
         self.setFixedHeight(46)
         row = QHBoxLayout(self)
         row.setContentsMargins(12, 8, 10, 0)
@@ -69,7 +71,22 @@ class TitleBar(QWidget):
         self.title.style().unpolish(self.title)
         self.title.style().polish(self.title)
 
+    def paintEvent(self, _event) -> None:
+        if self._line is None:
+            return
+        y, width = self.height() - 1, self.width()
+        fade = QLinearGradient(width * 0.2, 0, width * 0.8, 0)
+        edge = QColor(self._line)
+        edge.setAlpha(0)
+        fade.setColorAt(0, edge)
+        fade.setColorAt(0.5, self._line)
+        fade.setColorAt(1, edge)
+        QPainter(self).fillRect(int(width * 0.2), y, int(width * 0.6), 1, fade)
+
     def refresh(self, palette: Palette) -> None:
+        self._line = QColor(palette.base)
+        self._line.setAlpha(90)
+        self.update()
         self.menu_button.setIcon(icon("menu", palette.accent, 16))
         self.settings_button.setIcon(icon("settings", palette.accent, 16))
         self.game_button.setIcon(icon("gamepad", palette.accent, 16))

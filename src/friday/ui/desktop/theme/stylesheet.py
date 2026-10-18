@@ -45,6 +45,16 @@ def _window(p: Palette) -> str:
     }}
     QMenu::item {{ padding: 7px 18px; border-radius: 8px; }}
     QMenu::item:selected {{ background: {p.accent_soft}; }}
+    #GlassMenu {{ border: 1px solid {p.card_border or p.accent_soft}; border-radius: 14px;
+                  padding: 8px; min-width: 190px; }}
+    #GlassMenu::item {{ padding: 8px 22px 8px 12px; margin: 1px 0; }}
+    #GlassMenu::item:checked {{ color: {p.accent}; background: {p.accent_glow}; }}
+    #GlassMenu::item:selected {{ background: {p.accent_soft}; }}
+    #GlassMenu::indicator {{ width: 0; }}
+    #GlassMenu::icon {{ padding-left: 10px; }}
+    #GlassMenu::separator {{ height: 1px; background: {p.accent_glow}; margin: 6px 10px; }}
+    #MenuTitle {{ background: transparent; font-family: "{FONT_HUD}"; font-size: 10px;
+                  color: {p.accent}; letter-spacing: 4px; padding: 4px 12px 6px; }}
     QPushButton {{
         background: transparent; border: none; border-radius: 18px;
         min-width: 36px; min-height: 36px; max-width: 36px; max-height: 36px;
@@ -101,8 +111,12 @@ def _chat(p: Palette) -> str:
     #Suggestion:hover {{ background: {p.surface_hi}; border-color: {p.accent}; }}
     #Suggestion:disabled {{ color: {p.muted}; border-color: transparent; }}
     #InputBar {{
-        background: {p.surface}; border: 1px solid {p.accent_glow}; border-radius: 25px;
+        background: {p.surface}; border: 1px solid {p.card_border or p.accent_glow};
+        border-radius: 25px;
     }}
+    #InputBar[focused="true"] {{ border-color: {p.accent}; background: {p.surface_hi}; }}
+    #SendButton {{ background: {p.accent_glow}; }}
+    #SendButton:hover {{ background: {p.accent_soft}; }}
     QLineEdit {{
         background: transparent; border: none; padding: 8px 4px; font-size: 14px;
         selection-background-color: {p.accent_soft};
