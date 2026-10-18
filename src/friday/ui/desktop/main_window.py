@@ -128,16 +128,18 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self.playing = NowPlayingCard(load_backend())  # « En écoute » : fenêtre agrandie
         if self.playing.poller is not None:
             self.playing.poller.changed.connect(self._side_panels)
-        centered.addSpacing(18)
-        centered.addWidget(self.playing, 0, Qt.AlignBottom)
-        centered.addStretch(1)
-        centered.addWidget(content, 100)
-        centered.addStretch(1)
+        from friday.ui.desktop.side.columns import SidePanels
         from friday.ui.desktop.widgets.claude_limits import ClaudeLimits
 
         self.limits = ClaudeLimits()  # session et semaine Claude : seulement fenêtre agrandie
-        self.limits.setVisible(False)
-        centered.addWidget(self.limits, 0, Qt.AlignTop)
+        saved = preferences.load(self._preferences_path).get("widgets")
+        self.side = SidePanels(self.playing, self.limits, saved if isinstance(saved, dict) else {})
+        centered.addSpacing(18)
+        centered.addWidget(self.side.left)  # cartes du PC, « En écoute » en bas
+        centered.addStretch(1)
+        centered.addWidget(content, 100)
+        centered.addStretch(1)
+        centered.addWidget(self.side.right)  # limites Claude
         centered.addSpacing(18)
         from friday.ui.desktop.scenes.layer import SceneLayer
 
@@ -200,6 +202,7 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self.input.refresh(palette)
         self.orb.set_base_color(self.base)
         self.playing.refresh_style()
+        self.side.refresh_style()
         self.scene_layer.refresh_style()
         if self.native_corners:  # fine bordure Windows, à la couleur de Friday
             native_window.set_border_color(self, QColor(palette.accent).darker(250))
@@ -207,6 +210,10 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self.show_state(self.state)
         if save:
             preferences.save({"color": self.base.name()}, self._preferences_path)
+
+    def set_widget(self, key: str, on: bool) -> None:
+        """Réglages → Apparence : afficher ou non une carte de côté (gardé au relancement)."""
+        self.side.set_enabled(key, on, lambda v: preferences.save(v, self._preferences_path))
 
     def dragEnterEvent(self, event) -> None:
         if dropped_files(event.mimeData()):
@@ -389,6 +396,7 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
             return
         self.popups.close_all()
         self.playing.close_poller()
+        self.side.close()
         if self.settings_window is not None:
             self.settings_window.close()
         self.assistant.shutdown()
