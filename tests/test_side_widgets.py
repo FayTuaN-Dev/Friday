@@ -143,3 +143,24 @@ def test_net_card_shows_rates_and_slow_ping():
     card.show(Snapshot(1, 1, 2, sent=0, received=0, taken=14.0, ping=None))  # compteurs remis
     assert card.down.value.text() == "0 ko/s" and card.ping.value.text() == "—"
     assert card.ping.detail.text() == "Internet ne répond pas"
+
+
+def test_columns_scroll_when_too_tall_and_take_no_room_when_empty():
+    from PySide6.QtWidgets import QFrame, QHBoxLayout, QWidget
+
+    playing, limits = QFrame(), QFrame()
+    playing.has_track = False
+    limits.setFixedHeight(600)  # plus haute que la fenêtre
+    side = SidePanels(playing, limits, {}, FakeSampler())
+    window = QWidget()
+    row = QHBoxLayout(window)
+    row.addWidget(side.left)
+    row.addWidget(side.right)
+    window.resize(900, 400)
+    window.show()
+    side.place(True)
+    app.processEvents()
+    assert side.right_scroll.isVisible() and side.right_scroll.verticalScrollBar().maximum() > 0
+    side.place(False)
+    assert not side.left_scroll.isVisible() and not side.right_scroll.isVisible()
+    window.close()

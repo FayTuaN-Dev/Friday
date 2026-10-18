@@ -41,7 +41,7 @@ class Sparkline(QWidget):
         super().__init__()
         self.values: deque[float] = deque(maxlen=HISTORY)
         self.top = top
-        self.setFixedHeight(26)
+        self.setFixedHeight(22)
 
     def add(self, value: float) -> None:
         self.values.append(value)
