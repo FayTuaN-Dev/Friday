@@ -84,3 +84,11 @@ def drop_main_windows():
             window.side.close()
             window.deleteLater()
     app.processEvents()
+
+
+@pytest.fixture(autouse=True)
+def no_real_trading_glance(monkeypatch):
+    """La carte Trading des fenêtres de test ne lit ni Yahoo ni le calendrier en ligne."""
+    from friday.app import trading_glance
+
+    monkeypatch.setattr(trading_glance, "from_trading", lambda trading: None)

@@ -1,6 +1,7 @@
 """Les colonnes de côté, fenêtre agrandie : à gauche les cartes du PC (processeur et mémoire,
 carte graphique, disques) avec « En écoute » en bas ; à droite les limites Claude, Friday
-(modèles chargés, mode jeu) et le Pi. Chaque carte s'affiche ou non selon Réglages →
+(modèles chargés, mode jeu) et le Pi ; la carte Trading (cours, annonce, dernier setup,
+semaine) sous les disques, une fois Friday chargée. Chaque carte s'affiche ou non selon Réglages →
 Apparence (data/interface.json, « widgets ») ; celle du Pi seulement s'il est réglé."""
 
 from collections.abc import Callable
@@ -11,12 +12,15 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 from friday.ui.desktop.side.friday_cards import FridayCard, PiCard
 from friday.ui.desktop.side.pc_cards import CpuCard, DisksCard, GpuCard
 from friday.ui.desktop.side.sampler import Sampler
+from friday.ui.desktop.side.trading_card import TradingCard
 
 WIDGETS = (("pc", "Processeur et mémoire"), ("gpu", "Carte graphique"), ("disks", "Disques"),
            ("claude", "Limites Claude"), ("friday", "Friday (modèles chargés, mode jeu)"),
-           ("pi", "Le Pi"), ("music", "En écoute (musique)"))  # fmt: skip
+           ("pi", "Le Pi"), ("trading", "Trading (cours, annonce, setup, semaine)"),
+           ("music", "En écoute (musique)"))  # fmt: skip
 PC, STATUS = ("pc", "gpu", "disks"), ("friday", "pi")
 EVERY_MS, STATUS_EVERY = 2000, 5  # le PC toutes les 2 s ; Friday et le Pi toutes les 10 s
+GLANCE_EVERY = 30  # cours et annonces : toutes les minutes
 
 
 def status_sampler(settings) -> Sampler:
@@ -49,17 +53,20 @@ class SidePanels(QObject):
     def __init__(self, playing, limits, enabled: dict[str, bool] | None = None,
                  sampler: Sampler | None = None, status: Sampler | None = None,
                  toggle_game: Callable[[], None] | None = None,
-                 whisper: str = "") -> None:  # fmt: skip
+                 whisper: str = "", open_trading: Callable[[str], None] | None = None,
+                 ) -> None:  # fmt: skip
         """`status` : lit l'état de Friday et du Pi (app/friday_status.py) ; sans lui, pas de
         cartes Friday ni Pi."""
         super().__init__()
         self.playing, self.limits = playing, limits
         self.enabled = {key: True for key, _ in WIDGETS} | (enabled or {})
         self.cards = {"pc": CpuCard(), "gpu": GpuCard(), "disks": DisksCard(),
-                      "friday": FridayCard(toggle_game, whisper), "pi": PiCard()}  # fmt: skip
+                      "friday": FridayCard(toggle_game, whisper), "pi": PiCard(),
+                      "trading": TradingCard(open_trading)}  # fmt: skip
         self.pi_configured = False  # appris à la 1re lecture
+        self.trading, self.glance = None, None  # set_trading(), une fois Friday chargée
         self.left, left = _column()
-        for key in PC:
+        for key in (*PC, "trading"):
             left.addWidget(self.cards[key], 0, Qt.AlignTop)
         left.addStretch(1)
         left.addWidget(playing, 0, Qt.AlignBottom)
@@ -90,10 +97,13 @@ class SidePanels(QObject):
             self.sampler.request()  # tout de suite, sans attendre 2 s
         if self.wanted(STATUS):
             self.status.request()
+        self._trading_tick(force=True)
 
     def _available(self, key: str) -> bool:
         if key == "pi":
             return self.status is not None and self.pi_configured
+        if key == "trading":
+            return self.glance is not None
         return key != "friday" or self.status is not None
 
     def set_enabled(self, key: str, on: bool, save: Callable[[dict], None] | None = None) -> None:
@@ -120,6 +130,32 @@ class SidePanels(QObject):
             self.sampler.request()
         if self._ticks % STATUS_EVERY == 0 and self.wanted(STATUS):
             self.status.request()
+        self._trading_tick()
+
+    def set_trading(self, trading, glance: Sampler | None = None) -> None:
+        """Friday chargée (ou rechargée) : la carte Trading suit ce trading-là (None : cachée)."""
+        from friday.app.trading_glance import from_trading
+
+        if self.glance is not None:
+            self.glance.stop()
+        self.trading, self.glance = trading, None
+        reader = from_trading(trading) if trading is not None else None
+        if reader is not None:
+            self.glance = glance or Sampler(lambda: reader.read, "trading-glance")
+            self.glance.read.connect(self.cards["trading"].show_glance)
+        self.place(self.wide)
+
+    def _trading_tick(self, force: bool = False) -> None:
+        """Le carnet et le journal toutes les 10 s (ici, rapides) ; cours et annonces toutes
+        les minutes (dans le fil), tant que la carte est affichée."""
+        card = self.cards["trading"]
+        if self.glance is None or not self.wanted(("trading",)):
+            return
+        if force or self._ticks % STATUS_EVERY == 0:
+            alerts = getattr(self.trading, "alerts", None)
+            card.show_local(getattr(alerts, "setups", None), getattr(self.trading, "journal", None))
+        if force or self._ticks % GLANCE_EVERY == 0:
+            self.glance.request()
 
     def _show(self, snapshot) -> None:
         for key in PC:
@@ -144,3 +180,5 @@ class SidePanels(QObject):
         self.sampler.stop()
         if self.status is not None:
             self.status.stop()
+        if self.glance is not None:
+            self.glance.stop()

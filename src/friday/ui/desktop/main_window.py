@@ -135,7 +135,8 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         saved = preferences.load(self._preferences_path).get("widgets")
         self.side = SidePanels(self.playing, self.limits, saved if isinstance(saved, dict) else {},
                                status=status_sampler(self.settings), toggle_game=self.toggle_game,
-                               whisper=whisper_text(self.settings))  # fmt: skip
+                               whisper=whisper_text(self.settings),
+                               open_trading=self.open_trading)  # fmt: skip
         centered.addSpacing(18)
         centered.addWidget(self.side.left)  # cartes du PC, « En écoute » en bas
         centered.addStretch(1)
@@ -323,6 +324,7 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         threading.Thread(target=self._boot_check, daemon=True, name="boot-check").start()
         self.input.setEnabled(True)
         self._welcome_glance()
+        self.side.set_trading(getattr(self.assistant.components, "trading", None))
         self.input.mic.setEnabled(self.assistant.can_listen)
         self.input.set_voice(self.assistant.voice_on)
         self.input.edit.setFocus()
