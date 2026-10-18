@@ -111,3 +111,35 @@ def test_appearance_page_toggles_save_the_choice(tmp_path):
     toggles["pc"].click()
     assert chosen == [("pc", False)]
     json.dumps(chosen)
+
+
+def test_ping_every_fifth_read_and_offline_is_none():
+    import socket
+
+    from friday.app.pc_stats import ping
+
+    calls = []
+    stats = PcStats(pinger=lambda: calls.append(1) or 21.5)
+    readings = [stats.read().ping for _ in range(6)]
+    assert len(calls) == 2 and readings == [21.5] * 6  # le dernier ping, entre deux mesures
+    closed = socket.socket()
+    closed.bind(("127.0.0.1", 0))  # un port que personne n'écoute (sur le PC lui-même)
+    port = closed.getsockname()[1]
+    closed.close()
+    assert ping(("127.0.0.1", port), timeout=0.5) is None
+
+
+def test_net_card_shows_rates_and_slow_ping():
+    from friday.ui.desktop.side.pc_cards import NetCard, rate
+
+    assert rate(13_000_000) == "12,4 Mo/s" and rate(850_000) == "830 ko/s"
+    card = NetCard()
+    card.show(Snapshot(1, 1, 2, sent=1_000, received=5_000, taken=10.0, ping=18.0))
+    assert card.down.value.text() == "0 ko/s"  # 1re lecture : pas encore de débit
+    assert card.ping.value.text() == "18 ms" and not card.ping.value.property("alert")
+    card.show(Snapshot(1, 1, 2, sent=205_800, received=26_219_400, taken=12.0, ping=210.0))
+    assert card.down.value.text() == "12,5 Mo/s" and card.up.value.text() == "100 ko/s"
+    assert card.ping.value.property("alert")  # lent
+    card.show(Snapshot(1, 1, 2, sent=0, received=0, taken=14.0, ping=None))  # compteurs remis
+    assert card.down.value.text() == "0 ko/s" and card.ping.value.text() == "—"
+    assert card.ping.detail.text() == "Internet ne répond pas"

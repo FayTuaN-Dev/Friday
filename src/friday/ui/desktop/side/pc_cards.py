@@ -1,6 +1,6 @@
 """Les cartes « PC » des colonnes de côté : processeur (avec sa courbe de la dernière minute)
 et mémoire vive, carte graphique (utilisation, mémoire vidéo, température), disques (place
-libre). Elles reçoivent une lecture (app/pc_stats.py) toutes les 2 s."""
+libre), réseau (débits et ping). Elles reçoivent une lecture (app/pc_stats.py) toutes les 2 s."""
 
 from collections import deque
 
@@ -14,6 +14,7 @@ from friday.ui.desktop.side.hud import HudCard, Meter
 
 HISTORY = 30  # lectures gardées pour la courbe (une minute)
 CPU_HIGH, RAM_HIGH, VRAM_HIGH, HOT, DISK_LOW = 90, 0.9, 0.95, 83, 0.10
+SLOW_PING = 150  # ms : au-delà, en rouge (jeu en ligne, appels)
 
 
 def fr(value: float, digits: int = 1) -> str:
@@ -25,12 +26,21 @@ def pct(share: float) -> str:
     return f"{share * 100:.0f} %"
 
 
-class Sparkline(QWidget):
-    """La courbe du processeur sur la dernière minute (0 à 100 %), sans axe."""
+def rate(per_second: float) -> str:
+    """« 12,4 Mo/s », « 830 ko/s »."""
+    if per_second >= 1024**2:
+        return f"{fr(per_second / 1024**2)} Mo/s"
+    return f"{per_second / 1024:.0f} ko/s"
 
-    def __init__(self) -> None:
+
+class Sparkline(QWidget):
+    """La courbe de la dernière minute, sans axe : de 0 à `top` (100 % pour le processeur ;
+    le plus haut de la minute pour un débit, `top=None`)."""
+
+    def __init__(self, top: float | None = 100) -> None:
         super().__init__()
         self.values: deque[float] = deque(maxlen=HISTORY)
+        self.top = top
         self.setFixedHeight(26)
 
     def add(self, value: float) -> None:
@@ -45,7 +55,8 @@ class Sparkline(QWidget):
         w, h = self.width(), self.height() - 2
         step = w / (HISTORY - 1)
         start = w - step * (len(self.values) - 1)
-        points = [QPointF(start + i * step, 1 + h * (1 - v / 100))
+        top = self.top or max(max(self.values), 1.0)
+        points = [QPointF(start + i * step, 1 + h * (1 - v / top))
                   for i, v in enumerate(self.values)]  # fmt: skip
         path = QPainterPath(points[0])
         for point in points[1:]:
@@ -116,3 +127,32 @@ class DisksCard(HudCard):
                        f"libres sur {disk.total:.0f} Go", disk.free_share < DISK_LOW)  # fmt: skip
         for name, meter in self.meters.items():
             meter.set_visible(any(d.name == name for d in s.disks))
+
+
+class NetCard(HudCard):
+    def __init__(self) -> None:
+        super().__init__("RÉSEAU")
+        self.down = Meter(self.body, "Réception")
+        self.curve = Sparkline(top=None)
+        self.body.insertWidget(self.body.count() - 1, self.curve)  # sous la barre de réception
+        self.up = Meter(self.body, "Envoi")
+        self.ping = Meter(self.body, "Ping")
+        self._last: Snapshot | None = None
+        self._peak = 1.0  # le plus haut débit vu (pour les barres)
+
+    def show(self, s: Snapshot) -> None:
+        last, self._last = self._last, s
+        if last is None or s.taken <= last.taken or s.received < last.received:
+            down = up = 0.0  # 1re lecture, ou compteurs remis à zéro
+        else:
+            span = s.taken - last.taken
+            down, up = (s.received - last.received) / span, (s.sent - last.sent) / span
+        self._peak = max(self._peak * 0.98, down, up, 1.0)  # redescend doucement
+        self.down.show(rate(down), down / self._peak)
+        self.curve.add(down)
+        self.up.show(rate(up), up / self._peak)
+        if s.ping is None:
+            self.ping.show("—", 0.0, "Internet ne répond pas", True)
+        else:
+            self.ping.show(f"{s.ping:.0f} ms", min(s.ping / 300, 1.0), "vers Internet (1.1.1.1)",
+                           s.ping >= SLOW_PING)  # fmt: skip
