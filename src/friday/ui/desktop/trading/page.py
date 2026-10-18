@@ -52,9 +52,12 @@ class TradingPage(QFrame):
         journal.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # fenêtre étroite
         journal.setWidget(self.journal)
         self.setups = SetupsView(getattr(getattr(trading, "alerts", None), "setups", None))
+        setups = QScrollArea(widgetResizable=True)  # bilan, graphiques et tableau : ça défile
+        setups.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        setups.setWidget(self.setups)
         self.settings = TradingSettings(trading, main_window.restart, translate)
         self.stack = QStackedWidget()
-        for widget in (overview, journal, self.setups, self.settings):
+        for widget in (overview, journal, setups, self.settings):
             self.stack.addWidget(widget)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 14, 14, 14)
