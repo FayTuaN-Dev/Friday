@@ -1,6 +1,6 @@
 """Barre du bas, en pilule : saisie au clavier, micro (maintenir), voix, nouvelle conversation."""
 
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QSize, Qt, Signal
 from PySide6.QtWidgets import QHBoxLayout, QLineEdit, QPushButton, QWidget
 
 from friday.ui.desktop.icons import icon
@@ -25,19 +25,27 @@ class InputBar(QWidget):
 
         self.edit = QLineEdit(placeholderText=f"Écrire à Friday… ou maintenir « {ptt_key} »")
         self.edit.returnPressed.connect(self._submit)
+        self.edit.installEventFilter(self)  # la pilule s'allume pendant la saisie
 
         self.reset = self._button("Nouvelle conversation", self.reset_clicked)
         self.voice = self._button("Activer / couper la voix", self.voice_toggled)
         self.mic = self._button("Maintenir pour parler", None, "MicButton")
         self.mic.pressed.connect(self.mic_pressed)
         self.mic.released.connect(self.mic_released)
-        self.send = self._button("Envoyer", self._submit)
+        self.send = self._button("Envoyer", self._submit, "SendButton")
 
         layout.addWidget(self.edit, 1)
         for button in (self.reset, self.voice, self.mic, self.send):
             layout.addWidget(button)
         self._voice_on = True
         self._palette: Palette | None = None
+
+    def eventFilter(self, watched, event) -> bool:
+        if event.type() in (QEvent.FocusIn, QEvent.FocusOut):
+            self.setProperty("focused", event.type() == QEvent.FocusIn)
+            self.style().unpolish(self)
+            self.style().polish(self)
+        return False
 
     def _button(self, tip: str, slot, name: str = "") -> QPushButton:
         button = QPushButton(objectName=name, toolTip=tip)

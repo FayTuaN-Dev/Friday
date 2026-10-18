@@ -3,10 +3,10 @@
 démarrage (comme les réglages : la construire au clic figeait Friday), puis gardée."""
 
 from PySide6.QtCore import QPoint
-from PySide6.QtWidgets import QMenu
 
 from friday.ui.desktop import theme
 from friday.ui.desktop.icons import icon
+from friday.ui.desktop.widgets.menus import glass_menu
 
 PAGES = (("Conversation", "send"), ("Trading", "trending"))
 
@@ -17,7 +17,7 @@ class TradingPageMixin:
 
     def open_menu(self) -> None:
         accent = theme.current().accent
-        menu = QMenu(self)
+        menu = glass_menu(self, "Pages")
         for name, symbol in PAGES:
             action = menu.addAction(icon(symbol, accent, 16), name)
             action.setCheckable(True)

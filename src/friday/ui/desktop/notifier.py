@@ -3,7 +3,7 @@ premier plan (réduite, derrière TradingView…), une bulle Windows apparaît. 
 bulle (ou sur l'icône près de l'horloge) ramène Friday devant. Qt les affiche via une icône
 de la zone de notification : elle reste visible tant que Friday tourne."""
 
-from PySide6.QtWidgets import QMenu, QSystemTrayIcon, QWidget
+from PySide6.QtWidgets import QSystemTrayIcon, QWidget
 
 from friday.tools.base import Display
 
@@ -23,7 +23,9 @@ class Notifier:
             self.tray.setToolTip("Friday")
             self.tray.messageClicked.connect(self.bring_back)
             self.tray.activated.connect(self._clicked)
-            self.menu = QMenu(window)
+            from friday.ui.desktop.widgets.menus import glass_menu
+
+            self.menu = glass_menu(window)
             self.game_action = self.menu.addAction("🎮  Mode jeu", on_game or (lambda: None))
             self.menu.addAction("Ouvrir Friday", self.bring_back)
             self.menu.addSeparator()
