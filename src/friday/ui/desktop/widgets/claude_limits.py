@@ -20,7 +20,8 @@ HOW = "Branchez Claude Code dans Réglages → Diagnostic, puis utilisez-le une 
 def style(p) -> str:
     """Feuille de style du panneau pour la palette `p` du thème."""
     return f"""
-    #Limits {{ background: transparent; border: 1px solid {p.accent_glow}; border-radius: 14px; }}
+    #Limits {{ background: {p.card}; border: 1px solid {p.card_border or p.accent_glow};
+               border-radius: 14px; }}
     #Limits QLabel {{ background: transparent; }}
     #LimitsTitle {{ font-family: "{FONT_HUD}"; font-size: 11px; color: {p.accent};
                     letter-spacing: 4px; }}
@@ -87,7 +88,9 @@ class ClaudeLimits(QFrame):
         now = self.clock()
         limits = read(self.path, now)
         windows = limits.windows if limits else []
-        self.setStyleSheet(style(theme.current()))  # suit la couleur choisie
+        css = style(theme.current())  # suit la couleur choisie (reposée : tout se redessine)
+        if self.styleSheet() != css:
+            self.setStyleSheet(css)
         for n, row in enumerate(self.rows):
             for widget in row.widgets:
                 widget.setVisible(n < len(windows))

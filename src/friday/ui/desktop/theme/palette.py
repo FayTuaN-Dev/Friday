@@ -69,6 +69,8 @@ class Palette:
     muted: str
     error: str
     states: dict  # AssistantState → nom de couleur
+    card: str = "transparent"  # fond des cartes de côté (verre sombre, légèrement teinté)
+    card_border: str = ""  # leur contour (vide : accent_glow)
 
     def state(self, state: AssistantState) -> QColor:
         return QColor(self.states[state])
@@ -93,4 +95,6 @@ def build_palette(base: QColor) -> Palette:
         muted=hsl(base, saturation=0.15, lightness=0.6).name(),
         error=ERROR.name(),
         states={s: state_color(base, s).name() for s in AssistantState},
+        card=rgba(hsl(base, saturation=0.3, lightness=0.10), 0.55),
+        card_border=rgba(base, 0.2),
     )

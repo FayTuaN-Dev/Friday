@@ -13,7 +13,8 @@ WIDTH = 250
 
 def style(p) -> str:
     return f"""
-    #Hud {{ background: transparent; border: 1px solid {p.accent_glow}; border-radius: 14px; }}
+    #Hud {{ background: {p.card}; border: 1px solid {p.card_border or p.accent_glow};
+            border-radius: 14px; }}
     #Hud QLabel {{ background: transparent; }}
     #HudTitle {{ font-family: "{FONT_HUD}"; font-size: 11px; color: {p.accent};
                  letter-spacing: 4px; }}

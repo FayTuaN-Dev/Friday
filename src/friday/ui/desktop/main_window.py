@@ -152,6 +152,9 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         from friday.ui.desktop.scenes.layer import Curtain
 
         self.veil = Curtain(shell)  # fondu par le noir autour des scènes (U8)
+        from friday.ui.desktop.widgets.glass import GlassBackdrop
+
+        self.glass = GlassBackdrop(shell)  # le fond (lueur de l'accent), sous tout le reste
         outer = QVBoxLayout(shell)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
@@ -199,6 +202,8 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         """Change la couleur de toute l'interface, à chaud (pop-ups ouverts compris)."""
         self.base = QColor(base)
         palette = theme.apply_theme(QApplication.instance(), self.base)
+        self.glass.refresh()
+        self.limits.refresh()
         self.title_bar.refresh(palette)
         if self.settings_window is not None:
             self.settings_window.refresh_icons(palette.accent)
@@ -216,7 +221,7 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
 
     def focus_ring(self, text: str) -> None:
         """Fin d'un tour de concentration (carte de côté) : carillon, et bulle si caché."""
-        speaker = getattr(self.assistant.components, "speaker", None)
+        speaker = getattr(getattr(self.assistant, "components", None), "speaker", None)
         if speaker is not None:
             speaker.chime()
         from friday.tools.base import Display
@@ -333,7 +338,7 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         threading.Thread(target=self._boot_check, daemon=True, name="boot-check").start()
         self.input.setEnabled(True)
         self._welcome_glance()
-        components = self.assistant.components
+        components = getattr(self.assistant, "components", None)
         self.side.set_trading(getattr(components, "trading", None))
         self.side.set_day(getattr(components, "agenda", None), getattr(components, "google", None))
         self.input.mic.setEnabled(self.assistant.can_listen)
