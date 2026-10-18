@@ -1,5 +1,5 @@
 """Les colonnes de côté, fenêtre agrandie. À gauche : les cartes du PC (processeur et mémoire,
-carte graphique, disques), puis Trading (cours, annonce, dernier setup, semaine), avec « En
+carte graphique, disques, réseau), puis Trading (cours, annonce, dernier setup, semaine), avec « En
 écoute » en bas. À droite : les limites Claude, Friday (modèles chargés, mode jeu), le Pi,
 Aujourd'hui (agenda, mails, rappels) et Concentration. Chaque carte s'affiche ou non selon
 Réglages → Apparence (data/interface.json, « widgets ») ; celles qui dépendent de Friday
@@ -13,17 +13,18 @@ from PySide6.QtWidgets import QVBoxLayout, QWidget
 from friday.ui.desktop.side.day_cards import DayCard, FocusCard
 from friday.ui.desktop.side.friday_cards import FridayCard, PiCard
 from friday.ui.desktop.side.glances import GlanceMixin
-from friday.ui.desktop.side.pc_cards import CpuCard, DisksCard, GpuCard
+from friday.ui.desktop.side.pc_cards import CpuCard, DisksCard, GpuCard, NetCard
 from friday.ui.desktop.side.sampler import Sampler
 from friday.ui.desktop.side.trading_card import TradingCard
 
 WIDGETS = (("pc", "Processeur et mémoire"), ("gpu", "Carte graphique"), ("disks", "Disques"),
+           ("net", "Réseau (débits, ping)"),
            ("claude", "Limites Claude"), ("friday", "Friday (modèles chargés, mode jeu)"),
            ("pi", "Le Pi"), ("trading", "Trading (cours, annonce, setup, semaine)"),
            ("day", "Aujourd'hui (agenda, mails, rappels)"),
            ("focus", "Concentration (25 min, puis pause)"),
            ("music", "En écoute (musique)"))  # fmt: skip
-PC, STATUS = ("pc", "gpu", "disks"), ("friday", "pi")
+PC, STATUS = ("pc", "gpu", "disks", "net"), ("friday", "pi")
 EVERY_MS, STATUS_EVERY = 2000, 5  # le PC toutes les 2 s ; Friday et le Pi toutes les 10 s
 
 
@@ -64,7 +65,7 @@ class SidePanels(GlanceMixin, QObject):
         super().__init__()
         self.playing, self.limits = playing, limits
         self.enabled = {key: True for key, _ in WIDGETS} | (enabled or {})
-        self.cards = {"pc": CpuCard(), "gpu": GpuCard(), "disks": DisksCard(),
+        self.cards = {"pc": CpuCard(), "gpu": GpuCard(), "disks": DisksCard(), "net": NetCard(),
                       "friday": FridayCard(toggle_game, whisper), "pi": PiCard(),
                       "trading": TradingCard(open_trading), "day": DayCard(),
                       "focus": FocusCard(ring)}  # fmt: skip

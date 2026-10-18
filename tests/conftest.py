@@ -50,10 +50,12 @@ def no_real_pc_stats(monkeypatch):
     monkeypatch.setattr(pc_stats.PcStats, "__init__", fake_stats_init)
 
 
-def fake_stats_init(self, gpu=None, disks=None):
+def fake_stats_init(self, gpu=None, disks=None, pinger=None):
     self._gpu = gpu or (lambda: None)
     self._disks = disks or (lambda: [])
-    self._failures = 0
+    self._ping = pinger or (lambda: None)  # jamais de connexion vers Internet
+    self._failures = self._reads = 0
+    self._last_ping = None
 
 
 @pytest.fixture(autouse=True)
