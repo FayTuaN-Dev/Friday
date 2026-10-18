@@ -38,3 +38,18 @@ def no_real_sonar(monkeypatch):
     from friday.tools.pc import sonar
 
     monkeypatch.setattr(sonar.Sonar, "find", classmethod(lambda cls, *a, **k: None))
+
+
+@pytest.fixture(autouse=True)
+def no_real_pc_stats(monkeypatch):
+    """Jamais nvidia-smi ni les vrais disques : les cartes du PC lisent des valeurs fixes."""
+    from friday.app import pc_stats
+
+    monkeypatch.setattr(pc_stats, "read_gpu", lambda run=None: None)
+    monkeypatch.setattr(pc_stats.PcStats, "__init__", fake_stats_init)
+
+
+def fake_stats_init(self, gpu=None, disks=None):
+    self._gpu = gpu or (lambda: None)
+    self._disks = disks or (lambda: [])
+    self._failures = 0

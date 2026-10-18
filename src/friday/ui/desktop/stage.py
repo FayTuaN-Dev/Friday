@@ -182,11 +182,10 @@ class StageMixin:
             timer.stop() if paused else timer.start()
 
     def _side_panels(self, *_args) -> None:
-        """Limites Claude et « En écoute » : seulement fenêtre agrandie ou plein écran, et
+        """Les colonnes de côté (side/columns.py) : seulement fenêtre agrandie ou plein écran, et
         jamais pendant une scène (constaté : réaffichés par la musique qui change ou un
         redimensionnement, ils couvraient la carte et le bouton « Retour »)."""
         wide = (self.isMaximized() or self.isFullScreen()) and not getattr(
             self, "scene_mode", False
         )
-        self.limits.setVisible(wide)
-        self.playing.setVisible(wide and self.playing.has_track)
+        self.side.place(wide)

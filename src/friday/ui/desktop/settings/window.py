@@ -54,7 +54,8 @@ class SettingsWindow(QFrame):
                                                                strict=True)}  # fmt: skip
         pages = {
             "Apparence": AppearancePage(main_window.base, main_window.apply_color,
-                                        main_window.orb_style, main_window.set_orb_style),
+                                        main_window.orb_style, main_window.set_orb_style,
+                                        main_window.side.enabled, main_window.set_widget),
             "Général": by_name["Général"], "Voix": by_name["Voix"], "Écoute": by_name["Écoute"],
             "Briefing": BriefingPage(getattr(components, "briefing", None)),
             "Bibliothèque": LibraryPage(getattr(components, "library", None)),

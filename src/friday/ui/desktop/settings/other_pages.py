@@ -1,4 +1,5 @@
-"""Pages « Apparence » (couleur, appliquée tout de suite) et « Comptes » (Google)."""
+"""Pages « Apparence » (couleur, cœur, widgets de côté : appliqués tout de suite) et
+« Comptes » (Google)."""
 
 from collections.abc import Callable
 
@@ -23,10 +24,32 @@ def title(text: str) -> QLabel:
     return QLabel(text, objectName="SettingsTitle")
 
 
+def widget_toggles(widgets: dict[str, bool], set_widget: Callable[[str, bool], None]) -> QWidget:
+    """Les cartes de côté (fenêtre agrandie), une par interrupteur."""
+    from friday.ui.desktop.side.columns import WIDGETS
+    from friday.ui.desktop.widgets.toggle import Toggle
+
+    box = QWidget()
+    layout = QVBoxLayout(box)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.addWidget(QLabel("Widgets sur les côtés (fenêtre agrandie)", objectName="SettingsLabel"))
+    box.toggles = {}
+    for key, name in WIDGETS:
+        row = QHBoxLayout()
+        toggle = Toggle(widgets.get(key, True))
+        toggle.toggled.connect(lambda on, k=key: set_widget(k, on))
+        box.toggles[key] = toggle
+        row.addWidget(toggle)
+        row.addWidget(QLabel(name, objectName="Hint"), 1)
+        layout.addLayout(row)
+    return box
+
+
 class AppearancePage(QWidget):
     def __init__(self, current: QColor, apply_color: Callable[[QColor], None],
                  orb_style: str = "sphere", apply_style: Callable[[str], None] | None = None,
-                 ) -> None:  # fmt: skip
+                 widgets: dict[str, bool] | None = None,
+                 set_widget: Callable[[str, bool], None] | None = None) -> None:  # fmt: skip
         super().__init__(objectName="SettingsPage")
         self.current, self.apply_color = QColor(current), apply_color
         layout = QVBoxLayout(self)
@@ -64,6 +87,11 @@ class AppearancePage(QWidget):
                 self.__dict__.setdefault("style_buttons", {})[value] = button
             styles.addStretch()
             layout.addLayout(styles)
+        self.widgets = None
+        if set_widget is not None:
+            layout.addSpacing(10)
+            self.widgets = widget_toggles(widgets or {}, set_widget)
+            layout.addWidget(self.widgets)
         layout.addStretch()
 
     def _pick(self) -> None:
