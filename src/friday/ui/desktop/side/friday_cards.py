@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton
 from friday.app.events import AssistantState
 from friday.app.friday_status import Status
 from friday.ui.desktop import theme
-from friday.ui.desktop.side.hud import HudCard, Meter, _flag
+from friday.ui.desktop.side.hud import HudCard, Meter, _flag, tint
 from friday.ui.desktop.side.pc_cards import fr, pct
 
 PI_HOT, MAX_MODELS = 75, 3
@@ -59,7 +59,7 @@ class FridayCard(HudCard):
 
     def set_state(self, state: AssistantState) -> None:
         self.state.setText(state.value)
-        self.state.setStyleSheet(f"color: {theme.current().states[state]};")
+        tint(self.state, f"color: {theme.current().states[state]};")
         self.game.setText("Revenir" if state is AssistantState.PAUSED else "Mode jeu")
 
     def show_status(self, status: Status) -> None:
