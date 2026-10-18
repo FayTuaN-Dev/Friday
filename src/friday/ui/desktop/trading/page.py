@@ -1,6 +1,7 @@
 """La page Trading (menu ☰ → Trading) : elle couvre la fenêtre de Friday, sous la barre de
 titre, avec ses onglets : « Vue d'ensemble », « Journal » (le journal de trading, qui avait sa
-fenêtre à part) et « Réglages » (sortis des Réglages de Friday). Échap ou ✕ la referment."""
+fenêtre à part), « Setups » (le carnet de la surveillance et les avis de Claude) et
+« Réglages » (sortis des Réglages de Friday). Échap ou ✕ la referment."""
 
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
@@ -19,8 +20,9 @@ from friday.ui.desktop import theme
 from friday.ui.desktop.icons import icon
 from friday.ui.desktop.trading.overview import TradingOverview
 from friday.ui.desktop.trading.settings_tab import TradingSettings
+from friday.ui.desktop.trading.setups_tab import SetupsView
 
-TABS = ("Vue d'ensemble", "Journal", "Réglages")
+TABS = ("Vue d'ensemble", "Journal", "Setups", "Réglages")
 
 
 def journal_tab(trading) -> QWidget:
@@ -49,9 +51,10 @@ class TradingPage(QFrame):
         journal = QScrollArea(widgetResizable=True)  # courbe, tableau et formulaire : ça défile
         journal.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)  # fenêtre étroite
         journal.setWidget(self.journal)
+        self.setups = SetupsView(getattr(getattr(trading, "alerts", None), "setups", None))
         self.settings = TradingSettings(trading, main_window.restart, translate)
         self.stack = QStackedWidget()
-        for widget in (overview, journal, self.settings):
+        for widget in (overview, journal, self.setups, self.settings):
             self.stack.addWidget(widget)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 14, 14, 14)
@@ -85,6 +88,8 @@ class TradingPage(QFrame):
         self.stack.setCurrentIndex(index)
         if index == 0:
             self.overview.refresh()
+        elif index == TABS.index("Setups"):
+            self.setups.refresh()
 
     @property
     def current_tab(self) -> str:
