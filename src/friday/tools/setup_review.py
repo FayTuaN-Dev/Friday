@@ -3,10 +3,9 @@ de Claude aide-t-il ? » : ce que les setups FERMÉS auraient donné, tous ensem
 où Claude a dit oui et ceux où il a dit non. C'est la preuve à réunir avant de laisser Friday
 trader : si les « oui » ne font pas mieux que tous les setups, l'avis de Claude n'aide pas."""
 
-from types import SimpleNamespace
-
 from friday.tools.base import Display, Tool, ToolResult
-from friday.trading.backtest.report import FEW, Report, r_text
+from friday.trading.alerts.review import review
+from friday.trading.backtest.report import FEW, r_text
 
 
 class SetupReviewTool(Tool):
@@ -25,18 +24,11 @@ class SetupReviewTool(Tool):
 
     def run(self) -> ToolResult:
         entries = self.watcher.setups.all()
-        done = [e for e in entries if e["result_r"] is not None]
-        running = len(entries) - len(done)
-        if not done:
+        reports, running = review(entries)
+        if not reports[0].count:
             return ToolResult(f"Dis EXACTEMENT : « Aucun setup terminé pour l'instant "
                               f"({len(entries)} noté(s), encore en cours). Il faut attendre que "
                               "les trades se ferment. »")  # fmt: skip
-        groups = [("Tous les setups", done),
-                  ("Claude a dit OUI", [e for e in done if e["avis"] == "oui"]),
-                  ("Claude a dit NON", [e for e in done if e["avis"] == "non"]),
-                  ("Sans avis", [e for e in done if e["avis"] not in ("oui", "non")])]  # fmt: skip
-        reports = [Report(label, [SimpleNamespace(result_r=e["result_r"]) for e in group])
-                   for label, group in groups]  # fmt: skip
         whole, yes, no = reports[0], reports[1], reports[2]
         spoken = f"Sur {whole.count} setups terminés : {r_text(whole.expectancy)} par trade"
         if yes.count and no.count:

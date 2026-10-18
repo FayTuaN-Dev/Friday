@@ -80,3 +80,11 @@ def test_overview_lists_watched_setups_and_levels(tmp_path):
     store.add_level("EURUSD", 1.12, True)
     text = alerts_text(SimpleNamespace(store=store))
     assert "Setups surveillés (1)" in text and "au-dessus de 1.12" in text
+
+
+def test_setups_tab_is_in_the_page(window):
+    w, _, _ = window
+    w.open_trading("Setups")
+    QTest.qWait(400)
+    assert w.trading_page.current_tab == "Setups"
+    assert "surveille tous les marchés" in w.trading_page.setups.summary.text()
