@@ -128,12 +128,14 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self.playing = NowPlayingCard(load_backend())  # « En écoute » : fenêtre agrandie
         if self.playing.poller is not None:
             self.playing.poller.changed.connect(self._side_panels)
-        from friday.ui.desktop.side.columns import SidePanels
+        from friday.ui.desktop.side.columns import SidePanels, status_sampler, whisper_text
         from friday.ui.desktop.widgets.claude_limits import ClaudeLimits
 
         self.limits = ClaudeLimits()  # session et semaine Claude : seulement fenêtre agrandie
         saved = preferences.load(self._preferences_path).get("widgets")
-        self.side = SidePanels(self.playing, self.limits, saved if isinstance(saved, dict) else {})
+        self.side = SidePanels(self.playing, self.limits, saved if isinstance(saved, dict) else {},
+                               status=status_sampler(self.settings), toggle_game=self.toggle_game,
+                               whisper=whisper_text(self.settings))  # fmt: skip
         centered.addSpacing(18)
         centered.addWidget(self.side.left)  # cartes du PC, « En écoute » en bas
         centered.addStretch(1)
@@ -341,6 +343,7 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self.orb.set_state(state)
         self.notifier.set_loading(state is AssistantState.LOADING)
         self.status.setText(state.value.upper())
+        self.side.set_state(state)
         self.status.setStyleSheet(f"color: {self.status_color()};")
         if self.scene_mode:  # la sphère est cachée : l'état s'affiche en haut de la scène
             self.scene_layer.show_state(self.status.text(), self.status_color())

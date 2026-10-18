@@ -1,5 +1,6 @@
 import os
 import sys
+from types import SimpleNamespace
 
 # Les tests de l'interface tournent sans écran (CI)
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -53,3 +54,33 @@ def fake_stats_init(self, gpu=None, disks=None):
     self._gpu = gpu or (lambda: None)
     self._disks = disks or (lambda: [])
     self._failures = 0
+
+
+@pytest.fixture(autouse=True)
+def no_real_friday_status(monkeypatch):
+    """Ni le vrai Ollama ni le vrai Pi pour les cartes Friday et Pi : rien de chargé, pas de Pi."""
+    from friday.app import friday_status
+
+    reader = SimpleNamespace(read=lambda: friday_status.Status([]))
+    monkeypatch.setattr(friday_status, "from_settings", lambda settings: reader)
+
+
+@pytest.fixture(autouse=True)
+def drop_main_windows():
+    """Après chaque test, ses fenêtres de Friday sont détruites : laissées en vie, chacune
+    était re-stylée à chaque nouvelle fenêtre (thème appliqué à toute l'application), et les
+    tests d'animation finissaient par manquer leurs délais."""
+    yield
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None:
+        return
+    from friday.ui.desktop.main_window import MainWindow
+
+    for window in app.topLevelWidgets():
+        if isinstance(window, MainWindow):
+            window.playing.close_poller()
+            window.side.close()
+            window.deleteLater()
+    app.processEvents()
