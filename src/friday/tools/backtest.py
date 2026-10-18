@@ -10,14 +10,13 @@ from friday.tools.trading import INSTRUMENT
 from friday.trading import Trading, risk_calc
 from friday.trading.backtest.engine import simulate
 from friday.trading.backtest.report import FEW, Report, r_text, variants
+from friday.trading.backtest.spread import spread_of  # noqa: F401 (aussi pour les outils)
 from friday.trading.instruments import Instrument
 from friday.trading.market import Candle, MarketUnavailable, fetch
 from friday.trading.plan_rules import load_rules
 from friday.trading.strategies.base import bars_for
 
 KEEP_SECONDS = 3600  # l'historique est gardé une heure en mémoire
-SPREAD_PIPS = {"forex": 1, "metal": 3, "energie": 3, "indice": 1}  # spread typique
-SPREAD_SHARE = 0.0005  # crypto, actions : 0,05 % du cours
 
 
 def load_history(instrument: Instrument) -> tuple[list[Candle], list[Candle]]:
@@ -27,11 +26,6 @@ def load_history(instrument: Instrument) -> tuple[list[Candle], list[Candle]]:
     _, hourly = fetch(instrument.yahoo, "1h", "730d")
     _, daily = fetch(instrument.yahoo, "1d", "25y")
     return hourly, daily
-
-
-def spread_of(instrument: Instrument, price: float) -> float:
-    pips = SPREAD_PIPS.get(instrument.kind)
-    return pips * instrument.pip if pips else price * SPREAD_SHARE
 
 
 def _variant_label(objectif: float | None, stop: float | None) -> str:

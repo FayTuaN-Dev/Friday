@@ -28,6 +28,8 @@ class TradingSettings:
     fred_key: str = ""  # clé gratuite FRED : résultats publiés des annonces américaines
     briefing: bool = True  # briefing trading automatique à l'ouverture de la plage de trading
     briefing_instruments: tuple[str, ...] = ()  # vide : les instruments surveillés
+    claude_verdict: bool = False  # avis de Claude sur chaque setup (envoi automatique)
+    verdicts_per_day: int = 10  # au plus, par jour
 
 
 @dataclass(frozen=True)
@@ -189,6 +191,8 @@ def load_settings() -> Settings:
             model=os.getenv("TRADING_MODEL", ""),
             hours=_hours(os.getenv("TRADING_HOURS", "9-18")),
             briefing=_bool("TRADING_BRIEFING", True),
+            claude_verdict=_bool("TRADING_CLAUDE_VERDICT", False),
+            verdicts_per_day=max(1, min(50, int(os.getenv("TRADING_VERDICTS_PER_DAY", "10")))),
             briefing_instruments=tuple(
                 w.strip()
                 for w in os.getenv("TRADING_BRIEFING_INSTRUMENTS", "").split(",")

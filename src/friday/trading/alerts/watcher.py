@@ -6,7 +6,8 @@ que les cours publics Yahoo ; le graphique TradingView n'est lu que par son titr
   (Réglages → Trading) ; annoncée quand le setup APPARAÎT, pas tant qu'il dure. Stratégie
   journalière (Turtles) : les journées sont lues toutes les 30 min, à toute heure ; un setup
   trouvé hors des heures de trading attend d'être annoncé (« surveille tous les marchés »).
-- Chaque setup est noté dans le carnet des setups (setup_log.py).
+- Chaque setup est noté dans le carnet des setups (setup_log.py), avec l'avis de Claude si
+  l'utilisateur l'a activé (setup_verdict.py) et, plus tard, ce que le trade aurait donné.
 
 Le cours d'un instrument : celui du graphique TradingView s'il l'affiche (le plus juste) ;
 sinon Yahoo, recalé du dernier écart vu avec le graphique (contrat à terme contre comptant).
@@ -19,12 +20,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from friday.trading.alerts import setup as setups
+from friday.trading.alerts.notebook import Notebook
 from friday.trading.alerts.setup_log import SetupLog
 from friday.trading.alerts.store import Alert, AlertStore
 from friday.trading.instruments import Instrument, by_symbol, chart_price
 from friday.trading.market import MarketUnavailable, _digits, fetch
 from friday.trading.plan_rules import load_rules
 from friday.trading.sessions import PARIS
+from friday.trading.strategies.base import closed_days
 
 log = logging.getLogger(__name__)
 SETUP_EVERY = 300  # secondes entre deux lectures des bougies d'un même instrument
@@ -57,7 +60,7 @@ class AlertWatcher:
         self.store, self.rules_path, self.chart_title = store, rules_path, chart_title
         self.quote, self.history, self.now = quote, history, now
         self.hours, self.interval, self.days = hours, interval, days
-        self.setups = setups or SetupLog(None)  # le carnet des setups
+        self.notebook = Notebook(setups or SetupLog(None), now)  # carnet, avis, résultats
         self.on_alert: Callable[[str], None] = lambda text: None  # branché au démarrage
         self.choice = None  # StrategyChoice : la stratégie de chaque instrument (le plan sinon)
         self._announced: dict[str, datetime] = {}  # symbole → dernière bougie examinée
@@ -67,6 +70,13 @@ class AlertWatcher:
 
     def start(self) -> None:
         threading.Thread(target=self._loop, daemon=True, name="trading-alerts").start()
+        if self.notebook.judge is not None:
+            threading.Thread(target=self.notebook.run, args=(self._stop,), daemon=True,
+                             name="setup-avis").start()  # fmt: skip
+
+    @property
+    def setups(self) -> SetupLog:
+        return self.notebook.setups
 
     def stop(self) -> None:
         self._stop.set()
@@ -97,14 +107,9 @@ class AlertWatcher:
             self._announce_waiting()
 
     def _announce_waiting(self) -> None:
-        """Les setups du carnet pas encore annoncés, en une seule annonce."""
-        waiting = self.setups.waiting(self.now())
-        if not waiting:
-            return
-        texts = [e["text"] for e in waiting]
-        head = f"{len(texts)} setups depuis ma dernière annonce. " if len(texts) > 1 else ""
-        self.setups.mark_announced([e["id"] for e in waiting])
-        self.on_alert(head + " ".join(texts))
+        text = self.notebook.announcement()
+        if text:
+            self.on_alert(text)
 
     def _check_level(self, alert: Alert, instrument: Instrument) -> None:
         price, _ = self.price(instrument)
@@ -136,14 +141,17 @@ class AlertWatcher:
     def _check_days(self, instrument: Instrument, strategy) -> None:
         rules, now = load_rules(self.rules_path), self.now()
         shift = self.store.offsets.get(instrument.symbol, 0.0)
-        for found in setups.fresh_days(self.days(instrument), now, rules, strategy):
+        days = self.days(instrument)
+        self.notebook.follow(instrument, closed_days(days, now), "jour")
+        for found in setups.fresh_days(days, now, rules, strategy):
             text = setups.announcement(instrument, found, rules, shift)
-            self.setups.add(instrument.symbol, found, text, now)
+            self.notebook.note(instrument, found, text, now)
 
     def _check_hours(self, instrument: Instrument, strategy) -> None:
         now = self.now()
         hourly, daily = self.history(instrument)
         hourly = setups.closed(hourly, now)
+        self.notebook.follow(instrument, hourly, "heure")
         if not hourly or self._announced.get(instrument.symbol) == hourly[-1].time:
             return
         rules = load_rules(self.rules_path)
@@ -159,7 +167,7 @@ class AlertWatcher:
             return  # le setup dure depuis la bougie d'avant : déjà annoncé (ou en cours)
         shift = self.store.offsets.get(instrument.symbol, 0.0)
         text = setups.announcement(instrument, found, rules, shift)
-        self.setups.add(instrument.symbol, found, text, now)
+        self.notebook.note(instrument, found, text, now)
 
     def _trading_hours(self) -> bool:
         local = self.now().astimezone(PARIS)

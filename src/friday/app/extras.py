@@ -139,6 +139,12 @@ def load_trading(settings: Settings, library):
         trading.translator = (translator(DATA_DIR / "trading_claude", model,
                                          settings.claude_timeout) if claude else None)  # fmt: skip
         alerts.choice = trading.choice  # les alertes suivent la stratégie choisie
+        if claude and config.claude_verdict:  # activé par l'utilisateur : envoi sans aperçu
+            from friday.trading.setup_verdict import SetupJudge, verdict_job
+
+            alerts.notebook.judge = SetupJudge(
+                builder, verdict_job(DATA_DIR / "trading_claude", model, settings.claude_timeout),
+                journal, config.verdicts_per_day)  # fmt: skip
         return trading
     except Exception:
         log.exception("Trading indisponible, Friday continue sans")

@@ -13,6 +13,8 @@ from pathlib import Path
 log = logging.getLogger(__name__)
 KEEP = 500  # setups gardés au plus (les plus anciens partent)
 STALE = timedelta(days=3)  # plus vieux, un setup n'est plus annoncé (le prix a bougé)
+PENDING = "attente"  # l'avis de Claude est demandé
+VERDICT_WAIT = timedelta(minutes=15)  # au-delà, le setup est annoncé sans son avis
 
 
 class SetupLog:
@@ -33,6 +35,7 @@ class SetupLog:
             "trail": setup.trail, "strategy": getattr(strategy, "name", ""),
             "label": getattr(strategy, "label", ""), "unit": getattr(strategy, "unit", "heure"),
             "text": text, "seen": seen.isoformat(), "announced": False,
+            "avis": None, "raison": "", "closed": None, "result_r": None,
         }  # fmt: skip
         with self._lock:
             if any(e["symbol"] == symbol and e["side"] == setup.side and e["bar"] == entry["bar"]
@@ -44,9 +47,19 @@ class SetupLog:
         return dict(entry)
 
     def waiting(self, now: datetime) -> list[dict]:
-        """Les setups pas encore annoncés et encore récents."""
+        """Les setups pas encore annoncés et encore récents ; ceux dont l'avis de Claude est
+        attendu patientent (VERDICT_WAIT au plus)."""
         return [e for e in self.all() if not e["announced"]
-                and now - datetime.fromisoformat(e["seen"]) <= STALE]  # fmt: skip
+                and now - datetime.fromisoformat(e["seen"]) <= STALE
+                and (e.get("avis") != PENDING
+                     or now - datetime.fromisoformat(e["seen"]) > VERDICT_WAIT)]  # fmt: skip
+
+    def update(self, entry_id: int, **fields) -> None:
+        with self._lock:
+            for entry in self._entries:
+                if entry["id"] == entry_id:
+                    entry.update(fields)
+        self._save()
 
     def mark_announced(self, ids: list[int]) -> None:
         with self._lock:

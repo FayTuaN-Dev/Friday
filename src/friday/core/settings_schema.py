@@ -140,6 +140,13 @@ SECTIONS = (
         Field("TRADING_BRIEFING", "Briefing trading au début de ma plage", "bool", "true",
               "En semaine, à l'heure de début de vos heures de trading : annonces, nuit, "
               "niveaux clés, tendance, règles du plan. Aussi à la voix : « briefing trading »."),
+        Field("TRADING_CLAUDE_VERDICT", "Avis de Claude sur chaque setup", "bool", "false",
+              "Chaque setup de la surveillance part AUTOMATIQUEMENT à Claude, sans aperçu "
+              "(cours publics, annonces, plan suivi, extraits, masqués comme d'habitude, notés "
+              "au journal des envois) : il répond OUI ou NON. Ce n'est pas un ordre."),
+        Field("TRADING_VERDICTS_PER_DAY", "Avis de Claude par jour (au plus)", "int", "10",
+              "Pour ménager vos limites Claude : au-delà, les setups sont annoncés sans avis.",
+              1, 50),
         Field("TRADING_BRIEFING_INSTRUMENTS", "Instruments du briefing trading", "text", "",
               "Ex. « or, EUR/USD ». Vide : ceux que vous surveillez (« surveille l'or »)."),
         Field("FRED_API_KEY", "Clé FRED (gratuite)", "text", "",
