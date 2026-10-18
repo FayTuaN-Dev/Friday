@@ -17,7 +17,7 @@ from friday.trading.market import _digits
 from friday.ui.desktop.journal.equity_chart import fr as signed
 from friday.ui.desktop.journal.window import GAIN, LOSS
 from friday.ui.desktop.side.friday_cards import duration
-from friday.ui.desktop.side.hud import HudCard
+from friday.ui.desktop.side.hud import HudCard, tint
 
 SOON = 30 * 60  # une annonce à moins de 30 min : en rouge (ne pas entrer juste avant)
 
@@ -92,13 +92,13 @@ class TradingCard(HudCard):
             move = quote.change_percent if quote else None
             arrow = "▲" if (move or 0) >= 0 else "▼"
             change.setText("" if move is None else f"{arrow} {signed(move, True)} %")
-            change.setStyleSheet(f"color: {(GAIN if (move or 0) >= 0 else LOSS).name()};")
+            tint(change, f"color: {(GAIN if (move or 0) >= 0 else LOSS).name()};")
         self.markets_note.setVisible(not glance.quotes)
         head, text = self.news
         text.setText("\n".join(event_text(e, now) for e in glance.events)
                      or "Aucune annonce à fort impact cette semaine pour ces marchés.")  # fmt: skip
         soon = bool(glance.events) and (glance.events[0].time - now).total_seconds() < SOON
-        text.setStyleSheet(f"color: {LOSS.name()};" if soon else "")
+        tint(text, f"color: {LOSS.name()};" if soon else "")
 
     def show_local(self, setups, journal, now: datetime | None = None) -> None:
         """Le dernier setup du carnet et la semaine du journal (lus ici : rapides)."""
@@ -110,8 +110,7 @@ class TradingCard(HudCard):
         total = sum(t.result_r or 0 for t in trades)
         self.week[1].setText(f"{signed(total, True)} R sur {len(trades)} trade(s), 7 jours"
                              if trades else "Aucun trade clôturé ces 7 jours.")  # fmt: skip
-        self.week[1].setStyleSheet(f"color: {(GAIN if total >= 0 else LOSS).name()};"
-                                   if trades else "")  # fmt: skip
+        tint(self.week[1], f"color: {(GAIN if total >= 0 else LOSS).name()};" if trades else "")
 
     def mousePressEvent(self, event) -> None:
         """Un clic : la page Trading ; sur le dernier setup, son onglet « Setups »."""

@@ -40,18 +40,23 @@ class GlanceMixin:
         self._has_day = agenda is not None or self.day is not None
         self.place(self.wide)
 
-    def _glance_tick(self, force: bool = False) -> None:
-        local = force or self._ticks % LOCAL_EVERY == 0
+    def _glance_tick(self, new: set[str], tick: int | None = None) -> None:
+        """`new` : les cartes qui viennent d'apparaître (lues tout de suite) ; `tick` : le
+        tour de minuterie (les relectures régulières ne se font que là)."""
+        due = lambda every: tick is not None and tick % every == 0  # noqa: E731
+        local = due(LOCAL_EVERY)
         if self.glance is not None and self.wanted(("trading",)):
-            if local:
+            force = "trading" in new
+            if local or force:
                 setups = getattr(getattr(self.trading, "alerts", None), "setups", None)
                 self.cards["trading"].show_local(setups, getattr(self.trading, "journal", None))
-            if force or self._ticks % MARKETS_EVERY == 0:
+            if force or due(MARKETS_EVERY):
                 self.glance.request()
         if getattr(self, "_has_day", False) and self.wanted(("day",)):
-            if local and self.agenda is not None:
+            force = "day" in new
+            if (local or force) and self.agenda is not None:
                 self.cards["day"].show_reminders(self.agenda.pending())
-            if self.day is not None and (force or self._ticks % GOOGLE_EVERY == 0):
+            if self.day is not None and (force or due(GOOGLE_EVERY)):
                 self.day.request()
 
     def _stop_glances(self) -> None:

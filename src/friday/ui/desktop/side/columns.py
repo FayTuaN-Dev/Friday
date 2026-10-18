@@ -91,17 +91,22 @@ class SidePanels(GlanceMixin, QObject):
         self.place(False)
 
     def place(self, wide: bool) -> None:
-        """Fenêtre agrandie (et pas de scène) : les cartes choisies ; sinon rien."""
-        self.wide = wide
+        """Fenêtre agrandie (et pas de scène) : les cartes choisies ; sinon rien. Appelée
+        souvent (« En écoute » prévient toutes les 1,5 s) : seules les cartes qui VIENNENT
+        d'apparaître sont lues tout de suite ; les autres gardent leur rythme (constaté :
+        Google et les cours relus toutes les 1,5 s, la carte « sautait »)."""
+        was_wide, self.wide = self.wide, wide
+        shown = {key for key, card in self.cards.items() if card.isVisible()}
         for key, card in self.cards.items():
             card.setVisible(wide and self.enabled[key] and self._available(key))
         self.limits.setVisible(wide and self.enabled["claude"])
         self.playing.setVisible(wide and self.enabled["music"] and self.playing.has_track)
-        if self.wanted():
+        new = {key for key, card in self.cards.items() if card.isVisible()} - shown
+        if new & set(PC) and self.wanted():
             self.sampler.request()  # tout de suite, sans attendre 2 s
-        if self.wanted(STATUS):
+        if (new & set(STATUS) or (wide and not was_wide)) and self.wanted(STATUS):
             self.status.request()
-        self._glance_tick(force=True)
+        self._glance_tick(new)
 
     def _available(self, key: str) -> bool:
         if key == "pi":
@@ -138,7 +143,7 @@ class SidePanels(GlanceMixin, QObject):
             self.sampler.request()
         if self._ticks % STATUS_EVERY == 0 and self.wanted(STATUS):
             self.status.request()
-        self._glance_tick()
+        self._glance_tick(set(), self._ticks)
 
     def _show(self, snapshot) -> None:
         for key in PC:

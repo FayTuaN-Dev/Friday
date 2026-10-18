@@ -29,6 +29,13 @@ def style(p) -> str:
     """  # fmt: skip
 
 
+def tint(label, css: str) -> None:
+    """Une couleur posée seulement si elle change : la même feuille de style, reposée, fait
+    tout redessiner (constaté : la carte « sautait » à chaque mise à jour)."""
+    if label.styleSheet() != css:
+        label.setStyleSheet(css)
+
+
 def _flag(widget, alert: bool) -> None:
     if widget.property("alert") != alert:
         widget.setProperty("alert", alert)

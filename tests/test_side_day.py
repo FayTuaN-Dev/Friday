@@ -106,3 +106,49 @@ def test_day_card_appears_with_friday_loaded(tmp_path):
     assert side.cards["day"].isVisible() and day.requests == 1
     assert side.cards["day"].reminders.text().startswith("Appeler maman · dans 1 h 5")
     window.close()
+
+
+def test_repeated_placing_does_not_reread_or_redraw(tmp_path):
+    """Constaté : « En écoute » rappelle place() toutes les 1,5 s ; chaque fois, Google et les
+    cours étaient relus et la carte « sautait »."""
+    from PySide6.QtCore import QEvent, QObject
+    from PySide6.QtWidgets import QFrame, QHBoxLayout, QWidget
+    from test_side_widgets import FakeSampler
+
+    from friday.ui.desktop.side.columns import SidePanels
+
+    playing, limits = QFrame(), QFrame()
+    playing.has_track = False
+    pc, status, day = FakeSampler(), FakeSampler(), FakeSampler()
+    side = SidePanels(playing, limits, {}, pc, status)
+    window = QWidget()
+    row = QHBoxLayout(window)
+    row.addWidget(side.left)
+    row.addWidget(side.right)
+    window.show()
+    side.place(True)
+    side.set_day(AgendaStore(tmp_path / "agenda.db"), SimpleNamespace(configured=True), day)
+    side.cards["day"].show_day(Day([event(2, "Dentiste")], 1, ["Julie"], True), NOW)
+    before = (pc.requests, status.requests, day.requests)
+    redraws = []
+
+    class Spy(QObject):
+        def eventFilter(self, obj, ev):
+            if ev.type() in (QEvent.LayoutRequest, QEvent.StyleChange):
+                redraws.append((type(obj).__name__, int(ev.type())))
+            return False
+
+    def rounds():
+        for _ in range(5):
+            side.place(True)  # la musique a changé
+            side.cards["day"].show_day(Day([event(2, "Dentiste")], 1, ["Julie"], True), NOW)
+            app.processEvents()
+
+    rounds()  # la carte vient d'apparaître : sa mise en page se termine
+    spy = Spy()
+    app.installEventFilter(spy)
+    rounds()
+    app.removeEventFilter(spy)
+    assert (pc.requests, status.requests, day.requests) == before
+    assert redraws == [], redraws
+    window.close()
