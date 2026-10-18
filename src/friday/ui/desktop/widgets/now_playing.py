@@ -25,7 +25,8 @@ COVER = 54
 
 def style(p) -> str:
     return f"""
-    #Playing {{ background: transparent; border: 1px solid {p.accent_glow}; border-radius: 14px; }}
+    #Playing {{ background: {p.card}; border: 1px solid {p.card_border or p.accent_glow};
+                border-radius: 14px; }}
     #Playing QLabel {{ background: transparent; }}
     #PlayingHead {{ font-family: "{FONT_HUD}"; font-size: 10px; color: {p.accent};
                     letter-spacing: 3px; }}
