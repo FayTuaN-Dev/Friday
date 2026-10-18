@@ -20,6 +20,11 @@ def fr(value: float, digits: int = 1) -> str:
     return f"{value:.{digits}f}".replace(".", ",")
 
 
+def pct(share: float) -> str:
+    """« 43 % » (espace avant le signe, à la française)."""
+    return f"{share * 100:.0f} %"
+
+
 class Sparkline(QWidget):
     """La courbe du processeur sur la dernière minute (0 à 100 %), sans axe."""
 
@@ -68,7 +73,7 @@ class CpuCard(HudCard):
         self.cpu.show(f"{s.cpu:.0f} %", s.cpu / 100, alert=s.cpu >= CPU_HIGH)
         self.curve.add(s.cpu)
         share = s.ram_used / s.ram_total if s.ram_total else 0.0
-        self.ram.show(f"{share:.0%}".replace("%", " %"), share,
+        self.ram.show(pct(share), share,
                       f"{fr(s.ram_used)} / {s.ram_total:.0f} Go", share >= RAM_HIGH)  # fmt: skip
 
 

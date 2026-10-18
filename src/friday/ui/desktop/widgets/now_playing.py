@@ -171,7 +171,8 @@ class NowPlayingCard(QFrame):
             self.bar.setValue(0)
             return
         position = track.position + (time.monotonic() - self._seen_at if track.playing else 0)
-        self.bar.setValue(int(1000 * min(1.0, position / track.duration)))
+        share = max(0.0, min(1.0, position / track.duration))  # négative : constaté
+        self.bar.setValue(int(1000 * share))
 
     def _fit(self, label: QLabel, text: str) -> str:
         return label.fontMetrics().elidedText(text, Qt.ElideRight, 156)

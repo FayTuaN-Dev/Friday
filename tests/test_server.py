@@ -107,9 +107,15 @@ def test_the_server_refuses_without_the_key_and_answers_with_it():
         assert httpx.post(f"{url}/api/message", json={"texte": "?"}, headers=bad).status_code == 401
         good = {"Authorization": "Bearer cle-secrete"}
         state = httpx.get(f"{url}/api/etat", headers=good).json()
-        assert state == {"pret": True, "modele": "qwen3:4b"}
+        assert (
+            state["pret"]
+            and state["modele"] == "qwen3:4b"
+            and "last_message" not in state["machine"]
+        )
         lines = httpx.post(f"{url}/api/message", json={"texte": "météo ?"}, headers=good).text
         assert [json.loads(x) for x in lines.splitlines()][-1] == {"fin": True}
+        machine = httpx.get(f"{url}/api/etat", headers=good).json()["machine"]
+        assert machine["last_message"] > 0  # la carte « Pi » du PC : dernière question
         httpx.post(f"{url}/api/nouvelle", json={}, headers=good)
         assert brain.resets == 1
         said = []

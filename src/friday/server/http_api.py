@@ -1,7 +1,8 @@
 """L'adresse réseau du Friday léger (R2a, R3). Rien d'autre que la bibliothèque standard.
 
   GET  /              → l'application du téléphone (web.py)
-  GET  /api/etat      → {"pret": true, "modele": …}
+  GET  /api/etat      → {"pret": true, "modele": …, "machine": {temperature, uptime,
+                      memory_used, memory_total, last_message}} (carte « Pi » du PC)
   POST /api/message   {"texte": "…"} → la réponse au fil de l'eau, une ligne JSON par
                       morceau : {"texte": …}, {"outil": "🔎 …"}, {"erreur": …}, {"fin": true}
   POST /api/audio     l'enregistrement du bouton maintenu → {"vous": "ce qui a été compris"},
@@ -25,6 +26,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from friday.brain.events import ConfirmationRequest, ToolStarted
 from friday.brain.llm import BrainError
 from friday.server.ear import MAX_AUDIO
+from friday.server.machine import Machine
 from friday.server.web import web_file
 
 log = logging.getLogger(__name__)
@@ -95,6 +97,7 @@ def make_handler(friday, token: str, model: str, ear=None, tailscale_user: str =
     lock = threading.Lock()
     asked = Confirmations()
     pc = getattr(friday, "pc", None)
+    machine = Machine()
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, fmt, *args) -> None:  # dans le journal de Friday, pas la console
@@ -126,7 +129,7 @@ def make_handler(friday, token: str, model: str, ear=None, tailscale_user: str =
             if not self._allowed():
                 return
             if self.path == "/api/etat":
-                self._json(200, {"pret": True, "modele": model})
+                self._json(200, {"pret": True, "modele": model, "machine": machine.status()})
             elif found := web_file(self.path):
                 self._send(200, *found)
             else:
@@ -140,6 +143,8 @@ def make_handler(friday, token: str, model: str, ear=None, tailscale_user: str =
                 self._json(413, {"erreur": "trop long"})
                 return
             body = self.rfile.read(size)
+            if self.path in ("/api/audio", "/api/message"):
+                machine.heard()
             if self.path == "/api/audio":
                 self._stream(lambda: heard_lines(friday.brain, ear, body, asked, pc))
                 return
