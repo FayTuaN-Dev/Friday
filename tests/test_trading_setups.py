@@ -56,3 +56,27 @@ def test_empty_or_disabled_notebook_explains_how_to_fill_it(tmp_path):
     assert review_text([entry(1)]) == ("1 setup(s) noté(s), aucun terminé · 1 en cours", "")
     trailing = row_values(entry(1, target=None, trail=20))
     assert trailing[6] == "suiveuse (20)" and trailing[4] == "4100.00"
+
+
+def test_curves_share_one_axis_and_bars_rank_markets(tmp_path):
+    from friday.trading.alerts.review import curves, totals_by
+
+    entries = [entry(1, "oui", 2.0), entry(2, "non", -1.0, symbol="EURUSD"), entry(3, None, 1.5),
+               entry(4, PENDING)]  # fmt: skip
+    entries[0]["closed"] = "2026-10-21T10:00:00"  # sorti après les deux autres
+    points = curves(entries)
+    assert [e["id"] for e, _ in points] == [2, 3, 1]  # dans l'ordre des sorties
+    assert [totals for _, totals in points] == [[-1.0, 0.0, -1.0], [0.5, 0.0, -1.0],
+                                                [2.5, 2.0, -1.0]]  # fmt: skip
+    assert totals_by(entries, lambda e: e["symbol"]) == [("XAUUSD", 2, 3.5), ("EURUSD", 1, -1.0)]
+
+
+def test_charts_hidden_until_a_setup_is_closed(tmp_path):
+    view = SetupsView(notebook(tmp_path, [entry(1, PENDING)]))
+    assert view.charts.isHidden()
+    view.setups._entries.append(entry(2, "oui", 2.0))
+    view.refresh()
+    assert not view.charts.isHidden() and len(view.charts.curves.points) == 1
+    assert view.charts.markets.rows == [("l'or", 1, 2.0)]
+    view.resize(600, 900)
+    view.grab()  # le dessin ne plante pas

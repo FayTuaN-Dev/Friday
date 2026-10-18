@@ -1,7 +1,8 @@
 """Page Trading → « Setups » : le carnet des setups de la surveillance des marchés. En haut,
 le bilan (ce que les setups fermés auraient donné : tous, ceux où Claude a dit OUI, ceux où
-il a dit NON) ; puis chaque setup, le plus récent d'abord, avec l'avis de Claude et ce que le
-trade aurait donné. Un clic sur une ligne montre l'annonce faite et la raison de Claude."""
+il a dit NON) et ses graphiques (review_charts.py) ; puis chaque setup, le plus récent
+d'abord, avec l'avis de Claude et ce que le trade aurait donné. Un clic sur une ligne montre
+l'annonce faite et la raison de Claude."""
 
 from datetime import datetime
 
@@ -25,6 +26,7 @@ from friday.trading.backtest.report import FEW, r_text
 from friday.trading.instruments import by_symbol
 from friday.trading.market import _digits
 from friday.ui.desktop.journal.window import GAIN, LOSS
+from friday.ui.desktop.trading.review_charts import ReviewCharts
 
 COLUMNS = ("Vu le", "Marché", "Sens", "Stratégie", "Entrée", "Stop", "Objectif",
            "Avis de Claude", "Résultat")  # fmt: skip
@@ -95,6 +97,7 @@ class SetupsView(QWidget):
         self.filter = QComboBox()
         self.filter.addItems(list(FILTERS))
         self.filter.currentIndexChanged.connect(lambda _: self.refresh(force=True))
+        self.charts = ReviewCharts()
         self.table = self._table()
         self.detail = QLabel(objectName="Hint", wordWrap=True)
         self.detail.setTextInteractionFlags(Qt.TextSelectableByMouse)
@@ -107,6 +110,7 @@ class SetupsView(QWidget):
         layout.setSpacing(10)
         layout.addWidget(self.summary)
         layout.addWidget(self.review)
+        layout.addWidget(self.charts)
         layout.addLayout(row)
         layout.addWidget(self.table, 1)
         layout.addWidget(self.detail)
@@ -151,6 +155,7 @@ class SetupsView(QWidget):
         self.summary.setText(title)
         self.review.setText(detail)
         self.review.setVisible(bool(detail))
+        self.charts.refresh(entries)
         keep = FILTERS[self.filter.currentText()]
         shown = sorted((e for e in entries if keep(e)), key=lambda e: e["seen"], reverse=True)
         self.table.setRowCount(len(shown))
