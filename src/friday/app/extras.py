@@ -84,6 +84,7 @@ def load_trading(settings: Settings, library):
         return None
     try:
         from friday.trading import Trading, news, related
+        from friday.trading.alerts.setup_log import SetupLog
         from friday.trading.alerts.store import AlertStore
         from friday.trading.alerts.watcher import AlertWatcher
         from friday.trading.analyst import isolated_job
@@ -126,7 +127,8 @@ def load_trading(settings: Settings, library):
                if claude else None)  # fmt: skip
         rules = DATA_DIR / "trading_rules.json"
         alerts = AlertWatcher(AlertStore(DATA_DIR / "trading_alerts.json"), rules,
-                              capture.window_title, hours=config.hours)  # fmt: skip
+                              capture.window_title, hours=config.hours,
+                              setups=SetupLog(DATA_DIR / "trading_setups.json"))  # fmt: skip
         trading = Trading(TradingMode(), journal, builder, job, config.account_currency, capture,
                           rules_path=rules, alerts=alerts)  # fmt: skip
         trading.briefing = BriefingService(trading, DATA_DIR / "trading_briefing.json",

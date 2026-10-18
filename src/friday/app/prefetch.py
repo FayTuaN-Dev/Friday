@@ -74,7 +74,7 @@ def plan_request(text: str, book) -> tuple[str, dict] | None:
     asked = strategy_request(text)
     if asked is not None:
         tool, args = asked
-        if tool in ("translate_plan", "choose_strategy", "compare_strategies"):
+        if tool in ("translate_plan", "choose_strategy", "compare_strategies", "watch_markets"):
             args = {**args, "request": text}
         return tool, args
     plan = book.find(text)

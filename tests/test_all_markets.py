@@ -112,4 +112,4 @@ def test_a_plan_is_found_by_its_first_word_and_the_request_is_routed(tmp_path):
     assert strategy_request("teste la cassure de range sur tous les marchés")[1]["strategy"] == (
         "cassure"
     )
-    assert strategy_request("surveille tous les marchés") is None  # P2, pas une comparaison
+    assert strategy_request("surveille tous les marchés")[0] == "watch_markets"  # pas comparer

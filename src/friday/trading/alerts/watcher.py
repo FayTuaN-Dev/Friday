@@ -3,7 +3,10 @@ que les cours publics Yahoo ; le graphique TradingView n'est lu que par son titr
 
 - « niveau » : vérifiée chaque minute, à toute heure ; annoncée une fois puis retirée.
 - « setup » : vérifiée à chaque nouvelle bougie 1 h fermée, PENDANT les heures de trading
-  (Réglages → Trading) ; annoncée quand le setup APPARAÎT, pas tant qu'il dure.
+  (Réglages → Trading) ; annoncée quand le setup APPARAÎT, pas tant qu'il dure. Stratégie
+  journalière (Turtles) : les journées sont lues toutes les 30 min, à toute heure ; un setup
+  trouvé hors des heures de trading attend d'être annoncé (« surveille tous les marchés »).
+- Chaque setup est noté dans le carnet des setups (setup_log.py).
 
 Le cours d'un instrument : celui du graphique TradingView s'il l'affiche (le plus juste) ;
 sinon Yahoo, recalé du dernier écart vu avec le graphique (contrat à terme contre comptant).
@@ -16,6 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from friday.trading.alerts import setup as setups
+from friday.trading.alerts.setup_log import SetupLog
 from friday.trading.alerts.store import Alert, AlertStore
 from friday.trading.instruments import Instrument, by_symbol, chart_price
 from friday.trading.market import MarketUnavailable, _digits, fetch
@@ -24,6 +28,7 @@ from friday.trading.sessions import PARIS
 
 log = logging.getLogger(__name__)
 SETUP_EVERY = 300  # secondes entre deux lectures des bougies d'un même instrument
+DAYS_EVERY = 1800  # stratégie journalière : la journée ne se ferme qu'une fois par jour
 
 
 def yahoo_price(instrument: Instrument) -> float:
@@ -36,16 +41,23 @@ def yahoo_history(instrument: Instrument):
     return fetch(instrument.yahoo, "1h", "6mo")[1], fetch(instrument.yahoo, "1d", "2y")[1]
 
 
+def yahoo_days(instrument: Instrument):
+    """Journalières sur 2 ans : une stratégie journalière n'a pas besoin des bougies 1 h."""
+    return fetch(instrument.yahoo, "1d", "2y")[1]
+
+
 class AlertWatcher:
     def __init__(
         self, store: AlertStore, rules_path: Path | None = None,
         chart_title: Callable[[], str | None] = lambda: None, quote=yahoo_price,
         history=yahoo_history, now: Callable[[], datetime] = lambda: datetime.now(UTC),
-        hours: tuple[int, int] = (9, 18), interval: float = 60,
+        hours: tuple[int, int] = (9, 18), interval: float = 60, days=yahoo_days,
+        setups: SetupLog | None = None,
     ) -> None:  # fmt: skip
         self.store, self.rules_path, self.chart_title = store, rules_path, chart_title
         self.quote, self.history, self.now = quote, history, now
-        self.hours, self.interval = hours, interval
+        self.hours, self.interval, self.days = hours, interval, days
+        self.setups = setups or SetupLog(None)  # le carnet des setups
         self.on_alert: Callable[[str], None] = lambda text: None  # branché au démarrage
         self.choice = None  # StrategyChoice : la stratégie de chaque instrument (le plan sinon)
         self._announced: dict[str, datetime] = {}  # symbole → dernière bougie examinée
@@ -77,10 +89,22 @@ class AlertWatcher:
             try:
                 if alert.kind == "niveau":
                     self._check_level(alert, instrument)
-                elif self._trading_hours():
+                else:
                     self._check_setup(instrument)
             except MarketUnavailable as error:
                 log.info("Alerte n°%d non vérifiée : %s", alert.id, error)
+        if self._trading_hours():
+            self._announce_waiting()
+
+    def _announce_waiting(self) -> None:
+        """Les setups du carnet pas encore annoncés, en une seule annonce."""
+        waiting = self.setups.waiting(self.now())
+        if not waiting:
+            return
+        texts = [e["text"] for e in waiting]
+        head = f"{len(texts)} setups depuis ma dernière annonce. " if len(texts) > 1 else ""
+        self.setups.mark_announced([e["id"] for e in waiting])
+        self.on_alert(head + " ".join(texts))
 
     def _check_level(self, alert: Alert, instrument: Instrument) -> None:
         price, _ = self.price(instrument)
@@ -92,20 +116,38 @@ class AlertWatcher:
                 self.on_alert(f"Alerte : {instrument.name} est passé {way} "
                               f"{fr(alert.level)} (cours {fr(price)}).")  # fmt: skip
 
-    def _check_setup(self, instrument: Instrument) -> None:
+    def _due(self, instrument: Instrument, every: float) -> bool:
         now, last = self.now(), self._read.get(instrument.symbol)
-        if last is not None and (now - last).total_seconds() < SETUP_EVERY:
-            return  # Yahoo ménagé : une lecture toutes les 5 min au plus
+        if last is not None and (now - last).total_seconds() < every:
+            return False  # Yahoo ménagé
         self._read[instrument.symbol] = now
+        return True
+
+    def _check_setup(self, instrument: Instrument) -> None:
+        strategy = self.choice.get(instrument.symbol) if self.choice is not None else None
+        if strategy is not None and not strategy.covers(instrument):
+            return  # la stratégie ne suit pas cette famille de marchés (Réglages)
+        if strategy is not None and strategy.unit == "jour":
+            if self._due(instrument, DAYS_EVERY):
+                self._check_days(instrument, strategy)
+        elif self._trading_hours() and self._due(instrument, SETUP_EVERY):
+            self._check_hours(instrument, strategy)
+
+    def _check_days(self, instrument: Instrument, strategy) -> None:
+        rules, now = load_rules(self.rules_path), self.now()
+        shift = self.store.offsets.get(instrument.symbol, 0.0)
+        for found in setups.fresh_days(self.days(instrument), now, rules, strategy):
+            text = setups.announcement(instrument, found, rules, shift)
+            self.setups.add(instrument.symbol, found, text, now)
+
+    def _check_hours(self, instrument: Instrument, strategy) -> None:
+        now = self.now()
         hourly, daily = self.history(instrument)
         hourly = setups.closed(hourly, now)
         if not hourly or self._announced.get(instrument.symbol) == hourly[-1].time:
             return
         rules = load_rules(self.rules_path)
-        strategy = self.choice.get(instrument.symbol) if self.choice is not None else None
         self._announced[instrument.symbol] = hourly[-1].time
-        if strategy is not None and not strategy.covers(instrument):
-            return  # la stratégie ne suit pas cette famille de marchés (Réglages)
         found = setups.detect(hourly, daily, rules, strategy)
         if found is None:
             return
@@ -116,7 +158,8 @@ class AlertWatcher:
         if setups.lasting(hourly, daily, rules, strategy, found):
             return  # le setup dure depuis la bougie d'avant : déjà annoncé (ou en cours)
         shift = self.store.offsets.get(instrument.symbol, 0.0)
-        self.on_alert(setups.announcement(instrument, found, rules, shift))
+        text = setups.announcement(instrument, found, rules, shift)
+        self.setups.add(instrument.symbol, found, text, now)
 
     def _trading_hours(self) -> bool:
         local = self.now().astimezone(PARIS)
