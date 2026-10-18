@@ -151,6 +151,9 @@ class Assistant:
         self.inputs.close()
         self.interrupt()
         self._events.put(("stop", None))
+        connectors = getattr(self.components, "connectors", None)
+        if connectors is not None:  # les serveurs MCP locaux s'arrêtent avec Friday
+            connectors.close()
         brain = getattr(self.components, "brain", None)
         if brain is not None:  # constaté : qwen restait en mémoire vidéo après avoir quitté
             s = self.settings

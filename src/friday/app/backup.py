@@ -25,6 +25,7 @@ SKIP_FILES = {
     # Clés de connexion (Google, Spotify) : jamais copiées (la copie peut aller sur
     # OneDrive) ; perdues, il suffit de reconnecter le compte une fois
     "google_token.json", "google_credentials.json", "spotify_token.json", ".gitkeep",
+    "mcp.json",  # connecteurs : leurs « env » peuvent porter des clés
 }  # fmt: skip
 KEEP = 7
 EVERY = timedelta(hours=24)

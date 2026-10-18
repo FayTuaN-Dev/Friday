@@ -45,6 +45,7 @@ class Components:
     trading: object | None = None  # Trading (mode trading)
     backup: object | None = None  # DailyBackup (sauvegarde quotidienne de data/)
     day_log: object | None = None  # DayLog (mémoire de la journée)
+    connectors: object | None = None  # Connectors (serveurs MCP, data/mcp.json)
 
 
 def load_components(
@@ -110,6 +111,7 @@ def load_components(
                                 memory=memory is not None, world=world is not None,
                                 music=toolbox.find("play_music") is not None,
                                 web=toolbox.find("read_webpage") is not None)  # fmt: skip
+    connectors = load_connectors(toolbox, brain.toolset)
     brain.warmup()
     warn_if_spilling(client, settings.ollama_model, settings.ollama_num_ctx)
     components = Components(
@@ -121,6 +123,7 @@ def load_components(
         library=library,
         trading=trading,
         day_log=day_log,
+        connectors=connectors,
     )
 
     if memory and settings.memory_auto:
@@ -206,6 +209,21 @@ def load_components(
         start_trading_briefing(trading.briefing, lambda: components.speaker, on_background)
 
     return components
+
+
+def load_connectors(toolbox, toolset):
+    """Les serveurs MCP de data/mcp.json, branchés en arrière-plan ; sans la bibliothèque mcp
+    (Friday léger du Pi), pas de connecteurs."""
+    try:
+        import mcp  # noqa: F401
+
+        from friday.connectors.manager import Connectors
+        from friday.core.config import LOGS_DIR
+    except ImportError:
+        return None
+    connectors = Connectors(DATA_DIR / "mcp.json", toolbox, toolset, LOGS_DIR)
+    connectors.start()
+    return connectors
 
 
 def load_router(memory: MemoryService | None):

@@ -61,6 +61,11 @@ src/friday/
 │   ├── notification.py    titre et phrase de la bulle Windows d'une tâche de fond finie
 │   ├── diagnostic.py      outil : chercher l'origine de grésillements (voix sous charge)
 │   └── sounds.py          sons synthétisés (carillon des rappels)
+├── connectors/            connecteurs MCP (data/mcp.json) : chaque serveur branché devient une compétence
+│   ├── config.py          le fichier des serveurs (commande ou url, description, mots-clés, actif)
+│   ├── link.py            Link : la liaison avec un serveur, dans son fil (boucle asyncio)
+│   ├── tools.py           McpTool (mcp_<serveur>_<outil> ; « oui » demandé sauf lecture seule) et sa compétence
+│   └── manager.py         Connectors : branche en arrière-plan, suit les interrupteurs des Réglages
 ├── skills_lab/            atelier de compétences (J8) : contrat donné à Claude, inspection du code, tests à part ; compétences dans data/competences/
 ├── memory/                mémoire long terme vivante (data/memory.db : renforcement, historique, thèmes ; fiche data/memoire.md) ; dream.py : rêve nocturne (app/night_dream.py, rapports dans data/reve/) ; day_log.py : mémoire de la journée (data/journee.db, 90 jours)
 │   ├── store.py           MemoryStore : souvenirs dans SQLite (texte + vecteur de sens)

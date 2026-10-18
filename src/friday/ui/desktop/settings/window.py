@@ -22,6 +22,7 @@ from friday.core.settings_schema import SECTIONS
 from friday.ui.desktop import theme
 from friday.ui.desktop.icons import icon
 from friday.ui.desktop.settings.briefing_page import BriefingPage
+from friday.ui.desktop.settings.connectors_page import ConnectorsPage
 from friday.ui.desktop.settings.diagnostic_page import DiagnosticPage
 from friday.ui.desktop.settings.form_page import FormPage
 from friday.ui.desktop.settings.library_page import LibraryPage
@@ -30,13 +31,13 @@ from friday.ui.desktop.settings.save_bar import SaveBar
 
 # Le menu, en groupes : (groupe, pages)
 GROUPS = (("Friday", ("Apparence", "Général", "Voix", "Écoute")),
-          ("Services", ("Fonctions", "Briefing", "Bibliothèque", "Comptes")),
+          ("Services", ("Fonctions", "Briefing", "Bibliothèque", "Comptes", "Connecteurs")),
           ("Système", ("Diagnostic",)))  # fmt: skip
 OWN_PAGE = ("Trading",)  # sections du .env réglées dans leur propre page
 COMPACT_BELOW = 760  # panneau plus étroit : le menu n'a plus que ses icônes
 ICONS = {"Apparence": "palette", "Général": "user", "Voix": "volume", "Écoute": "mic",
          "Fonctions": "sliders", "Briefing": "sun", "Bibliothèque": "book", "Comptes": "cloud",
-         "Diagnostic": "pulse"}  # fmt: skip
+         "Connecteurs": "plug", "Diagnostic": "pulse"}  # fmt: skip
 
 
 class SettingsWindow(QFrame):
@@ -61,6 +62,7 @@ class SettingsWindow(QFrame):
             "Bibliothèque": LibraryPage(getattr(components, "library", None)),
             "Fonctions": by_name["Fonctions"],
             "Comptes": AccountsPage(getattr(components, "google", None)),
+            "Connecteurs": ConnectorsPage(getattr(components, "connectors", None)),
             "Diagnostic": DiagnosticPage(main_window.assistant, main_window.settings,
                                          refresh_now=False),  # bilan à l'ouverture de la page
         }  # fmt: skip

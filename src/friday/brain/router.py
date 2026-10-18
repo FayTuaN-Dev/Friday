@@ -32,6 +32,15 @@ class SkillRouter:
         self._embed_documents = embed_documents
         self._examples: list[tuple[Skill, np.ndarray]] | None = None
 
+    def add(self, skill: Skill) -> None:
+        """Une compétence ajoutée en route (connecteur MCP) ; ses exemples seront relus."""
+        self.skills = (*(s for s in self.skills if s.name != skill.name), skill)
+        self._examples = None
+
+    def remove(self, name: str) -> None:
+        self.skills = tuple(s for s in self.skills if s.name != name)
+        self._examples = None
+
     def choose(self, text: str) -> set[str]:
         """Noms des compétences que cette phrase demande (sans celles de l'échange précédent,
         que le cerveau ajoute lui-même)."""
