@@ -1,13 +1,14 @@
 """Les outils et consignes donnés au modèle pour UNE demande : le noyau, les compétences
 choisies par l'aiguillage, celles de l'échange précédent, et celles que le modèle charge
-lui-même (load_skill) s'il lui en manque une."""
+lui-même (load_skill) s'il lui en manque une. Des compétences s'ajoutent en route : les
+connecteurs MCP branchés après le démarrage (add_skill)."""
 
 import logging
 from collections.abc import Callable
 from typing import Any
 
 from friday.brain.router import SkillRouter
-from friday.brain.skills import BY_NAME, CORE_GUIDE, CORE_TOOLS, SKILLS
+from friday.brain.skills import CORE_GUIDE, CORE_TOOLS, SKILLS, Skill
 from friday.tools.base import ToolBox
 
 LOAD_SKILL = "load_skill"
@@ -51,6 +52,20 @@ class Toolset:
         """Les compétences utilisables en ce moment (portes ouvertes)."""
         return [s for s in self._skills if self.gates.get(s.name, lambda: True)()]
 
+    def add_skill(self, skill: Skill) -> None:
+        """Une compétence de plus (ou remplacée, même nom) : ses outils doivent déjà être dans
+        la boîte, ajoutés avec always=False."""
+        self._skills = [s for s in self._skills if s.name != skill.name] + [skill]
+        if self.router is not None:
+            self.router.add(skill)
+
+    def remove_skill(self, name: str) -> None:
+        self._skills = [s for s in self._skills if s.name != name]
+        self.active.discard(name)
+        self._previous.pop(name, None)
+        if self.router is not None:
+            self.router.remove(name)
+
     def start(self, user_text: str) -> None:
         """Début d'une demande : choisit les compétences actives."""
         if self.router is None:
@@ -67,7 +82,7 @@ class Toolset:
         self.active = self._fresh | set(self._previous)
 
     def load(self, name: str) -> str:
-        if name not in BY_NAME or BY_NAME[name] not in self.skills:
+        if name not in {s.name for s in self.skills}:
             return f"Compétence inconnue : « {name} »."
         self.active.add(name)
         self._fresh.add(name)
@@ -104,7 +119,7 @@ class Toolset:
             return []
 
     def tool_names(self) -> set[str]:
-        names = set(self._always) | self.toolbox.extra  # + compétences apprises (J8)
+        names = (set(self._always) - self.toolbox.hidden) | self.toolbox.extra  # + J8
         for skill in self.skills:
             if skill.name in self.active:
                 names |= set(skill.tools)

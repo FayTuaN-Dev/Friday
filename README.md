@@ -101,6 +101,17 @@ Quand une analyse de Claude, une alerte de trading, un rappel, le briefing tradi
 
 Fenêtre agrandie, un panneau montre ce qu'il te reste de ta **session Claude** (5 h) et de ta **semaine**, avec l'heure de remise à zéro (vert, orange sous 50 %, rouge sous 20 %). Les chiffres viennent de Claude Code lui-même : *Réglages → Diagnostic → Brancher Claude Code* ajoute à sa ligne d'état un petit relais (copie de sécurité de ses réglages d'abord : `~/.claude/settings.json.avant-friday`), qui les note dans `data/claude_limits.json` et les affiche aussi sous sa zone de saisie. Ils se mettent à jour quand tu utilises Claude Code ; sinon Friday montre les derniers connus, avec leur âge, et remet une fenêtre à 100 % une fois son heure de remise à zéro passée.
 
+### Connecteurs MCP
+
+Friday se branche à des serveurs **MCP** (des outils d'autres services : TradingView, GitHub, Notion…). *Réglages → Connecteurs → Ouvrir le fichier* ouvre `data/mcp.json` :
+
+```json
+{"serveurs": {"notes": {"commande": "npx", "arguments": ["-y", "un-serveur-mcp"],
+                        "description": "mes notes", "mots_cles": ["note"]}}}
+```
+
+Un serveur local se lance par `commande` (et `arguments`, `env`), un serveur distant se joint par `url`. Puis *Rebrancher* : chaque serveur montre son état et ses outils, avec un interrupteur. Ses outils ne sont donnés à qwen que quand la demande en parle (mots-clés, description) ; un outil qui ne se déclare pas en lecture seule demande toujours « oui » avant. Le fichier n'est pas copié dans les sauvegardes (ses `env` peuvent porter des clés). Les serveurs qui demandent une connexion par compte (OAuth) viendront ensuite.
+
 ### Fiabilité
 
 - **Ollama surveillé** : si sa vitesse s'effondre deux réponses de suite (modèle à moitié sorti de la carte graphique), Friday recharge le modèle tout seul.

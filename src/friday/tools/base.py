@@ -95,15 +95,18 @@ class ToolBox:
     def __init__(self, tools: list[Tool]) -> None:
         self._tools = {t.name: t for t in tools}
         self.extra: set[str] = set()  # outils ajoutés en route (compétences apprises, J8)
+        self.hidden: set[str] = set()  # ajoutés avec always=False : jamais d'office
 
-    def add(self, tool: Tool) -> None:
-        """Ajout à chaud : l'outil est toujours proposé au modèle."""
+    def add(self, tool: Tool, always: bool = True) -> None:
+        """Ajout à chaud : l'outil est toujours proposé au modèle, ou (always=False) seulement
+        avec la compétence qui le cite (connecteurs MCP, Toolset.add_skill)."""
         self._tools[tool.name] = tool
-        self.extra.add(tool.name)
+        (self.extra if always else self.hidden).add(tool.name)
 
     def remove(self, name: str) -> None:
         self._tools.pop(name, None)
         self.extra.discard(name)
+        self.hidden.discard(name)
 
     def __bool__(self) -> bool:
         return bool(self._tools)

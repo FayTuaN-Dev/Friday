@@ -47,6 +47,8 @@ PATHS = {
     "previous": '<polygon points="19 20 9 12 19 4 19 20"/><path d="M5 19V5"/>',
     "book": '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5'
     'a1 1 0 0 1 0-5H20"/>',
+    "plug": '<path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/>'
+    '<path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>',
 }
 
 
