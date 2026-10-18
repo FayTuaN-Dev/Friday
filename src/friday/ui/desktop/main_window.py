@@ -136,7 +136,7 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self.side = SidePanels(self.playing, self.limits, saved if isinstance(saved, dict) else {},
                                status=status_sampler(self.settings), toggle_game=self.toggle_game,
                                whisper=whisper_text(self.settings),
-                               open_trading=self.open_trading)  # fmt: skip
+                               open_trading=self.open_trading, ring=self.focus_ring)  # fmt: skip
         centered.addSpacing(18)
         centered.addWidget(self.side.left)  # cartes du PC, « En écoute » en bas
         centered.addStretch(1)
@@ -213,6 +213,15 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self.show_state(self.state)
         if save:
             preferences.save({"color": self.base.name()}, self._preferences_path)
+
+    def focus_ring(self, text: str) -> None:
+        """Fin d'un tour de concentration (carte de côté) : carillon, et bulle si caché."""
+        speaker = getattr(self.assistant.components, "speaker", None)
+        if speaker is not None:
+            speaker.chime()
+        from friday.tools.base import Display
+
+        self.notifier.notify(Display("text", "Concentration", {"text": text}))
 
     def set_widget(self, key: str, on: bool) -> None:
         """Réglages → Apparence : afficher ou non une carte de côté (gardé au relancement)."""
@@ -324,7 +333,9 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         threading.Thread(target=self._boot_check, daemon=True, name="boot-check").start()
         self.input.setEnabled(True)
         self._welcome_glance()
-        self.side.set_trading(getattr(self.assistant.components, "trading", None))
+        components = self.assistant.components
+        self.side.set_trading(getattr(components, "trading", None))
+        self.side.set_day(getattr(components, "agenda", None), getattr(components, "google", None))
         self.input.mic.setEnabled(self.assistant.can_listen)
         self.input.set_voice(self.assistant.voice_on)
         self.input.edit.setFocus()
