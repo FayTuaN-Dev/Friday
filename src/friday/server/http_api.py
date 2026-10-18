@@ -7,6 +7,9 @@
   POST /api/audio     l'enregistrement du bouton maintenu → {"vous": "ce qui a été compris"},
                       puis la réponse comme ci-dessus
   POST /api/nouvelle  → nouvelle conversation
+  POST /api/confirmer {"id": 1, "oui": true} → la réponse à {"confirmer": "J'éteins le PC… ?",
+                      "id": 1, "delai": 60}, envoyée au milieu d'une réponse
+  {"cerveau": "PC" | "Pi"} : qui pense (la carte graphique du PC quand il est allumé, R5)
 
 Entrent : le compte Tailscale de l'utilisateur (en-tête ajouté par « tailscale serve », le
 serveur n'écoutant que la machine elle-même), ou la clé du .env (« Authorization: Bearer »).
@@ -31,8 +34,31 @@ EMOJI = re.compile("[\U0001f000-\U0001faff☀-➿️‍]")
 DEAF = "Je n'ai rien entendu de clair. Pouvez-vous répéter ?"
 
 
-def lines_of(brain, text: str):
+class Confirmations:
+    """Les « oui / non » demandés au téléphone pendant une réponse (le cerveau attend)."""
+
+    def __init__(self) -> None:
+        self._lock, self._next, self._open = threading.Lock(), 0, {}
+
+    def add(self, request: ConfirmationRequest) -> int:
+        with self._lock:
+            self._next += 1
+            self._open[self._next] = request
+            return self._next
+
+    def answer(self, request_id: int, yes: bool) -> bool:
+        with self._lock:
+            request = self._open.pop(request_id, None)
+        if request is None:
+            return False
+        request.answer(bool(yes))
+        return True
+
+
+def lines_of(brain, text: str, confirmations: Confirmations | None = None, pc=None):
     """Les lignes à envoyer pour une question (sans réseau : testable)."""
+    if pc is not None:
+        yield {"cerveau": pc.apply(brain)}
     try:
         for event in brain.reply(text):
             if isinstance(event, str):
@@ -41,16 +67,20 @@ def lines_of(brain, text: str):
             elif isinstance(event, ToolStarted):
                 yield {"outil": event.label}
             elif isinstance(event, ConfirmationRequest):
-                event.answer(False)  # pas encore de « oui » à distance : on ne fait rien
-                yield {"texte": " (Cette action demande une confirmation, pas encore "
-                                "possible à distance.) "}  # fmt: skip
+                if confirmations is None or event.preview is not None:
+                    event.answer(False)  # un aperçu ne se montre pas sur le téléphone
+                    yield {"texte": " (Cette action demande un aperçu, pas encore possible à "
+                                    "distance.) "}  # fmt: skip
+                    continue
+                yield {"confirmer": event.question, "id": confirmations.add(event),
+                       "delai": event.delay}  # fmt: skip
     except BrainError as error:
         log.warning("Réponse impossible : %s", error)
         yield {"erreur": "Le modèle ne répond pas pour le moment."}
     yield {"fin": True}
 
 
-def heard_lines(brain, ear, audio: bytes):
+def heard_lines(brain, ear, audio: bytes, confirmations=None, pc=None):
     """La voix : d'abord ce qui a été compris, puis la réponse."""
     text = ear.hear(audio) if ear is not None else ""
     if not text:
@@ -58,11 +88,13 @@ def heard_lines(brain, ear, audio: bytes):
         yield {"fin": True}
         return
     yield {"vous": text}
-    yield from lines_of(brain, text)
+    yield from lines_of(brain, text, confirmations, pc)
 
 
 def make_handler(friday, token: str, model: str, ear=None, tailscale_user: str = ""):
     lock = threading.Lock()
+    asked = Confirmations()
+    pc = getattr(friday, "pc", None)
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, fmt, *args) -> None:  # dans le journal de Friday, pas la console
@@ -109,20 +141,23 @@ def make_handler(friday, token: str, model: str, ear=None, tailscale_user: str =
                 return
             body = self.rfile.read(size)
             if self.path == "/api/audio":
-                self._stream(lambda: heard_lines(friday.brain, ear, body))
+                self._stream(lambda: heard_lines(friday.brain, ear, body, asked, pc))
                 return
             try:
                 data = json.loads(body or b"{}")
             except ValueError:
                 self._json(400, {"erreur": "JSON illisible"})
                 return
-            if self.path == "/api/nouvelle":
+            if self.path == "/api/confirmer":  # sans le verrou : la réponse en cours attend
+                found = asked.answer(int(data.get("id", 0)), bool(data.get("oui")))
+                self._json(200 if found else 404, {"ok": found})
+            elif self.path == "/api/nouvelle":
                 with lock:
                     friday.brain.reset()
                 self._json(200, {"ok": True})
             elif self.path == "/api/message" and str(data.get("texte", "")).strip():
                 text = str(data["texte"]).strip()
-                self._stream(lambda: lines_of(friday.brain, text))
+                self._stream(lambda: lines_of(friday.brain, text, asked, pc))
             else:
                 self._json(400, {"erreur": "demande incomprise"})
 

@@ -80,3 +80,12 @@ class SettingsOverlay(QWidget):
     def mousePressEvent(self, event) -> None:
         if not self.panel.geometry().contains(event.position().toPoint()):
             self.dismiss()  # un clic à côté du panneau le ferme
+
+
+class PageOverlay(SettingsOverlay):
+    """Une page de Friday (Trading…) : même glissade, mais sur toute la largeur."""
+
+    def _place(self) -> None:
+        width = self.width()
+        x = int((1 - self.progress) * (width + 24))
+        self.panel.setGeometry(x, 0, width, self.height())

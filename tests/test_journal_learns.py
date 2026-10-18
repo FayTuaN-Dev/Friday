@@ -145,10 +145,10 @@ def test_entry_capture_only_when_the_chart_shows_the_instrument(journal):
 
 
 def test_window_notes_completion_capture_and_insights(journal, tmp_path):
-    from friday.ui.desktop.journal.window import COLUMNS, JournalWindow
+    from friday.ui.desktop.journal.window import COLUMNS, JournalView
 
     filled(journal)
-    window = JournalWindow(journal, lambda symbol: b"\x89PNG", tmp_path / "captures")
+    window = JournalView(journal, lambda symbol: b"\x89PNG", tmp_path / "captures")
     assert "Plan respecté" in window.insights.lessons.text()
     assert "Par setup" in window.insights.detail.toPlainText()
     assert window.table.horizontalHeaderItem(COLUMNS.index("Setup")).text() == "Setup"
