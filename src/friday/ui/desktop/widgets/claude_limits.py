@@ -27,7 +27,7 @@ def style(p) -> str:
                     letter-spacing: 4px; }}
     #LimitsName {{ font-family: "{FONT_HUD}"; font-size: 10px; color: {p.muted};
                    letter-spacing: 3px; }}
-    #LimitsValue {{ font-family: "{FONT_HUD}"; font-size: 22px; color: {p.accent}; }}
+    #LimitsValue {{ font-family: "{FONT_HUD}"; font-size: 18px; color: {p.accent}; }}
     #LimitsValue[low="true"] {{ color: {p.error}; }}
     #LimitsDetail {{ font-size: 10px; color: {p.muted}; }}
     #LimitsBar {{ background: {p.accent_glow}; border: none; border-radius: 2px; }}
@@ -50,7 +50,7 @@ class Row:
         layout.addLayout(line)
         layout.addWidget(self.bar)
         layout.addWidget(self.detail)
-        layout.addSpacing(6)
+        layout.addSpacing(3)
         self.widgets = (self.name, self.value, self.bar, self.detail)
 
     def show(self, window, now: float) -> None:
@@ -72,10 +72,10 @@ class ClaudeLimits(QFrame):
         self.path, self.clock = path, clock
         self.setFixedWidth(250)
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 10)
-        layout.setSpacing(3)
+        layout.setContentsMargins(14, 10, 14, 8)
+        layout.setSpacing(2)
         layout.addWidget(QLabel("CLAUDE", objectName="LimitsTitle"))
-        layout.addSpacing(6)
+        layout.addSpacing(4)
         self.rows = [Row(layout), Row(layout)]
         self.note = QLabel(objectName="LimitsDetail", wordWrap=True)
         layout.addWidget(self.note)

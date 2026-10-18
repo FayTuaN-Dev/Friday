@@ -20,7 +20,7 @@ def style(p) -> str:
                  letter-spacing: 4px; }}
     #HudName {{ font-family: "{FONT_HUD}"; font-size: 10px; color: {p.muted};
                 letter-spacing: 3px; }}
-    #HudValue {{ font-family: "{FONT_HUD}"; font-size: 17px; color: {p.accent}; }}
+    #HudValue {{ font-family: "{FONT_HUD}"; font-size: 15px; color: {p.accent}; }}
     #HudValue[alert="true"] {{ color: {p.error}; }}
     #HudDetail {{ font-size: 10px; color: {p.muted}; }}
     #HudBar {{ background: {p.accent_glow}; border: none; border-radius: 2px; }}
@@ -59,7 +59,7 @@ class Meter:
         layout.addLayout(line)
         layout.addWidget(self.bar)
         layout.addWidget(self.detail)
-        layout.addSpacing(5)
+        layout.addSpacing(3)
         self.widgets = (self.name, self.value, self.bar, self.detail)
 
     def show(self, value: str, share: float, detail: str = "", alert: bool = False) -> None:
@@ -82,10 +82,10 @@ class HudCard(QFrame):
         super().__init__(objectName="Hud")
         self.setFixedWidth(WIDTH)
         self.body = QVBoxLayout(self)
-        self.body.setContentsMargins(16, 12, 16, 8)
-        self.body.setSpacing(3)
+        self.body.setContentsMargins(14, 10, 14, 6)
+        self.body.setSpacing(2)
         self.body.addWidget(QLabel(title, objectName="HudTitle"))
-        self.body.addSpacing(6)
+        self.body.addSpacing(4)
         self.refresh_style()
 
     def refresh_style(self) -> None:

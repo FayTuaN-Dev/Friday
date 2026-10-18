@@ -1,18 +1,20 @@
-"""Les colonnes de côté, fenêtre agrandie. À gauche : les cartes du PC (processeur et mémoire,
-carte graphique, disques, réseau), puis Trading (cours, annonce, dernier setup, semaine), avec « En
-écoute » en bas. À droite : les limites Claude, Friday (modèles chargés, mode jeu), le Pi,
-Aujourd'hui (agenda, mails, rappels) et Concentration. Chaque carte s'affiche ou non selon
-Réglages → Apparence (data/interface.json, « widgets ») ; celles qui dépendent de Friday
-chargée (glances.py) ou du Pi réglé, seulement une fois qu'elles ont de quoi s'afficher."""
+"""Les colonnes de côté, fenêtre agrandie. À gauche, les machines : le PC (processeur et
+mémoire, carte graphique, disques, réseau) et le Pi, avec « En écoute » en bas. À droite,
+Friday et la journée : Friday (modèles chargés, mode jeu), les limites Claude, Aujourd'hui
+(agenda, mails, rappels), Concentration et Trading (cours, annonce, dernier setup, semaine).
+Chaque colonne défile quand ses cartes ne tiennent pas (écran 1080p). Chaque carte s'affiche
+ou non selon Réglages → Apparence (data/interface.json, « widgets ») ; celles qui dépendent
+de Friday chargée (glances.py) ou du Pi réglé, dès qu'elles ont de quoi s'afficher."""
 
 from collections.abc import Callable
 
 from PySide6.QtCore import QObject, Qt, QTimer
-from PySide6.QtWidgets import QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QScrollArea, QVBoxLayout, QWidget
 
 from friday.ui.desktop.side.day_cards import DayCard, FocusCard
 from friday.ui.desktop.side.friday_cards import FridayCard, PiCard
 from friday.ui.desktop.side.glances import GlanceMixin
+from friday.ui.desktop.side.hud import WIDTH
 from friday.ui.desktop.side.pc_cards import CpuCard, DisksCard, GpuCard, NetCard
 from friday.ui.desktop.side.sampler import Sampler
 from friday.ui.desktop.side.trading_card import TradingCard
@@ -26,6 +28,8 @@ WIDGETS = (("pc", "Processeur et mémoire"), ("gpu", "Carte graphique"), ("disks
            ("music", "En écoute (musique)"))  # fmt: skip
 PC, STATUS = ("pc", "gpu", "disks", "net"), ("friday", "pi")
 EVERY_MS, STATUS_EVERY = 2000, 5  # le PC toutes les 2 s ; Friday et le Pi toutes les 10 s
+LEFT, RIGHT = (*PC, "pi"), ("friday", "claude", "day", "focus", "trading")
+BAR = 10  # place de la barre de défilement, à droite des cartes
 
 
 def status_sampler(settings) -> Sampler:
@@ -46,12 +50,22 @@ def whisper_text(settings) -> str:
     return f"{settings.stt_model} ({device})"
 
 
-def _column() -> tuple[QWidget, QVBoxLayout]:
+def _column() -> tuple[QWidget, QVBoxLayout, QScrollArea, QVBoxLayout]:
+    """La colonne, et dedans la zone qui défile avec sa pile de cartes."""
     column = QWidget()
-    layout = QVBoxLayout(column)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(12)
-    return column, layout
+    outer = QVBoxLayout(column)
+    outer.setContentsMargins(0, 0, 0, 0)
+    outer.setSpacing(10)
+    scroll = QScrollArea(widgetResizable=True, frameShape=QFrame.NoFrame)
+    scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+    scroll.setFixedWidth(WIDTH + BAR)
+    stack = QWidget()
+    cards = QVBoxLayout(stack)
+    cards.setContentsMargins(0, 0, BAR, 0)
+    cards.setSpacing(10)
+    scroll.setWidget(stack)
+    outer.addWidget(scroll, 1)
+    return column, outer, scroll, cards
 
 
 class SidePanels(GlanceMixin, QObject):
@@ -70,16 +84,15 @@ class SidePanels(GlanceMixin, QObject):
                       "trading": TradingCard(open_trading), "day": DayCard(),
                       "focus": FocusCard(ring)}  # fmt: skip
         self.pi_configured = False  # appris à la 1re lecture
-        self.left, left = _column()
-        for key in (*PC, "trading"):
-            left.addWidget(self.cards[key], 0, Qt.AlignTop)
-        left.addStretch(1)
+        self.left, left, self.left_scroll, cards = _column()
+        for key in LEFT:
+            cards.addWidget(self.cards[key])
+        cards.addStretch(1)
         left.addWidget(playing, 0, Qt.AlignBottom)
-        self.right, right = _column()
-        right.addWidget(limits, 0, Qt.AlignTop)
-        for key in (*STATUS, "day", "focus"):
-            right.addWidget(self.cards[key], 0, Qt.AlignTop)
-        right.addStretch(1)
+        self.right, _right, self.right_scroll, cards = _column()
+        for key in RIGHT:
+            cards.addWidget(limits if key == "claude" else self.cards[key])
+        cards.addStretch(1)
         self.wide, self._ticks = False, 0
         self.sampler = sampler or Sampler()
         self.sampler.read.connect(self._show)
@@ -102,12 +115,18 @@ class SidePanels(GlanceMixin, QObject):
             card.setVisible(wide and self.enabled[key] and self._available(key))
         self.limits.setVisible(wide and self.enabled["claude"])
         self.playing.setVisible(wide and self.enabled["music"] and self.playing.has_track)
+        for scroll, keys in ((self.left_scroll, LEFT), (self.right_scroll, RIGHT)):
+            scroll.setVisible(any(self._shown(key) for key in keys))  # vide : pas de place prise
         new = {key for key, card in self.cards.items() if card.isVisible()} - shown
         if new & set(PC) and self.wanted():
             self.sampler.request()  # tout de suite, sans attendre 2 s
         if (new & set(STATUS) or (wide and not was_wide)) and self.wanted(STATUS):
             self.status.request()
         self._glance_tick(new)
+
+    def _shown(self, key: str) -> bool:
+        card = self.limits if key == "claude" else self.cards[key]
+        return not card.isHidden()
 
     def _available(self, key: str) -> bool:
         if key == "pi":
