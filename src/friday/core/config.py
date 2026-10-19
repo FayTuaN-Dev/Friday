@@ -53,6 +53,7 @@ class Settings:
     output_device: int | str | None
     ptt_key: str
     dictation_key: str  # dictée partout ; "" = désactivée
+    interpreter_device: str  # son du PC traduit (interprète) ; "" = sortie de Windows
     hands_free: bool
     wake_words: list[str]
     follow_up_seconds: float
@@ -141,6 +142,7 @@ def load_settings() -> Settings:
         output_device=_device(os.getenv("OUTPUT_DEVICE")),
         ptt_key=os.getenv("PTT_KEY", "home"),
         dictation_key=os.getenv("DICTATION_KEY", "right ctrl").strip(),
+        interpreter_device=os.getenv("INTERPRETER_DEVICE", "").strip(),
         hands_free=_bool("HANDS_FREE", True),
         wake_words=[
             w.strip().lower() for w in os.getenv("WAKE_WORDS", "friday").split(",") if w.strip()

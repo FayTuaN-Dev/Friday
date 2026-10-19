@@ -244,6 +244,17 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         event.acceptProposedAction()
         self.input.edit.setFocus()
 
+    def _subtitle(self, data: dict) -> None:
+        from friday.ui.desktop.widgets.subtitles import SubtitleBar
+
+        if data.get("off"):
+            if getattr(self, "subtitles", None) is not None:
+                self.subtitles.hide()
+            return
+        if getattr(self, "subtitles", None) is None:
+            self.subtitles = SubtitleBar()
+        self.subtitles.show_text(data.get("text", ""), data.get("heard", ""))
+
     def _attach_pasted(self, image) -> None:
         """Ctrl+V d'une capture : jointe à la prochaine demande, comme un fichier glissé."""
         from friday.core.config import DATA_DIR
@@ -267,6 +278,8 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
             self.notifier.notify(display)
         elif display.kind == "game_mode":  # mode jeu : la fenêtre se fait oublier
             self._game_mode(display.data.get("on", False))
+        elif display.kind == "subtitle":  # interprète : bandeau par-dessus l'écran
+            self._subtitle(display.data)
         elif display.kind == "trading_mode":  # badge du mode trading
             self.title_bar.set_trading(display.data.get("on", False))
         else:

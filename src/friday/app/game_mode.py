@@ -140,6 +140,8 @@ class GameMode:
         a = self.assistant
         if self.paused:
             return
+        if hasattr(a, "interpreter"):  # l'interprète a besoin de Whisper, qui s'en va
+            a.interpreter.stop()
         if game:  # le jeu démarre : on libère tout de suite, la phrase est dite en même temps
             self._say(f"{game} se lance : je passe en mode jeu. {CALL_BACK}", wait=False)
             notice = {"text": f"{game} : carte graphique libérée"}
