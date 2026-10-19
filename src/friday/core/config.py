@@ -52,6 +52,7 @@ class Settings:
     mic_device: int | str | None
     output_device: int | str | None
     ptt_key: str
+    dictation_key: str  # dictée partout ; "" = désactivée
     hands_free: bool
     wake_words: list[str]
     follow_up_seconds: float
@@ -139,6 +140,7 @@ def load_settings() -> Settings:
         mic_device=_device(os.getenv("MIC_DEVICE")),
         output_device=_device(os.getenv("OUTPUT_DEVICE")),
         ptt_key=os.getenv("PTT_KEY", "home"),
+        dictation_key=os.getenv("DICTATION_KEY", "right ctrl").strip(),
         hands_free=_bool("HANDS_FREE", True),
         wake_words=[
             w.strip().lower() for w in os.getenv("WAKE_WORDS", "friday").split(",") if w.strip()

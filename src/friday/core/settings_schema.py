@@ -84,6 +84,9 @@ SECTIONS = (
               options=lambda: audio_devices(False)),
         Field("PTT_KEY", "Touche à maintenir pour parler", "text", "home",
               "home, f9, right ctrl, page up…"),
+        Field("DICTATION_KEY", "Touche de dictée (le texte s'écrit où est le curseur)", "text",
+              "right ctrl", "Maintenir, parler, relâcher : dans Discord, Word, le navigateur… "
+              "« à la ligne » passe à la ligne. Vide = désactivée."),
         Field("FOLLOW_UP_SECONDS", "Relance sans redire « Friday » (secondes)", "int", "8",
               "0 = toujours redire son nom.", 0, 30),
         Field("VAD_SILENCE_MS", "Silence de fin de phrase (millisecondes)", "int", "700",
