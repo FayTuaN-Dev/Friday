@@ -112,7 +112,9 @@ def skill_for(link: Link, tools: list[McpTool]) -> Skill:
     lines = [
         f"- Connecteur « {server.name} »"
         + (f" ({server.description})" if server.description else "")
-        + " : ses outils renvoient des données réelles ; appuie-toi dessus, n'invente pas."
+        + " : ses outils renvoient des données réelles et à jour. Quand la demande en parle, "
+        "utilise-les en priorité, avant web_search, market_quote ou la bibliothèque ; "
+        "appuie-toi sur ce qu'ils renvoient, n'invente pas."
     ]
     lines += [f"  - {t.name} : {_short(t.description, 160)}" for t in tools]
     keywords = {normalize(k).strip() for k in (*server.keywords, server.name)} - {""}

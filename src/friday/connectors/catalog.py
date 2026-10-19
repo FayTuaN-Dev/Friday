@@ -34,7 +34,7 @@ PRESETS = (
                "url": "https://mcp.alphavantage.co/mcp",
                "description": "données de marché Alpha Vantage : or au comptant, devises, "
                               "actions, actualités et sentiment, inflation, emploi, taux",
-               "mots_cles": ["alpha vantage", "comptant", "spot", "sentiment", "cpi", "nfp",
+               "mots_cles": ["alpha", "comptant", "spot", "sentiment", "cpi", "nfp",
                              "inflation", "taux de la fed"],
                "outils": ["GOLD_SILVER_SPOT", "CURRENCY_EXCHANGE_RATE", "FX_DAILY",
                           "GLOBAL_QUOTE", "SYMBOL_SEARCH", "NEWS_SENTIMENT", "CPI",
