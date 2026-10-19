@@ -65,6 +65,7 @@ src/friday/
 │   ├── config.py          le fichier des serveurs (commande ou url, description, mots-clés, actif)
 │   ├── link.py            Link : la liaison avec un serveur, dans son fil (boucle asyncio)
 │   ├── auth.py            compte OAuth d'un serveur distant (jeton dans data/mcp_comptes/, page de retour locale)
+│   ├── catalog.py         connecteurs tout prêts (Notion, Heure, TradingView) proposés dans les Réglages
 │   ├── tools.py           McpTool (mcp_<serveur>_<outil> ; « oui » demandé sauf lecture seule) et sa compétence
 │   └── manager.py         Connectors : branche en arrière-plan, suit les interrupteurs des Réglages
 ├── skills_lab/            atelier de compétences (J8) : contrat donné à Claude, inspection du code, tests à part ; compétences dans data/competences/

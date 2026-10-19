@@ -62,15 +62,19 @@ def _server(name: str, entry: dict) -> Server | None:
                   tuple(str(t) for t in tools) if isinstance(tools, list) else ())  # fmt: skip
 
 
+def _empty() -> dict:
+    return {"serveurs": {}}  # neuf à chaque fois : il sera modifié
+
+
 def _read(path: Path) -> dict:
     try:
         data = json.loads(path.read_text("utf-8"))
     except FileNotFoundError:
-        return dict(TEMPLATE)
+        return _empty()
     except (OSError, ValueError) as error:
         log.warning("%s illisible : %s", path.name, error)
-        return dict(TEMPLATE)
-    return data if isinstance(data, dict) else dict(TEMPLATE)
+        return _empty()
+    return data if isinstance(data, dict) else _empty()
 
 
 def problem(path: Path) -> str:
@@ -97,13 +101,64 @@ def load(path: Path) -> list[Server]:
     return [s for s in servers if s is not None]
 
 
-def set_enabled(path: Path, name: str, on: bool) -> None:
-    """Coche ou décoche un serveur dans le fichier (le reste est gardé tel quel)."""
+def _change(path: Path, change) -> bool:
+    """Modifie l'entrée d'un serveur (le reste du fichier est gardé tel quel). Un fichier mal
+    écrit n'est jamais réécrit : ce qu'il contient serait perdu."""
+    if problem(path):
+        return False
     data = _read(path)
-    entry = data.get("serveurs", {}).get(name)
-    if isinstance(entry, dict):
-        entry["actif"] = on
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), "utf-8")
+    servers = data.setdefault("serveurs", {})
+    if change(servers) is False:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), "utf-8")
+    return True
+
+
+def _update(name: str, **fields):
+    def change(servers: dict):
+        entry = servers.get(name)
+        if not isinstance(entry, dict):
+            return False
+        entry.update(fields)
+
+    return change
+
+
+def set_enabled(path: Path, name: str, on: bool) -> None:
+    """Coche ou décoche un serveur dans le fichier."""
+    _change(path, _update(name, actif=on))
+
+
+def set_tools(path: Path, name: str, tools: list[str]) -> bool:
+    """Les outils donnés au modèle (liste « outils ») ; vide : les premiers, comme sans liste."""
+    return _change(path, _update(name, outils=list(tools)))
+
+
+def add(path: Path, name: str, entry: dict) -> str:
+    """Ajoute un serveur ; renvoie ce qui ne va pas (vide si c'est fait)."""
+    name = name.strip()
+    if not name:
+        return "donnez-lui un nom"
+    if _server(name, entry) is None:
+        return "il faut une adresse (en ligne) ou une commande (sur ce PC)"
+    if problem(path):
+        return "le fichier mcp.json est mal écrit : corrigez-le d'abord"
+
+    def change(servers: dict):
+        if name in servers:
+            return False
+        servers[name] = entry
+
+    return "" if _change(path, change) else f"un connecteur s'appelle déjà « {name} »"
+
+
+def remove(path: Path, name: str) -> bool:
+    def change(servers: dict):
+        if servers.pop(name, None) is None:
+            return False
+
+    return _change(path, change)
 
 
 def ensure(path: Path) -> None:

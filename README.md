@@ -103,7 +103,7 @@ Fenêtre agrandie, un panneau montre ce qu'il te reste de ta **session Claude** 
 
 ### Connecteurs MCP
 
-Friday se branche à des serveurs **MCP** (des outils d'autres services : TradingView, GitHub, Notion…). *Réglages → Connecteurs → Ouvrir le fichier* ouvre `data/mcp.json` :
+Friday se branche à des serveurs **MCP** (des outils d'autres services : TradingView, GitHub, Notion…). Le plus simple : *Réglages → Connecteurs → Ajouter un connecteur*, avec des connecteurs tout prêts (Notion, Heure, TradingView) ou le sien (une adresse en ligne, ou un programme sur ce PC et ses clés). *Outils* coche ceux que qwen reçoit (une jauge montre leur poids), *Supprimer* le retire. Le tout est gardé dans `data/mcp.json`, qu'on peut aussi écrire à la main (*Ouvrir le fichier*) :
 
 ```json
 {"serveurs": {"notes": {"commande": "npx", "arguments": ["-y", "un-serveur-mcp"],
