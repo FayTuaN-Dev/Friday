@@ -1,7 +1,8 @@
 """Les connecteurs de Friday : relit data/mcp.json, branche chaque serveur coché en arrière-plan
 (un serveur lent ou en panne ne retarde ni ne bloque rien) et donne ses outils au cerveau,
 sous forme d'une compétence. Les Réglages lisent `statuses()`, cochent ou décochent, et
-connectent un compte (`sign_in`) quand un serveur distant en demande un."""
+connectent un compte (`sign_in`) quand un serveur distant en demande un, ajoutent ou retirent
+un serveur et choisissent ses outils, sans toucher au fichier à la main."""
 
 import logging
 import threading
@@ -15,6 +16,17 @@ from friday.connectors.link import Link
 from friday.connectors.tools import McpTool, pick, skill_for
 
 log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class Offer:
+    """Un outil d'un serveur branché, pour le choix des outils dans les Réglages."""
+
+    name: str  # le nom chez le serveur
+    title: str
+    size: int  # caractères de schéma donnés au modèle
+    read_only: bool
+    given: bool  # donné au modèle aujourd'hui
 
 
 @dataclass(frozen=True)
@@ -67,28 +79,36 @@ class Connectors:
         with self._lock:
             self.links[server.name] = link
         if link.connect(login):
-            tools = pick([McpTool(link, t) for t in link.tools], server.tools)
-            with self._lock:
-                self.given[server.name] = tools
-            for tool in tools:
-                self.toolbox.add(tool, always=False)
-            if tools:
-                self.toolset.add_skill(skill_for(link, tools))
-            log.info("Connecteur « %s » branché : %d outil(s) sur %d", server.name, len(tools),
-                     len(link.tools))  # fmt: skip
+            self._give(server, link)
+            log.info("Connecteur « %s » branché : %d outil(s) sur %d", server.name,
+                     len(self.given.get(server.name, [])), len(link.tools))  # fmt: skip
         with self._lock:
             self.pending.discard(server.name)
         self._changed()
 
-    def _drop(self, name: str) -> None:
+    def _give(self, server: config.Server, link: Link) -> None:
+        """Donne au cerveau les outils choisis du serveur, en une compétence."""
+        tools = pick([McpTool(link, t) for t in link.tools], server.tools)
         with self._lock:
-            link = self.links.pop(name, None)
+            self.given[server.name] = tools
+        for tool in tools:
+            self.toolbox.add(tool, always=False)
+        if tools:
+            self.toolset.add_skill(skill_for(link, tools))
+
+    def _take_back(self, name: str, link: Link) -> None:
+        with self._lock:
             given = self.given.pop(name, [])
-        if link is None:
-            return
         self.toolset.remove_skill(f"mcp_{link.server.slug}")
         for tool in given:
             self.toolbox.remove(tool.name)
+
+    def _drop(self, name: str) -> None:
+        with self._lock:
+            link = self.links.pop(name, None)
+        if link is None:
+            return
+        self._take_back(name, link)
         link.close()
 
     def set_enabled(self, name: str, on: bool) -> None:
@@ -119,6 +139,43 @@ class Connectors:
         account.sign_out()
         if server.enabled:
             self._connect_later(server)
+        self._changed()
+
+    def add(self, name: str, entry: dict) -> str:
+        """Ajoute un serveur au fichier et le branche ; renvoie ce qui ne va pas (vide : fait)."""
+        problem = config.add(self.path, name, entry)
+        server = None if problem else self._server(name.strip())
+        if server is not None and server.enabled:
+            self._connect_later(server)
+        self._changed()
+        return problem
+
+    def remove(self, name: str) -> None:
+        """Retire le serveur du fichier, et oublie son compte."""
+        server = self._server(name)
+        self._drop(name)
+        account = self.account(server) if server is not None else None
+        if config.remove(self.path, name) and account is not None:
+            account.sign_out()
+        self._changed()
+
+    def offers(self, name: str) -> list[Offer]:
+        """Tous les outils du serveur branché (vide s'il ne l'est pas)."""
+        link = self.links.get(name)
+        if link is None or not link.connected:
+            return []
+        given = {t.remote for t in self.given.get(name, [])}
+        tools = [McpTool(link, t) for t in link.tools]
+        return [Offer(t.remote, t.title, t.size, not t.needs_confirmation, t.remote in given)
+                for t in tools]  # fmt: skip
+
+    def set_tools(self, name: str, tools: list[str]) -> None:
+        """Les outils donnés au modèle, changés tout de suite (sans rebrancher)."""
+        server = self._server(name) if config.set_tools(self.path, name, tools) else None
+        link = self.links.get(name)
+        if server is not None and link is not None and link.connected:
+            self._take_back(name, link)
+            self._give(server, link)
         self._changed()
 
     def reload(self) -> None:
