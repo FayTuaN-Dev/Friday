@@ -12,7 +12,7 @@ from pathlib import Path
 from friday.connectors import config
 from friday.connectors.auth import Account
 from friday.connectors.link import Link
-from friday.connectors.tools import McpTool, skill_for
+from friday.connectors.tools import McpTool, pick, skill_for
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +36,7 @@ class Connectors:
         self.logs_dir, self.make_link = logs_dir, make_link
         self.accounts_dir = accounts_dir  # data/mcp_comptes : les jetons des serveurs distants
         self.links: dict[str, Link] = {}
+        self.given: dict[str, list[McpTool]] = {}  # les outils donnés au cerveau, par serveur
         self.pending: set[str] = set()
         self.listeners: list[Callable[[], None]] = []  # les Réglages, prévenus d'un changement
         self._lock = threading.Lock()
@@ -66,12 +67,15 @@ class Connectors:
         with self._lock:
             self.links[server.name] = link
         if link.connect(login):
-            tools = [McpTool(link, t) for t in link.tools]
+            tools = pick([McpTool(link, t) for t in link.tools], server.tools)
+            with self._lock:
+                self.given[server.name] = tools
             for tool in tools:
                 self.toolbox.add(tool, always=False)
             if tools:
                 self.toolset.add_skill(skill_for(link, tools))
-            log.info("Connecteur « %s » branché : %d outil(s)", server.name, len(tools))
+            log.info("Connecteur « %s » branché : %d outil(s) sur %d", server.name, len(tools),
+                     len(link.tools))  # fmt: skip
         with self._lock:
             self.pending.discard(server.name)
         self._changed()
@@ -79,11 +83,12 @@ class Connectors:
     def _drop(self, name: str) -> None:
         with self._lock:
             link = self.links.pop(name, None)
+            given = self.given.pop(name, [])
         if link is None:
             return
         self.toolset.remove_skill(f"mcp_{link.server.slug}")
-        for tool in link.tools:
-            self.toolbox.remove(McpTool(link, tool).name)
+        for tool in given:
+            self.toolbox.remove(tool.name)
         link.close()
 
     def set_enabled(self, name: str, on: bool) -> None:
@@ -132,8 +137,11 @@ class Connectors:
             elif not server.enabled:
                 state, detail, tools = "coupé", "", ()
             elif link is not None and link.connected:
-                tools = tuple(t.name for t in link.tools)
+                tools = tuple(t.remote for t in self.given.get(server.name, []))
                 state, detail = "branché", f"{len(tools)} outil(s)"
+                if len(tools) < len(link.tools):
+                    detail = (f"{len(tools)} outils donnés à Friday sur {len(link.tools)} "
+                              "(la liste « outils » du fichier choisit lesquels)")  # fmt: skip
             elif link is not None and link.needs_login:
                 state, detail, tools = "à connecter", "il demande un compte", ()
             else:

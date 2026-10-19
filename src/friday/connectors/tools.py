@@ -1,7 +1,10 @@
 """Les outils d'un serveur MCP vus comme des outils de Friday, et la compétence qui les
 regroupe. Nom donné au modèle : mcp_<serveur>_<outil> (deux serveurs peuvent avoir un outil
-du même nom). Sans « lecture seule » déclarée par le serveur, l'outil demande un « oui »."""
+du même nom). Sans « lecture seule » déclarée par le serveur, l'outil demande un « oui ».
+La mémoire de qwen est comptée : les schémas sont resserrés, et un serveur ne donne que
+quelques outils (les premiers, ou ceux de sa liste « outils »)."""
 
+import json
 import re
 from typing import Any
 
@@ -10,13 +13,41 @@ from friday.connectors.link import Link
 from friday.tools.base import Tool, ToolResult
 from friday.voice.wake import normalize
 
-MAX_DESCRIPTION = 400  # certaines descriptions font des pages : la mémoire de qwen est comptée
+MAX_DESCRIPTION = 400  # certaines descriptions font des pages
+MAX_PARAM_TEXT = 120  # description d'un paramètre
+MAX_SCHEMA = 2500  # caractères : un outil plus lourd n'est pas pris d'office
+MAX_TOOLS = 10  # par serveur, sans liste « outils » (Notion en propose 65)
+MAX_TOTAL = 12000  # caractères de schémas par serveur, liste ou pas (~3 000 jetons)
 TIMEOUT = 60.0
 
 
 def _short(text: str, limit: int) -> str:
     text = " ".join((text or "").split())
     return text if len(text) <= limit else text[: limit - 1] + "…"
+
+
+# des précisions de validation que le serveur vérifie lui-même : inutiles au modèle
+DROPPED = {"$schema", "examples", "pattern", "format", "minLength", "maxLength", "minItems",
+           "maxItems", "additionalProperties", "propertyNames"}  # fmt: skip
+
+
+def compact(node: Any, nested: bool = False) -> Any:
+    """Un paramètre sans ce qui ne sert pas au modèle : sa description raccourcie, et pas
+    celles de ses sous-champs (Notion en écrit des pages)."""
+    if isinstance(node, list):
+        return [compact(v, nested) for v in node]
+    if not isinstance(node, dict):
+        return node
+    result = {}
+    for key, value in node.items():
+        if key in DROPPED:
+            continue
+        if key == "description" and isinstance(value, str):
+            if not nested:
+                result[key] = _short(value, MAX_PARAM_TEXT)
+            continue
+        result[key] = compact(value, True)
+    return result
 
 
 class McpTool(Tool):
@@ -27,11 +58,16 @@ class McpTool(Tool):
         self.title = tool.title or tool.name
         self.description = _short(tool.description or tool.title or tool.name, MAX_DESCRIPTION)
         schema = tool.input_schema or {}
-        self.parameters = dict(schema.get("properties") or {})
+        properties = schema.get("properties") or {}
+        self.parameters = {name: compact(value) for name, value in properties.items()}
         self.required = tuple(schema.get("required") or ())
         annotations = tool.annotations
         self.needs_confirmation = not (annotations and annotations.read_only_hint)
         self.timeout = TIMEOUT
+
+    @property
+    def size(self) -> int:
+        return len(json.dumps(self.schema(), ensure_ascii=False))
 
     def label(self, args: dict[str, Any]) -> str:
         return f"{self.link.server.name} : {self.title}"
@@ -44,8 +80,28 @@ class McpTool(Tool):
 
     def run(self, **kwargs: Any) -> ToolResult:
         kwargs.pop("reason", None)  # paramètre de façade (Tool.schema), inconnu du serveur
-        text, ok = self.link.call(self.remote, kwargs, self.timeout)
+        # qwen remplit volontiers les champs facultatifs avec null ou "" : le serveur refuse
+        args = {k: v for k, v in kwargs.items()
+                if v is not None and (v != "" or k in self.required)}  # fmt: skip
+        text, ok = self.link.call(self.remote, args, self.timeout)
         return ToolResult(text, ok=ok)
+
+
+def pick(tools: list[McpTool], wanted: tuple[str, ...] = ()) -> list[McpTool]:
+    """Les outils donnés au modèle : ceux de la liste « outils » du fichier (dans son ordre),
+    sinon les premiers assez légers, lecture seule d'abord ; sans dépasser MAX_TOTAL."""
+    if wanted:
+        by_name = {t.remote: t for t in tools}
+        candidates = [by_name[name] for name in wanted if name in by_name]
+    else:
+        light = [t for t in tools if t.size <= MAX_SCHEMA]
+        candidates = sorted(light, key=lambda t: t.needs_confirmation)[:MAX_TOOLS]
+    chosen, total = [], 0
+    for tool in candidates:
+        if total + tool.size <= MAX_TOTAL:
+            chosen.append(tool)
+            total += tool.size
+    return chosen
 
 
 def skill_for(link: Link, tools: list[McpTool]) -> Skill:

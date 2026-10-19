@@ -2,12 +2,14 @@
 
     {"serveurs": {
         "notes": {"commande": "npx", "arguments": ["-y", "un-serveur-mcp"], "env": {},
-                  "description": "mes notes", "mots_cles": ["note"], "actif": true},
+                  "description": "mes notes", "mots_cles": ["note"], "actif": true,
+                  "outils": ["search", "fetch"]},
         "distant": {"url": "https://exemple.com/mcp", "actif": false}}}
 
 Un serveur local se lance avec `commande` (et `arguments`, `env`) ; un serveur distant se
 joint par `url`. `description` (une ligne) dit au modèle à quoi il sert ; `mots_cles` (débuts
-de mots, sans accents) l'aident à le choisir. Une entrée illisible est ignorée, pas fatale."""
+de mots, sans accents) l'aident à le choisir ; `outils` (facultatif) choisit les outils
+donnés au modèle, sinon ce sont les premiers. Une entrée illisible est ignorée, pas fatale."""
 
 import json
 import logging
@@ -29,6 +31,7 @@ class Server:
     enabled: bool = True
     description: str = ""
     keywords: tuple[str, ...] = ()
+    tools: tuple[str, ...] = ()  # « outils » : ceux à donner au modèle (vide : les premiers)
 
     @property
     def slug(self) -> str:
@@ -50,11 +53,13 @@ def _server(name: str, entry: dict) -> Server | None:
     args = entry.get("arguments") or []
     env = entry.get("env") or {}
     keywords = entry.get("mots_cles") or []
+    tools = entry.get("outils") or []
     return Server(name, command, tuple(str(a) for a in args),
                   {str(k): str(v) for k, v in env.items()} if isinstance(env, dict) else {},
                   url, entry.get("actif", True) is not False,
                   str(entry.get("description") or ""),
-                  tuple(str(k).lower() for k in keywords))  # fmt: skip
+                  tuple(str(k).lower() for k in keywords),
+                  tuple(str(t) for t in tools) if isinstance(tools, list) else ())  # fmt: skip
 
 
 def _read(path: Path) -> dict:
