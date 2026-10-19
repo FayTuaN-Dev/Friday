@@ -14,6 +14,8 @@ from friday.connectors.auth import LOGIN_TIMEOUT, Account, LoginNeeded
 from friday.connectors.config import Server
 
 log = logging.getLogger(__name__)
+# httpx2 écrit chaque adresse appelée : certaines portent une clé (…?apikey=), pas dans les logs
+logging.getLogger("httpx2").setLevel(logging.WARNING)
 CONNECT_TIMEOUT = 30.0  # un serveur lancé par npx peut d'abord s'installer
 MAX_TEXT = 6000  # une réponse plus longue est coupée (la mémoire de qwen est comptée)
 
