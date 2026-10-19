@@ -73,8 +73,12 @@ class Toolset:
         available = {s.name for s in self.skills}
         self._fresh = self.router.choose(user_text) & available
         self._hint_texts = {}
+        # un connecteur MCP visé par la demande (son nom, ses mots-clés) passe avant les
+        # suggestions : « le prix spot de l'or » veut ses données, pas les fiches Wikipédia
+        # de la bibliothèque sur l'or
+        connector = any(name.startswith("mcp_") for name in self._fresh)
         for name, hint in self.hints.items():
-            text = hint(user_text) if name in available else ""
+            text = hint(user_text) if name in available and not connector else ""
             if text:
                 self._hint_texts[name] = text
                 self._fresh.add(name)

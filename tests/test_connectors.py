@@ -15,7 +15,7 @@ from friday.connectors import tools as mcp_tools
 from friday.connectors.link import Link
 from friday.connectors.manager import Connectors
 from friday.connectors.tools import McpTool, compact, pick, skill_for
-from friday.tools.base import ToolBox
+from friday.tools.base import Tool, ToolBox, ToolResult
 
 FAKE = Path(__file__).parent / "fixtures" / "mcp_fake_server.py"
 
@@ -102,12 +102,19 @@ def test_schemas_are_slimmed_and_only_a_few_tools_are_given(monkeypatch):
         link.close()
 
 
+class Library(Tool):
+    name, description, parameters = "search_library", "la bibliothèque", {}
+
+    def run(self, **kwargs):
+        return ToolResult("rien")
+
+
 def test_skill_is_routed_by_keywords_and_only_then_gives_its_tools():
     link = Link(config.Server("faux", command="x", description="des calculs",
                               keywords=("calcul",)), make_target=in_process)  # fmt: skip
     assert link.connect()
     try:
-        box = ToolBox([])
+        box = ToolBox([Library()])
         tools = [McpTool(link, t) for t in link.tools]
         for tool in tools:
             box.add(tool, always=False)
@@ -119,6 +126,11 @@ def test_skill_is_routed_by_keywords_and_only_then_gives_its_tools():
         toolset.start("fais un calcul pour moi")
         assert "mcp_faux_add" in toolset.tool_names() and "des calculs" in toolset.guides()
         assert toolset.load("mcp_faux").startswith("Compétence")
+        toolset.hints = {"library": lambda text: "la bibliothèque parle de calcul"}
+        toolset.start("fais un calcul pour moi")
+        assert "search_library" not in toolset.tool_names()  # le connecteur passe avant
+        toolset.start("quelle heure est-il ?")
+        assert "library" in toolset.active  # sans connecteur visé : la suggestion reste
         toolset.remove_skill("mcp_faux")
         assert "mcp_faux_add" not in toolset.tool_names()
         assert toolset.load("mcp_faux").startswith("Compétence inconnue")
