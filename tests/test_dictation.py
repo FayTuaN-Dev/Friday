@@ -84,26 +84,47 @@ def test_push_to_talk_waits_for_the_dictation(monkeypatch):
 
 
 def test_a_shortcut_with_the_key_cancels_the_dictation(monkeypatch):
+    """Ctrl droit : lu par son état (le crochet de `keyboard` ne le voit pas sous Windows)."""
+    import time
+
     from friday.voice import ptt
 
-    hooks = {}
+    hooks, held = {}, {"down": False}
     fake = SimpleNamespace(
         KEY_DOWN="down",
+        KEY_UP="up",
         hook_key=lambda key, callback: hooks.setdefault("key", callback),
-        key_to_scan_codes=lambda key: (285,),
+        key_to_scan_codes=lambda key: (57373,),
         on_press=lambda callback: hooks.setdefault("others", callback),
         unhook=lambda hook: None,
     )
     monkeypatch.setattr(ptt, "keyboard", fake)
+
+    def wait(condition):
+        deadline = time.monotonic() + 2
+        while not condition() and time.monotonic() < deadline:
+            time.sleep(0.01)
+        return condition()
+
     a, typed = assistant(), []
     dictation = Dictation(a, typed.append)
-    key = ptt.PushToTalk("right ctrl", dictation.press, dictation.release, dictation.other_key)
-    hooks["key"](SimpleNamespace(event_type="down"))
-    hooks["others"](SimpleNamespace(scan_code=285))  # répétition de Ctrl : rien
+    key = ptt.PushToTalk("right ctrl", dictation.press, dictation.release, dictation.other_key,
+                         is_down=lambda vk: vk == 0xA3 and held["down"])  # fmt: skip
+    assert "key" not in hooks  # pas de crochet : l'état de la touche est lu
+    held["down"] = True
+    assert wait(lambda: dictation.recording)
+    hooks["others"](SimpleNamespace(scan_code=29))  # Ctrl lui-même (code de base) : rien
     assert dictation.recording
-    hooks["others"](SimpleNamespace(scan_code=46))  # Ctrl+C
-    assert not dictation.recording and a.inputs.calls == ["pause", "resume"]
-    hooks["key"](SimpleNamespace(event_type="up"))
+    held["down"] = False
+    assert wait(lambda: not dictation.recording)
     finish()
-    assert typed == []
+    assert typed == ["Salut à tous "]
+    held["down"] = True
+    assert wait(lambda: dictation.recording)
+    hooks["others"](SimpleNamespace(scan_code=46))  # Ctrl+C : annulée
+    assert not dictation.recording
+    held["down"] = False
+    time.sleep(0.1)
+    finish()
+    assert typed == ["Salut à tous "]
     key.close()
