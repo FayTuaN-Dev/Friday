@@ -54,8 +54,10 @@ def test_config_reads_servers_and_skips_bad_entries(tmp_path):
     config.set_enabled(path, "distant", True)
     assert config.load(path)[1].enabled
     assert config.load(tmp_path / "absent.json") == []
-    (tmp_path / "casse.json").write_text("{pas du json", "utf-8")
+    (tmp_path / "casse.json").write_text('{"serveurs": {"a": {}}\n "b": {}}', "utf-8")
     assert config.load(tmp_path / "casse.json") == []
+    assert "ligne 2" in config.problem(tmp_path / "casse.json")
+    assert config.problem(path) == "" and config.problem(tmp_path / "absent.json") == ""
 
 
 def test_tools_wrap_the_server_and_ask_before_changing_data():
@@ -191,3 +193,6 @@ def test_settings_page_lists_servers_and_switches_them(tmp_path):
     assert connectors.statuses()[0].state == "branché"
     connectors.close()
     assert not hasattr(ConnectorsPage(None), "rows")  # Friday pas encore chargée
+    path.write_text('{"serveurs": {} "x"}', "utf-8")  # une virgule oubliée : c'est dit
+    page.refresh()
+    assert "pas compris" in page.rows.itemAt(0).widget().text()

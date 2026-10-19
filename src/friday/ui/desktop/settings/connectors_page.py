@@ -67,10 +67,15 @@ class ConnectorsPage(QWidget):
     def refresh(self) -> None:
         while self.rows.count():
             self.rows.takeAt(0).widget().deleteLater()
+        problem = config.problem(self.connectors.path)
+        if problem:
+            self.rows.addWidget(QLabel(f"Le fichier mcp.json n'est pas compris ({problem}). "
+                                       "Corrigez-le puis « Rebrancher ».",
+                                       objectName="Warning", wordWrap=True))  # fmt: skip
         statuses = self.connectors.statuses()
         for status in statuses:
             self.rows.addWidget(self._row(status))
-        if not statuses:
+        if not statuses and not problem:
             self.rows.addWidget(QLabel("Aucun connecteur pour l'instant. " + EXAMPLE,
                                        objectName="Hint", wordWrap=True))  # fmt: skip
 

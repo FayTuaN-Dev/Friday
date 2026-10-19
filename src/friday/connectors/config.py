@@ -68,6 +68,22 @@ def _read(path: Path) -> dict:
     return data if isinstance(data, dict) else dict(TEMPLATE)
 
 
+def problem(path: Path) -> str:
+    """Pourquoi le fichier n'est pas compris (vide s'il va bien, ou s'il n'existe pas)."""
+    try:
+        data = json.loads(path.read_text("utf-8"))
+    except FileNotFoundError:
+        return ""
+    except json.JSONDecodeError as error:
+        return (f"erreur ligne {error.lineno}, colonne {error.colno} : il manque sans doute "
+                "une virgule, une accolade ou un guillemet")  # fmt: skip
+    except (OSError, ValueError) as error:
+        return str(error)
+    if not isinstance(data, dict) or not isinstance(data.get("serveurs"), dict):
+        return 'il faut la forme {"serveurs": {...}}'
+    return ""
+
+
 def load(path: Path) -> list[Server]:
     entries = _read(path).get("serveurs")
     if not isinstance(entries, dict):

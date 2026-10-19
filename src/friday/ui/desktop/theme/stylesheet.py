@@ -215,6 +215,7 @@ def _settings(p: Palette) -> str:
         font-size: 10px; letter-spacing: 2px; padding: 10px 2px 0 2px;
     }}
     #SettingsPage #Hint {{ color: {p.muted}; font-style: normal; font-size: 11px; }}
+    #SettingsPage #Warning {{ color: {p.error}; font-size: 12px; }}
     #SaveBar {{ background: {p.accent_soft}; border-radius: 16px; }}
     #SaveBarText {{ background: transparent; color: {p.text}; font-size: 13px; }}
     #SettingsPage, #SettingsPage QLabel {{ background: transparent; }}
