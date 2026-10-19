@@ -81,3 +81,29 @@ def test_push_to_talk_waits_for_the_dictation(monkeypatch):
     inputs.dictation = SimpleNamespace(recording=True)
     inputs.press()
     assert not inputs.listening and a.components.recorder.started == 0
+
+
+def test_a_shortcut_with_the_key_cancels_the_dictation(monkeypatch):
+    from friday.voice import ptt
+
+    hooks = {}
+    fake = SimpleNamespace(
+        KEY_DOWN="down",
+        hook_key=lambda key, callback: hooks.setdefault("key", callback),
+        key_to_scan_codes=lambda key: (285,),
+        on_press=lambda callback: hooks.setdefault("others", callback),
+        unhook=lambda hook: None,
+    )
+    monkeypatch.setattr(ptt, "keyboard", fake)
+    a, typed = assistant(), []
+    dictation = Dictation(a, typed.append)
+    key = ptt.PushToTalk("right ctrl", dictation.press, dictation.release, dictation.other_key)
+    hooks["key"](SimpleNamespace(event_type="down"))
+    hooks["others"](SimpleNamespace(scan_code=285))  # répétition de Ctrl : rien
+    assert dictation.recording
+    hooks["others"](SimpleNamespace(scan_code=46))  # Ctrl+C
+    assert not dictation.recording and a.inputs.calls == ["pause", "resume"]
+    hooks["key"](SimpleNamespace(event_type="up"))
+    finish()
+    assert typed == []
+    key.close()

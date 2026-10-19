@@ -9,18 +9,31 @@ log = logging.getLogger(__name__)
 
 
 class PushToTalk:
-    def __init__(self, key: str, on_press: Callable[[], None], on_release: Callable[[], None]):
+    def __init__(self, key: str, on_press: Callable[[], None], on_release: Callable[[], None],
+                 on_other_key: Callable[[], None] | None = None):  # fmt: skip
         self.key = key
         self._on_press = on_press
         self._on_release = on_release
         self._down = False
         # Un seul crochet pour l'appui et le relâchement : il se retire proprement.
         self._hook = keyboard.hook_key(key, self._on_event)
+        # Une autre touche pendant l'appui (Ctrl+C avec Ctrl comme touche) : prévenu
+        self._others = None
+        if on_other_key is not None:
+            codes = set(keyboard.key_to_scan_codes(key))
+            self._others = keyboard.on_press(
+                lambda event: (
+                    self._down and event.scan_code not in codes and self._safe(on_other_key)
+                )  # fmt: skip
+            )
 
     def close(self) -> None:
         if self._hook is not None:
             keyboard.unhook(self._hook)
             self._hook = None
+        if self._others is not None:
+            keyboard.unhook(self._others)
+            self._others = None
 
     def _on_event(self, event) -> None:
         if event.event_type == keyboard.KEY_DOWN:

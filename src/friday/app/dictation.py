@@ -59,6 +59,15 @@ class Dictation:
         a.components.recorder.start()
         log.info("Dictée : enregistrement")
 
+    def other_key(self) -> None:
+        """Une autre touche pendant la dictée : c'était un raccourci (Ctrl+C…), on annule."""
+        if not self.recording:
+            return
+        self.recording = False
+        self.assistant.components.recorder.stop()
+        self.assistant.inputs.resume()
+        log.info("Dictée annulée (raccourci clavier)")
+
     def release(self) -> None:
         if not self.recording:
             return

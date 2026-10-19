@@ -46,7 +46,8 @@ class VoiceInputs:
                 from friday.voice.ptt import PushToTalk
 
                 self.dictation = Dictation(self.assistant)
-                self.dictation_key = PushToTalk(key, self.dictation.press, self.dictation.release)
+                self.dictation_key = PushToTalk(key, self.dictation.press, self.dictation.release,
+                                                on_other_key=self.dictation.other_key)  # fmt: skip
             except Exception:
                 log.exception("Touche de dictée « %s » indisponible", key)
 
