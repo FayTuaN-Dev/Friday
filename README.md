@@ -84,6 +84,7 @@ uv run friday --cli    # version terminal
 - **Réflexion** : pour un calcul (« combien de jours entre… », « vitesse moyenne… ») ou si on lui dit « réfléchis », « analyse », Friday prend 10 à 20 s pour réfléchir (« Laissez-moi réfléchir… ») : nettement plus juste. Le reste du temps, elle répond tout de suite.
 - **Réglages** : icône ⚙️ dans la barre de titre (ou « ouvre les réglages ») : couleur, nom, ville, voix et vitesse, micro et sortie audio, mains libres, briefing et ses rubriques, fonctions à activer, compte Google. Écrits dans `.env` (toujours modifiable à la main) ; ceux qui demandent un redémarrage proposent « Redémarrer Friday ».
 - **Push-to-talk** : maintenir la touche `Début` (réglable via `PTT_KEY`), parler, relâcher.
+- **Dictée partout** : maintenir la touche `Fin` (réglable via `DICTATION_KEY`, vide = désactivée), parler, relâcher : le texte s'écrit dans la fenêtre active, là où est le curseur (Discord, Word, navigateur…). Whisper seul, rien en ligne. Dire « à la ligne », « point à la ligne » ou « nouveau paragraphe » pour revenir à la ligne.
 - **Écrire** : taper son message puis Entrée.
 
 Dans la fenêtre, les boutons de la barre du bas permettent d'envoyer, de parler (maintenir 🎙), de couper la voix et de démarrer une nouvelle conversation. En mode terminal : `/voix` (activer/couper la voix), `/reset` (nouvelle conversation), `/quit` (quitter).

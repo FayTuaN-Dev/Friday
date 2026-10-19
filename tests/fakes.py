@@ -29,6 +29,7 @@ SETTINGS = Settings(
     mic_device=None,
     output_device=None,
     ptt_key="home",
+    dictation_key="",
     hands_free=False,
     wake_words=["friday"],
     follow_up_seconds=8.0,

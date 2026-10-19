@@ -26,6 +26,7 @@ class VoiceInputs:
         self.wake = WakeControl(target, settings.wake_words, settings.follow_up_seconds)
         target.wake = self.wake
         self.ptt = None
+        self.dictation = self.dictation_key = None  # dictée partout (touche à maintenir)
         self.hands_free = None
         self.listening = False  # push-to-talk en cours
 
@@ -38,6 +39,16 @@ class VoiceInputs:
             )
         except Exception:
             log.exception("Touche push-to-talk « %s » indisponible", self.settings.ptt_key)
+        key = getattr(self.settings, "dictation_key", "")
+        if key:
+            try:
+                from friday.app.dictation import Dictation
+                from friday.voice.ptt import PushToTalk
+
+                self.dictation = Dictation(self.assistant)
+                self.dictation_key = PushToTalk(key, self.dictation.press, self.dictation.release)
+            except Exception:
+                log.exception("Touche de dictée « %s » indisponible", key)
 
         if self.settings.hands_free:
             try:
@@ -100,7 +111,7 @@ class VoiceInputs:
         if a.game.paused:
             a.game.leave()
             return
-        if not a.can_listen or self.listening:
+        if not a.can_listen or self.listening or (self.dictation and self.dictation.recording):
             return
         if not a.confirm.waiting:  # on appuie peut-être pour répondre « oui »
             a.interrupt()
@@ -130,6 +141,8 @@ class VoiceInputs:
     def close(self) -> None:
         if self.ptt:
             self.ptt.close()
+        if self.dictation_key:
+            self.dictation_key.close()
         if self.hands_free:
             self.hands_free.stop()
 
