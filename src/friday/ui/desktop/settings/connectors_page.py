@@ -1,6 +1,7 @@
 """Page « Connecteurs » : les serveurs MCP de data/mcp.json, leur état (branché, en panne…),
 leurs outils, un interrupteur chacun ; « Ouvrir le fichier » pour en ajouter, « Rebrancher »
-pour relire le fichier. Appliqué tout de suite, sans redémarrer."""
+pour relire le fichier ; « Se connecter » quand un serveur distant demande un compte.
+Appliqué tout de suite, sans redémarrer."""
 
 import os
 
@@ -11,7 +12,9 @@ from friday.connectors import config
 
 HELP = ("Les connecteurs MCP donnent à Friday les outils d'autres services (TradingView, "
         "GitHub, Notion…). Ajoutez un serveur dans le fichier, puis « Rebrancher ». Un outil "
-        "qui peut modifier des données vous demande toujours « oui » avant.")  # fmt: skip
+        "qui peut modifier des données vous demande toujours « oui » avant. Un serveur distant "
+        "(url) peut demander un compte : « Se connecter » ouvre le navigateur, et le jeton "
+        "reste sur ce PC.")  # fmt: skip
 EXAMPLE = ('Exemple : {"serveurs": {"notes": {"commande": "npx", "arguments": ["-y", '
            '"un-serveur-mcp"], "description": "mes notes", "mots_cles": ["note"]}}}')  # fmt: skip
 
@@ -88,6 +91,14 @@ class ConnectorsPage(QWidget):
         text.addWidget(QLabel(shown or status.where, objectName="Hint", wordWrap=True))
         line.addLayout(text, 1)
         row.toggle = toggle
+        row.account = None
+        if status.state == "à connecter" or status.signed_in:
+            login = status.state == "à connecter"
+            row.account = QPushButton("Se connecter" if login else "Se déconnecter",
+                                      objectName="SettingsSmall")  # fmt: skip
+            action = self.connectors.sign_in if login else self.connectors.sign_out
+            row.account.clicked.connect(lambda _=False, n=status.name, a=action: a(n))
+            line.addWidget(row.account)
         return row
 
     def _open_file(self) -> None:

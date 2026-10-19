@@ -221,7 +221,9 @@ def load_connectors(toolbox, toolset):
         from friday.core.config import LOGS_DIR
     except ImportError:
         return None
-    connectors = Connectors(DATA_DIR / "mcp.json", toolbox, toolset, LOGS_DIR)
+    connectors = Connectors(
+        DATA_DIR / "mcp.json", toolbox, toolset, LOGS_DIR, accounts_dir=DATA_DIR / "mcp_comptes"
+    )
     connectors.start()
     return connectors
 

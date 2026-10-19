@@ -110,7 +110,7 @@ Friday se branche à des serveurs **MCP** (des outils d'autres services : Tradin
                         "description": "mes notes", "mots_cles": ["note"]}}}
 ```
 
-Un serveur local se lance par `commande` (et `arguments`, `env`), un serveur distant se joint par `url`. Puis *Rebrancher* : chaque serveur montre son état et ses outils, avec un interrupteur. Ses outils ne sont donnés à qwen que quand la demande en parle (mots-clés, description) ; un outil qui ne se déclare pas en lecture seule demande toujours « oui » avant. Le fichier n'est pas copié dans les sauvegardes (ses `env` peuvent porter des clés). Les serveurs qui demandent une connexion par compte (OAuth) viendront ensuite.
+Un serveur local se lance par `commande` (et `arguments`, `env`), un serveur distant se joint par `url`. Puis *Rebrancher* : chaque serveur montre son état et ses outils, avec un interrupteur. Ses outils ne sont donnés à qwen que quand la demande en parle (mots-clés, description) ; un outil qui ne se déclare pas en lecture seule demande toujours « oui » avant. Le fichier n'est pas copié dans les sauvegardes (ses `env` peuvent porter des clés). Un serveur distant qui demande un compte (OAuth) s'affiche « à connecter » : *Se connecter* ouvre le navigateur, on accepte, et c'est branché. Le jeton reste sur ce PC (`data/mcp_comptes/`, jamais copié dans les sauvegardes) et se renouvelle tout seul ; *Se déconnecter* l'oublie. Au démarrage, Friday n'ouvre jamais le navigateur de lui-même.
 
 ### Fiabilité
 

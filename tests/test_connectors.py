@@ -27,8 +27,12 @@ def fake_server():
     return module.server
 
 
-def in_process(server, errlog):
+def in_process(server, errlog, http=None):
     return fake_server()  # le client mcp sait joindre un serveur dans le même processus
+
+
+def in_process_link(server, logs, account=None):
+    return Link(server, logs, make_target=in_process)
 
 
 def write(path: Path, servers: dict) -> Path:
@@ -123,9 +127,7 @@ def test_connectors_plug_in_the_background_and_follow_the_switch(tmp_path):
     )
     box, toolset = ToolBox([]), FakeToolset()
     seen = []
-    connectors = Connectors(
-        path, box, toolset, make_link=lambda s, logs: Link(s, logs, make_target=in_process)
-    )
+    connectors = Connectors(path, box, toolset, make_link=in_process_link)
     connectors.listeners.append(lambda: seen.append(1))
     connectors.start()
     wait(connectors)
@@ -179,7 +181,7 @@ def test_settings_page_lists_servers_and_switches_them(tmp_path):
         path,
         ToolBox([]),
         FakeToolset(),
-        make_link=lambda s, logs: Link(s, logs, make_target=in_process),
+        make_link=in_process_link,
     )
     page = ConnectorsPage(connectors)
     row = page.rows.itemAt(0).widget()

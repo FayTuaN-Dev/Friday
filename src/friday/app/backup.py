@@ -19,7 +19,8 @@ from pathlib import Path
 
 log = logging.getLogger(__name__)
 
-SKIP = {"cache", "bibliotheque", "models", "voices", "trading_claude", "sauvegardes"}
+# mcp_comptes : jetons des connecteurs MCP, jamais copiés (comme ceux de Google)
+SKIP = {"cache", "bibliotheque", "models", "voices", "trading_claude", "sauvegardes", "mcp_comptes"}
 SKIP_FILES = {
     "library.db",  # se reconstruit depuis la bibliothèque
     # Clés de connexion (Google, Spotify) : jamais copiées (la copie peut aller sur
