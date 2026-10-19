@@ -11,9 +11,10 @@ from friday.brain.router import SkillRouter
 from friday.brain.skills import SKILLS
 from friday.brain.toolset import Toolset
 from friday.connectors import config
+from friday.connectors import tools as mcp_tools
 from friday.connectors.link import Link
 from friday.connectors.manager import Connectors
-from friday.connectors.tools import McpTool, skill_for
+from friday.connectors.tools import McpTool, compact, pick, skill_for
 from friday.tools.base import ToolBox
 
 FAKE = Path(__file__).parent / "fixtures" / "mcp_fake_server.py"
@@ -27,8 +28,12 @@ def fake_server():
     return module.server
 
 
-def in_process(server, errlog):
+def in_process(server, errlog, http=None):
     return fake_server()  # le client mcp sait joindre un serveur dans le même processus
+
+
+def in_process_link(server, logs, account=None):
+    return Link(server, logs, make_target=in_process)
 
 
 def write(path: Path, servers: dict) -> Path:
@@ -39,19 +44,22 @@ def write(path: Path, servers: dict) -> Path:
 def test_config_reads_servers_and_skips_bad_entries(tmp_path):
     path = write(tmp_path / "mcp.json", {
         "Mes Notes!": {"commande": "npx", "arguments": ["-y", "x"], "mots_cles": ["Note"],
-                       "description": "mes notes", "env": {"K": 1}},
+                       "description": "mes notes", "env": {"K": 1}, "outils": ["lire"]},
         "distant": {"url": "https://exemple.com/mcp", "actif": False},
         "les deux": {"commande": "a", "url": "b"}, "rien": {}, "pas un objet": 3,
     })  # fmt: skip
     notes, remote = config.load(path)
     assert notes.slug == "mes_notes" and notes.args == ("-y", "x") and notes.env == {"K": "1"}
     assert notes.keywords == ("note",) and notes.enabled and notes.where == "npx -y x"
+    assert notes.tools == ("lire",) and remote.tools == ()
     assert remote.url and not remote.enabled
     config.set_enabled(path, "distant", True)
     assert config.load(path)[1].enabled
     assert config.load(tmp_path / "absent.json") == []
-    (tmp_path / "casse.json").write_text("{pas du json", "utf-8")
+    (tmp_path / "casse.json").write_text('{"serveurs": {"a": {}}\n "b": {}}', "utf-8")
     assert config.load(tmp_path / "casse.json") == []
+    assert "ligne 2" in config.problem(tmp_path / "casse.json")
+    assert config.problem(path) == "" and config.problem(tmp_path / "absent.json") == ""
 
 
 def test_tools_wrap_the_server_and_ask_before_changing_data():
@@ -68,10 +76,30 @@ def test_tools_wrap_the_server_and_ask_before_changing_data():
         assert save.run(text="lait").text == "saved 1"
         assert not fail.run().ok
         assert fail.schema()["function"]["parameters"]["properties"]  # paramètre de façade
+        assert add.run(a=1, b=1, cursor=None, page="").text == "2"  # null de qwen : retirés
     finally:
         link.close()
     assert not link.connected
     assert link.call("add", {"a": 1, "b": 1}, 1)[1] is False  # débranché : échec, sans planter
+
+
+def test_schemas_are_slimmed_and_only_a_few_tools_are_given(monkeypatch):
+    sub = {"type": "string", "description": "longue"}
+    slim = compact({"type": "object", "description": "x" * 300, "pattern": "^a$",
+                    "properties": {"sub": sub}})  # fmt: skip
+    assert len(slim["description"]) == mcp_tools.MAX_PARAM_TEXT and "pattern" not in slim
+    assert slim["properties"]["sub"] == {"type": "string"}  # sous-champs sans description
+    link = Link(config.Server("faux", command="x"), make_target=in_process)
+    assert link.connect()
+    try:
+        tools = [McpTool(link, t) for t in link.tools]
+        assert pick(tools)[0].remote == "add"  # lecture seule d'abord
+        assert [t.remote for t in pick(tools, ("save_note", "add", "absent"))] == [
+            "save_note", "add"]  # fmt: skip
+        monkeypatch.setattr(mcp_tools, "MAX_TOTAL", tools[0].size)
+        assert len(pick(tools)) == 1  # la mémoire de qwen est comptée
+    finally:
+        link.close()
 
 
 def test_skill_is_routed_by_keywords_and_only_then_gives_its_tools():
@@ -123,9 +151,7 @@ def test_connectors_plug_in_the_background_and_follow_the_switch(tmp_path):
     )
     box, toolset = ToolBox([]), FakeToolset()
     seen = []
-    connectors = Connectors(
-        path, box, toolset, make_link=lambda s, logs: Link(s, logs, make_target=in_process)
-    )
+    connectors = Connectors(path, box, toolset, make_link=in_process_link)
     connectors.listeners.append(lambda: seen.append(1))
     connectors.start()
     wait(connectors)
@@ -179,7 +205,7 @@ def test_settings_page_lists_servers_and_switches_them(tmp_path):
         path,
         ToolBox([]),
         FakeToolset(),
-        make_link=lambda s, logs: Link(s, logs, make_target=in_process),
+        make_link=in_process_link,
     )
     page = ConnectorsPage(connectors)
     row = page.rows.itemAt(0).widget()
@@ -189,3 +215,6 @@ def test_settings_page_lists_servers_and_switches_them(tmp_path):
     assert connectors.statuses()[0].state == "branché"
     connectors.close()
     assert not hasattr(ConnectorsPage(None), "rows")  # Friday pas encore chargée
+    path.write_text('{"serveurs": {} "x"}', "utf-8")  # une virgule oubliée : c'est dit
+    page.refresh()
+    assert "pas compris" in page.rows.itemAt(0).widget().text()
