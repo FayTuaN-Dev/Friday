@@ -42,3 +42,17 @@ def capture_screen(max_width: int = MAX_WIDTH) -> bytes:
     buffer = io.BytesIO()
     image.save(buffer, "PNG", optimize=False)
     return buffer.getvalue()
+
+
+def load_image(path, max_width: int = MAX_WIDTH) -> bytes:
+    """PNG d'une image du disque (collée ou glissée dans la fenêtre), réduite comme l'écran."""
+    from PIL import Image
+
+    with Image.open(path) as opened:
+        image = opened.convert("RGB")
+    if image.width > max_width:
+        image = image.resize((max_width, round(image.height * max_width / image.width)),
+                             Image.LANCZOS)  # fmt: skip
+    buffer = io.BytesIO()
+    image.save(buffer, "PNG", optimize=False)
+    return buffer.getvalue()
