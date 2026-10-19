@@ -1,7 +1,8 @@
 """Barre du bas, en pilule : saisie au clavier, micro (maintenir), voix, nouvelle conversation."""
 
 from PySide6.QtCore import QEvent, QSize, Qt, Signal
-from PySide6.QtWidgets import QHBoxLayout, QLineEdit, QPushButton, QWidget
+from PySide6.QtGui import QKeySequence
+from PySide6.QtWidgets import QApplication, QHBoxLayout, QLineEdit, QPushButton, QWidget
 
 from friday.ui.desktop.icons import icon
 from friday.ui.desktop.theme import Palette
@@ -13,6 +14,7 @@ class InputBar(QWidget):
     mic_released = Signal()
     voice_toggled = Signal()
     reset_clicked = Signal()
+    image_pasted = Signal(object)  # QImage collée (Ctrl+V après une capture d'écran)
 
     def __init__(self, ptt_key: str, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -45,6 +47,11 @@ class InputBar(QWidget):
             self.setProperty("focused", event.type() == QEvent.FocusIn)
             self.style().unpolish(self)
             self.style().polish(self)
+        if event.type() == QEvent.KeyPress and event.matches(QKeySequence.Paste):
+            mime = QApplication.clipboard().mimeData()
+            if mime.hasImage() and not mime.hasText():  # une capture, pas du texte
+                self.image_pasted.emit(QApplication.clipboard().image())
+                return True
         return False
 
     def _button(self, tip: str, slot, name: str = "") -> QPushButton:

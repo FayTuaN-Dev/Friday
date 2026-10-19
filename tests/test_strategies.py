@@ -178,6 +178,18 @@ def test_a_strategy_that_failed_is_refused_and_a_promising_one_comes_with_a_warn
     assert "Je ne connais pas cette stratégie" in tool.run("martingale", "or").text
 
 
+def test_a_request_not_about_trading_is_sent_back_to_the_model(tmp_path):
+    lab, choice = lab_with(tmp_path, {"cassure": WORKED, "londres": PROMISING, "repli": FAILED})
+    tool = ChooseStrategyTool(lab, choice)
+    lotto = "[Image jointe : grille.png …\nGrille de 50 numéros\n]\nchoisis 5 numéros et 2 étoiles"
+    text = tool.run("repli", "", lotto).text
+    assert "ne parle d'aucune stratégie" in text and "Je ne la mets pas" not in text
+    assert choice.get("XAUUSD").name == "repli"  # rien n'a changé
+    assert "suivent maintenant" in tool.run("cassure", "or", "choisis la cassure pour l'or").text
+    assert "n'est encore traduit" in tool.run("mon plan", "or", "reviens à mon plan").text
+    assert "suivent maintenant" in tool.run("londres", "or", "cette stratégie-là").text
+
+
 def test_alerts_checklist_and_briefing_follow_the_chosen_strategy():
     from friday.trading.alerts.setup import announcement, detect
     from friday.trading.checklist import Idea, Market

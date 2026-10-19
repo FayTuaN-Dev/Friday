@@ -3,9 +3,11 @@ l'or » : chacune backtestée (même moteur, même spread, même risque) avec un
 « choisis la cassure de range pour l'or » : elle devient celle des alertes, de la check-list
 et du briefing (une stratégie qui n'a pas fonctionné est refusée). Tout sur le PC."""
 
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+from friday.brain.thinking import own_words
 from friday.tools.backtest import load_history, spread_of
 from friday.tools.base import Display, Tool, ToolResult
 from friday.tools.strategies_markets import all_strategies, asked_strategy, one_strategy
@@ -17,6 +19,7 @@ from friday.trading.instruments import Instrument, by_symbol
 from friday.trading.plan_book import PREFIX
 from friday.trading.plan_rules import load_rules
 from friday.trading.strategies import BY_NAME, STRATEGIES, strategy_named
+from friday.voice.wake import normalize
 
 KEEP_SECONDS = 3600
 LOADERS = 4  # marchés lus en même temps chez Yahoo (20 marchés : ~3 s, mesuré)
@@ -70,6 +73,18 @@ class StrategyLab:
 
         with ThreadPoolExecutor(LOADERS) as pool:
             return list(pool.map(one, instruments))
+
+
+TRADING_WORDS = re.compile(r"strat|plan|trad|alerte|march")
+
+
+def about_trading(request: str) -> bool:
+    """La demande parle-t-elle d'une stratégie ? Constaté : « choisis 5 numéros et 2 étoiles
+    d'après cette grille » (EuroMillions) envoyé à choose_strategy, refusé au nom du repli."""
+    said = own_words(request) if request else ""
+    if not said.strip():
+        return True  # phrase non transmise : on fait confiance au modèle
+    return strategy_named(said) is not None or bool(TRADING_WORDS.search(normalize(said)))
 
 
 def _figures(r: Result) -> str:
@@ -181,6 +196,9 @@ class ChooseStrategyTool(Tool):
     def run(self, strategy: str, instrument: str = "", request: str = "") -> ToolResult:
         from friday.trading.market import MarketUnavailable
 
+        if not about_trading(request):
+            return ToolResult("L'utilisateur ne parle d'aucune stratégie de trading : cet outil "
+                              "ne sert pas ici. Réponds-lui directement, sans outil.")  # fmt: skip
         name = strategy_named(strategy)
         if name == "mon_plan":  # lequel de tes plans ? (nommé dans la phrase, sinon le premier)
             plan = self.choice.book.find(request or strategy)

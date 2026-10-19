@@ -22,6 +22,11 @@ Décris en français ce qui est utile pour y répondre :
   extraits de code, contenu d'un tableau ;
 - ne fais aucun calcul et ne réponds pas toi-même à la question : décris seulement.
 Sois factuel, sans Markdown, 15 lignes au maximum."""
+# Une image jointe par l'utilisateur (collée ou glissée), pas son écran
+IMAGE_INSTRUCTIONS = INSTRUCTIONS.replace(
+    "une capture de l'écran de l'utilisateur", "une image que l'utilisateur t'envoie"
+).replace("dis brièvement quelle application ou quelle page est affichée", "dis brièvement "
+          "ce que montre l'image (photo, capture, tableau, grille de jeu…)")  # fmt: skip
 
 
 MAX_TOKENS = 600  # environ 15 lignes de description
@@ -36,14 +41,16 @@ class ScreenReader:
         self.client = client
         self.model = model
 
-    def describe(self, image: bytes, question: str) -> str:
+    def describe(self, image: bytes, question: str, screen: bool = True) -> str:
+        """`screen` : une capture de l'écran ; sinon une image envoyée par l'utilisateur."""
+        instructions = INSTRUCTIONS if screen else IMAGE_INSTRUCTIONS
         try:
             response = self.client.chat(
                 model=self.model,
                 messages=[
                     {
                         "role": "user",
-                        "content": INSTRUCTIONS.format(question=question or "que vois-tu ?"),
+                        "content": instructions.format(question=question or "que vois-tu ?"),
                         "images": [image],
                     }
                 ],  # fmt: skip
@@ -63,5 +70,5 @@ class ScreenReader:
             # qwen3 revient juste après : il doit retrouver une carte vraiment libre
             wait_unloaded(self.client, self.model)
         text = (response.message.content or "").strip()
-        log.info("Écran décrit en %d caractères", len(text))
+        log.info("%s décrit en %d caractères", "Écran" if screen else "Image", len(text))
         return text

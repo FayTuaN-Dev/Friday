@@ -48,6 +48,18 @@ TRADING_NO_CLAUDE = (
 )
 
 
+def image_reader(settings: Settings):
+    """(image, question) → description par le modèle de vision local, ou None sans vision."""
+    if not getattr(settings, "vision_enabled", False):
+        return None
+    from friday.brain.gpu_gate import GatedClient
+    from friday.vision.capture import load_image
+    from friday.vision.reader import ScreenReader
+
+    reader = ScreenReader(GatedClient(host=settings.ollama_host), settings.vision_model)
+    return lambda path, question: reader.describe(load_image(path), question, screen=False)
+
+
 class Assistant:
     def __init__(
         self, settings: Settings, listener: AssistantListener, loader: Loader = load_components
@@ -71,8 +83,27 @@ class Assistant:
         self.inputs = VoiceInputs(settings, self)
         self._reply: Reply | None = None
         self.confirm = ConfirmationGate(listener)  # « Je lance ? » en attente de réponse
-        # Fichiers glissés dans la fenêtre, et presse-papier quand la demande en parle
-        self.attachments = Attachments(read_clipboard if settings.files_access else None)
+        # Fichiers glissés ou collés, et presse-papier quand la demande en parle ; les images
+        # sont décrites par le modèle de vision local
+        self.attachments = Attachments(read_clipboard if settings.files_access else None,
+                                       self._shown(image_reader(settings)))  # fmt: skip
+
+    def _shown(self, look):
+        """La lecture d'une image, affichée comme un outil (« Je regarde l'image », 5 à 15 s)."""
+        if look is None:
+            return None
+
+        def run(path: Path, question: str) -> str:
+            self.listener.on_tool("👁️ Je regarde l'image")
+            try:
+                text = look(path, question)
+            except Exception:
+                self.listener.on_tool_done(False)
+                raise
+            self.listener.on_tool_done(True)
+            return text
+
+        return run
 
     # --- API publique (appelable depuis n'importe quel thread) ---
 

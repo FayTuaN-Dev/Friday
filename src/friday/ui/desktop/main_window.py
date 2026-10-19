@@ -194,6 +194,7 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
         self.input.mic_released.connect(a.stop_listening)
         self.input.voice_toggled.connect(lambda: self.input.set_voice(a.toggle_voice()))
         self.input.reset_clicked.connect(self._reset)
+        self.input.image_pasted.connect(self._attach_pasted)
         self.title_bar.menu_button.clicked.connect(self.open_menu)
         self.title_bar.settings_button.clicked.connect(self.open_settings)
         self.title_bar.game_button.clicked.connect(self.toggle_game)
@@ -242,6 +243,18 @@ class MainWindow(TradingPageMixin, BackdropMixin, StageMixin, QMainWindow):
             self.chat.add_notice(f"📎 {path.name} joint : dites-moi quoi en faire", "ToolNotice")
         event.acceptProposedAction()
         self.input.edit.setFocus()
+
+    def _attach_pasted(self, image) -> None:
+        """Ctrl+V d'une capture : jointe à la prochaine demande, comme un fichier glissé."""
+        from friday.core.config import DATA_DIR
+        from friday.ui.desktop.pasted_image import save_pasted
+
+        path = save_pasted(image, DATA_DIR / "cache" / "images")
+        if path is None:
+            self.chat.add_notice("Je n'ai pas pu garder cette image", "ToolNotice")
+            return
+        self.assistant.attach_file(path)
+        self.chat.add_notice("🖼️ Image jointe : dites-moi quoi en faire", "ToolNotice")
 
     def _on_display(self, display) -> None:
         if self.show_scene_display(display):  # météo, lieu : en plein écran
