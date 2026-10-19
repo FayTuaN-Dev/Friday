@@ -131,6 +131,15 @@ def test_skill_is_routed_by_keywords_and_only_then_gives_its_tools():
         assert "search_library" not in toolset.tool_names()  # le connecteur passe avant
         toolset.start("quelle heure est-il ?")
         assert "library" in toolset.active  # sans connecteur visé : la suggestion reste
+        from friday.app.prefetch import prefetcher
+
+        class Shelf:  # la bibliothèque, qui connaît tous les sujets
+            def auto_search(self, text):
+                return ("search_library", {"query": text})
+
+        prefetch = prefetcher(Shelf(), None, toolset.router)
+        assert prefetch("fais un calcul pour moi") is None  # le connecteur, pas la bibliothèque
+        assert prefetch("parle-moi de l'or")[0] == "search_library"
         toolset.remove_skill("mcp_faux")
         assert "mcp_faux_add" not in toolset.tool_names()
         assert toolset.load("mcp_faux").startswith("Compétence inconnue")

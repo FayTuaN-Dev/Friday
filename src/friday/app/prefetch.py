@@ -98,10 +98,16 @@ def prefetcher(
 ):
     """Outil lancé d'office avant de répondre. Plans, stratégies et briefing trading : choisis
     par le code. Mode trading : une question d'analyse part dans le paquet pour Claude (après
-    aperçu). Sinon : la bibliothèque, si elle connaît le sujet."""
+    aperçu). Sinon : la bibliothèque, si elle connaît le sujet. Rien quand la demande vise un
+    connecteur MCP."""
     choose = router.choose if router else None
 
     def prefetch(text: str) -> tuple[str, dict] | None:
+        if choose and any(name.startswith("mcp_") for name in choose(text)):
+            # un connecteur MCP visé (son nom, ses mots-clés) : à lui de répondre. Sinon la
+            # bibliothèque, cherchée d'office, répondait à sa place (« le prix spot de l'or »
+            # → ses fiches Wikipédia sur l'or, au lieu d'Alpha Vantage)
+            return None
         if memory:
             from friday.tools.memory_origin import asked_origin
 
