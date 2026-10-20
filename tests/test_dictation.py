@@ -1,6 +1,7 @@
 """Dictée partout : sans vrai micro ni vrai clavier (enregistreur, Whisper et frappe simulés)."""
 
 import threading
+import time
 from types import SimpleNamespace
 
 import numpy as np
@@ -40,6 +41,8 @@ def assistant(text="Salut à tous", paused=False):
 def finish():
     for thread in threading.enumerate():
         if thread.name == "dictee":
+            while not thread.ident:  # listé pendant son démarrage (CI lente : constaté)
+                time.sleep(0.01)
             thread.join(5)
 
 

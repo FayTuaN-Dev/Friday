@@ -121,6 +121,7 @@ def test_repeated_placing_does_not_reread_or_redraw(tmp_path):
     playing.has_track = False
     pc, status, day = FakeSampler(), FakeSampler(), FakeSampler()
     side = SidePanels(playing, limits, {}, pc, status)
+    side._timer.stop()  # sa lecture régulière (2 s) n'est pas ce qu'on compte (CI lente : constaté)
     window = QWidget()
     row = QHBoxLayout(window)
     row.addWidget(side.left)
