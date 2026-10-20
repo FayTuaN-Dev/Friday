@@ -228,3 +228,25 @@ def test_tray_icon_tells_how_to_come_back():
     assert "reviens" in notifier.tray.toolTip() and "Reprendre" in notifier.game_action.text()
     notifier.set_game(False)
     assert notifier.tray.toolTip() == "Friday"
+
+
+def test_a_model_that_stays_is_asked_again(monkeypatch):
+    """Constaté : qwen encore là 10 s après la demande ; Friday abandonnait sans relancer."""
+    client = FakeOllama(["qwen3:8b", "embeddinggemma:latest"])
+    asked = []
+
+    def generate(self, model, keep_alive):
+        asked.append(model)
+        if model != "qwen3:8b" or asked.count(model) == 2:  # qwen ne part qu'au 2e essai
+            self.models.remove(model)
+
+    monkeypatch.setattr(ollama.Client, "generate", generate)
+
+    def wait(client, name):
+        return name not in client.models
+
+    assert unload_all(client, wait=wait) == ["qwen3:8b", "embeddinggemma:latest"]
+    assert client.models == [] and asked == ["qwen3:8b", "embeddinggemma:latest", "qwen3:8b"]
+    stuck = FakeOllama(["qwen3:8b"])
+    monkeypatch.setattr(ollama.Client, "generate", lambda self, model, keep_alive: None)
+    assert unload_all(stuck, attempts=2, wait=wait) == ["qwen3:8b"]  # abandon au bout de 2
