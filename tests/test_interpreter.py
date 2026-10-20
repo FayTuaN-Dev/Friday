@@ -33,6 +33,8 @@ def test_translator_keeps_the_model_settings_and_the_previous_line():
         return SimpleNamespace(message=SimpleNamespace(content="« Bonjour à tous. »"))
 
     translate = Translator(SimpleNamespace(chat=chat), "qwen3:8b", 16384)
+    translate.warm()  # le modèle chargé dès le lancement, sans rien traduire
+    assert calls.pop()["messages"] == []
     assert translate("Hello everyone.") == "Bonjour à tous."
     translate("Welcome back.")
     first, second = calls
@@ -60,7 +62,7 @@ def wait(condition):
 
 
 def test_phrases_are_heard_translated_and_shown():
-    heard = {1: ("Hello there.", "en"), 2: ("Salut à tous.", "fr"), 3: ("", "en")}
+    heard = {1: "Hello there.", 2: "What's up, dude?", 3: ""}
     shown, captures = [], []
     interpreter = Interpreter(
         lambda segment: heard[int(segment[0])],
@@ -75,9 +77,32 @@ def test_phrases_are_heard_translated_and_shown():
     for n in (1, 2, 3):
         captures[0].feed(np.full(10, n, dtype=np.float32))
     assert wait(lambda: len(shown) == 2)
-    assert shown == [("FR(Hello there.)", "Hello there."), ("Salut à tous.", "Salut à tous.")]
+    assert shown == [("FR(Hello there.)", "Hello there."), ("FR(What's up, dude?)",
+                                                             "What's up, dude?")]  # fmt: skip
     interpreter.stop()
     assert not captures[0].running and not interpreter.on
+
+
+def test_whisper_writes_the_next_phrase_while_qwen_translates():
+    translating, heard = threading.Event(), []
+
+    def translate(text):
+        translating.set()
+        assert wait(lambda: len(heard) == 2)  # la phrase 2 est écrite pendant la traduction
+        return text
+
+    def transcribe(segment):
+        heard.append(int(segment[0]))
+        return str(int(segment[0]))
+
+    interpreter = Interpreter(transcribe, translate, lambda *a: None, Capture,
+                              lambda put: SimpleNamespace(feed=put))  # fmt: skip
+    interpreter.start()
+    interpreter._phrases.put(np.full(4, 1, dtype=np.float32))
+    assert translating.wait(2)
+    interpreter._phrases.put(np.full(4, 2, dtype=np.float32))
+    assert wait(lambda: heard == [1, 2])
+    interpreter.stop()
 
 
 def test_late_phrases_are_skipped_to_stay_live():
@@ -86,7 +111,7 @@ def test_late_phrases_are_skipped_to_stay_live():
     def transcribe(segment):
         gate.wait(2)
         seen.append(int(segment[0]))
-        return "x", "en"
+        return "x"
 
     interpreter = Interpreter(transcribe, str, lambda *a: None, Capture,
                               lambda put: SimpleNamespace(feed=put))  # fmt: skip
@@ -98,6 +123,18 @@ def test_late_phrases_are_skipped_to_stay_live():
     assert wait(lambda: seen and seen[-1] == 7)
     assert len(seen) < 7  # des phrases en retard ont été sautées
     interpreter.stop()
+
+
+def test_videos_are_heard_as_english():
+    from friday.app.interpreter_mode import build
+
+    asked = []
+    stt = SimpleNamespace(transcribe_any=lambda audio, language: asked.append(language)
+                          or ("Hi", language))  # fmt: skip
+    settings = SimpleNamespace(ollama_host="http://127.0.0.1:9", ollama_model="m",
+                               ollama_num_ctx=8192, interpreter_device="")  # fmt: skip
+    a = SimpleNamespace(settings=settings, components=SimpleNamespace(stt=stt))
+    assert build(a).transcribe(np.zeros(4)) == "Hi" and asked == ["en"]
 
 
 def test_friday_starts_and_stops_on_command():

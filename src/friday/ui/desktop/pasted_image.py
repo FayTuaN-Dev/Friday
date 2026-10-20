@@ -11,7 +11,10 @@ KEEP = 20
 def save_pasted(image, folder: Path, keep: int = KEEP) -> Path | None:
     """`image` : QImage du presse-papier ; None si elle n'a pas pu être enregistrée."""
     folder.mkdir(parents=True, exist_ok=True)
-    path = folder / f"collage-{datetime.now():%Y%m%d-%H%M%S-%f}.png"
+    stamp = f"{datetime.now():%Y%m%d-%H%M%S-%f}"
+    n = 0  # l'horloge de Windows peut rendre deux fois le même instant (constaté en test)
+    while (path := folder / f"collage-{stamp}-{n:03d}.png").exists():
+        n += 1
     if image.isNull() or not image.save(str(path), "PNG"):
         return None
     for old in sorted(folder.glob("collage-*.png"))[:-keep]:

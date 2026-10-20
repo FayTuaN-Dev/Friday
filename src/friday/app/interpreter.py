@@ -10,6 +10,7 @@ import logging
 import queue
 import re
 import threading
+import time
 from collections.abc import Callable
 
 import numpy as np
@@ -23,13 +24,17 @@ ON = re.compile(r"\b(tradui\w*|sous titre\w*)\b.*\b(videos?|films?|youtube|serie
                 r"son du pc|le son|en direct)\b|\bmode interprete\b")  # fmt: skip
 OFF = re.compile(r"\b(arrete|stop|stoppe|coupe|fin|termine|desactive)\b.*\b(tradu|interpret"
                  r"|sous titre)")  # fmt: skip
-BACKLOG = 3  # phrases en attente au-delà : on saute les plus anciennes pour rester en direct
-SEGMENT_MS = 8000  # une phrase de sous-titre : 8 s au plus, même sans pause dans la vidéo
+BACKLOG = 2  # phrases en attente au-delà : on saute les plus anciennes pour rester en direct
+# Découpage du son : constaté, les anglophones rapides ne marquent presque pas de pause, et
+# 8 s par morceau laissaient les sous-titres très en retard
+SILENCE_MS, SEGMENT_MS = 300, 4500
 
 INSTRUCTIONS = (
-    "Tu traduis en direct les sous-titres d'une vidéo, de l'anglais vers le français. Réponds "
-    "uniquement par la traduction de la dernière phrase : naturelle, fidèle, sans guillemets, "
-    "sans commentaire. La phrase précédente n'est là que pour le contexte."
+    "Tu traduis en direct les sous-titres d'une vidéo anglaise en français. Traduis TOUT en "
+    "français, y compris l'argot, les expressions et les mots isolés ; ne garde en anglais que "
+    "les noms propres (personnes, marques, lieux). La phrase peut être coupée au milieu : "
+    "traduis ce qu'il y a. Réponds uniquement par la traduction de la dernière phrase, sans "
+    "guillemets ni commentaire. La phrase précédente n'est là que pour le contexte."
 )
 
 
@@ -46,6 +51,12 @@ class Translator:
         self.client, self.model, self.num_ctx = client, model, num_ctx  # même num_ctx : pas
         self.previous = ""  # de rechargement du modèle
 
+    def warm(self) -> None:
+        """Charge qwen tout de suite (mesuré : 9,7 s pour la première phrase si le modèle
+        n'est pas en mémoire, 0,3 s ensuite)."""
+        self.client.chat(model=self.model, messages=[], keep_alive="30m",
+                         options={"num_ctx": self.num_ctx})  # fmt: skip
+
     def __call__(self, text: str) -> str:
         context = f"Phrase précédente : {self.previous}\n" if self.previous else ""
         response = self.client.chat(
@@ -53,16 +64,19 @@ class Translator:
             messages=[{"role": "system", "content": INSTRUCTIONS},
                       {"role": "user", "content": f"{context}Dernière phrase : {text}"}],
             think=False, keep_alive="30m",
-            options={"num_ctx": self.num_ctx, "num_predict": 200, "temperature": 0.2},
+            options={"num_ctx": self.num_ctx, "num_predict": 120, "temperature": 0.2},
         )  # fmt: skip
         self.previous = text
         return (response.message.content or "").strip().strip('«»"').strip()
 
 
 class Interpreter:
-    def __init__(self, transcribe: Callable[[np.ndarray], tuple[str, str]],
-                 translate: Callable[[str], str], show: Callable[[str, str], None],
-                 make_capture: Callable, make_segmenter: Callable) -> None:  # fmt: skip
+    """Deux fils à la chaîne : Whisper écrit la phrase suivante pendant que qwen traduit
+    celle d'avant (constaté : à la suite, le retard s'accumulait)."""
+
+    def __init__(self, transcribe: Callable[[np.ndarray], str], translate: Callable[[str], str],
+                 show: Callable[[str, str], None], make_capture: Callable,
+                 make_segmenter: Callable) -> None:  # fmt: skip
         self.transcribe, self.translate, self.show = transcribe, translate, show
         self._make_capture, self._make_segmenter = make_capture, make_segmenter
         self._phrases: queue.Queue = queue.Queue()
@@ -73,12 +87,12 @@ class Interpreter:
         if self.on:
             return
         self.on = True
-        self._phrases = queue.Queue()
+        self._phrases, texts = queue.Queue(), queue.Queue()
         segmenter = self._make_segmenter(self._phrases.put)
         self._capture = self._make_capture(segmenter.feed)
         self._capture.start()
-        threading.Thread(target=self._work, args=(self._phrases,), daemon=True,
-                         name="interprete").start()  # fmt: skip
+        for work, args in ((self._hear, (self._phrases, texts)), (self._translate, (texts,))):
+            threading.Thread(target=work, args=args, daemon=True, name="interprete").start()
         log.info("Interprète activé")
 
     def stop(self) -> None:
@@ -86,18 +100,39 @@ class Interpreter:
             return
         self.on = False
         self._capture.stop()
-        self._phrases.put(None)  # le fil de traduction s'arrête
+        self._phrases.put(None)  # les deux fils s'arrêtent
         log.info("Interprète désactivé")
 
-    def _work(self, phrases: queue.Queue) -> None:
-        while (segment := phrases.get()) is not None:
-            while phrases.qsize() > BACKLOG:  # en retard : on saute pour rester en direct
-                if (segment := phrases.get()) is None:
-                    return
+    @staticmethod
+    def _next(items: queue.Queue):
+        """L'élément suivant ; en retard, les plus anciens sont sautés pour rester en direct."""
+        item = items.get()
+        while item is not None and items.qsize() > BACKLOG:
+            item = items.get()
+        return item
+
+    def _hear(self, phrases: queue.Queue, texts: queue.Queue) -> None:
+        while (segment := self._next(phrases)) is not None:
             try:
-                text, language = self.transcribe(segment)
-                if not text or not self.on:
-                    continue
-                self.show(text if language == "fr" else self.translate(text), text)
+                started = time.monotonic()
+                if (text := self.transcribe(segment)) and self.on:
+                    texts.put((text, started))
+            except Exception:
+                log.exception("Phrase de l'interprète perdue")
+        texts.put(None)
+
+    def _translate(self, texts: queue.Queue) -> None:
+        try:
+            getattr(self.translate, "warm", lambda: None)()
+        except Exception as error:
+            log.warning("Préchargement de qwen impossible : %s", error)
+        while (item := self._next(texts)) is not None:
+            text, started = item
+            try:
+                french = self.translate(text)
+                if self.on and french:
+                    self.show(french, text)
+                    log.info("Interprète (%.1f s) : « %s » → « %s »",
+                             time.monotonic() - started, text, french)  # fmt: skip
             except Exception:
                 log.exception("Phrase de l'interprète perdue")

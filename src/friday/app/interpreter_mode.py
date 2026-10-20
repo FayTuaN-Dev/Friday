@@ -4,7 +4,7 @@ reconnues par le code (pas par qwen), et les sous-titres envoyés à l'interface
 import logging
 from typing import TYPE_CHECKING
 
-from friday.app.interpreter import Interpreter, Translator, command
+from friday.app.interpreter import SEGMENT_MS, SILENCE_MS, Interpreter, Translator, command
 from friday.tools.base import Display
 
 if TYPE_CHECKING:
@@ -24,13 +24,14 @@ def build(assistant: "Assistant") -> Interpreter:
 
     s, stt = assistant.settings, assistant.components.stt
     return Interpreter(
-        stt.transcribe_any,
+        lambda segment: stt.transcribe_any(segment, "en")[0],  # vidéos anglaises : pas de
+        # langue devinée sur chaque morceau (constaté : des phrases restaient en anglais)
         Translator(GatedClient(host=s.ollama_host), s.ollama_model, s.ollama_num_ctx),
         lambda french, heard: assistant.listener.on_display(
             Display("subtitle", "Sous-titres", {"text": french, "heard": heard})),
         lambda feed: Loopback(feed, getattr(s, "interpreter_device", "")),
-        lambda on_segment: SpeechSegmenter(StreamingVAD(), on_segment, silence_ms=500,
-                                           preroll_ms=300, max_ms=8000),
+        lambda on_segment: SpeechSegmenter(StreamingVAD(), on_segment, silence_ms=SILENCE_MS,
+                                           preroll_ms=200, max_ms=SEGMENT_MS),
     )  # fmt: skip
 
 
