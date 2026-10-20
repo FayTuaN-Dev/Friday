@@ -31,13 +31,14 @@ from friday.ui.desktop.settings.save_bar import SaveBar
 
 # Le menu, en groupes : (groupe, pages)
 GROUPS = (("Friday", ("Apparence", "Général", "Voix", "Écoute")),
-          ("Services", ("Fonctions", "Briefing", "Bibliothèque", "Comptes", "Connecteurs")),
+          ("Services", ("Fonctions", "Initiative", "Briefing", "Bibliothèque", "Comptes",
+                        "Connecteurs")),
           ("Système", ("Diagnostic",)))  # fmt: skip
 OWN_PAGE = ("Trading",)  # sections du .env réglées dans leur propre page
 COMPACT_BELOW = 760  # panneau plus étroit : le menu n'a plus que ses icônes
 ICONS = {"Apparence": "palette", "Général": "user", "Voix": "volume", "Écoute": "mic",
-         "Fonctions": "sliders", "Briefing": "sun", "Bibliothèque": "book", "Comptes": "cloud",
-         "Connecteurs": "plug", "Diagnostic": "pulse"}  # fmt: skip
+         "Fonctions": "sliders", "Initiative": "bulb", "Briefing": "sun", "Bibliothèque": "book",
+         "Comptes": "cloud", "Connecteurs": "plug", "Diagnostic": "pulse"}  # fmt: skip
 
 
 class SettingsWindow(QFrame):
@@ -60,7 +61,7 @@ class SettingsWindow(QFrame):
             "Général": by_name["Général"], "Voix": by_name["Voix"], "Écoute": by_name["Écoute"],
             "Briefing": BriefingPage(getattr(components, "briefing", None)),
             "Bibliothèque": LibraryPage(getattr(components, "library", None)),
-            "Fonctions": by_name["Fonctions"],
+            "Fonctions": by_name["Fonctions"], "Initiative": by_name["Initiative"],
             "Comptes": AccountsPage(getattr(components, "google", None)),
             "Connecteurs": ConnectorsPage(getattr(components, "connectors", None)),
             "Diagnostic": DiagnosticPage(main_window.assistant, main_window.settings,
