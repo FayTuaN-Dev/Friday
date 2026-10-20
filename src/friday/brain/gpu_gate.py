@@ -35,21 +35,32 @@ class GatedClient(ollama.Client):
         return super().embeddings(*args, **kwargs)
 
 
-def unload_all(client: ollama.Client) -> list[str]:
+ATTEMPTS = 3  # constaté (mode jeu, 20/10) : qwen encore là 10 s après la demande, sans relance
+
+
+def unload_all(client: ollama.Client, attempts: int = ATTEMPTS, wait=wait_unloaded) -> list[str]:
     """Retire de la carte graphique tous les modèles qu'Ollama y a chargés (sans passer par
-    la barrière), et attend qu'ils soient vraiment partis. Renvoie leurs noms."""
+    la barrière), et attend qu'ils soient vraiment partis : la demande est refaite tant qu'un
+    modèle reste (jusqu'à `attempts` fois, 10 s d'attente chacune). Renvoie leurs noms."""
     try:
         names = [m.model for m in client.ps().models]
     except Exception as error:  # Ollama injoignable : rien à libérer de notre côté
         log.warning("Mode jeu : Ollama ne répond pas (%s)", error)
         return []
-    for name in names:
-        try:
-            ollama.Client.generate(client, model=name, keep_alive=0)
-        except Exception as error:
-            log.warning("Mode jeu : %s non déchargé (%s)", name, error)
-    for name in names:
-        wait_unloaded(client, name)
+    left = list(names)
+    for attempt in range(1, attempts + 1):
+        for name in left:
+            try:
+                ollama.Client.generate(client, model=name, keep_alive=0)
+            except Exception as error:
+                log.warning("Mode jeu : %s non déchargé (%s)", name, error)
+        left = [name for name in left if not wait(client, name)]
+        if not left:
+            break
+        log.warning("Mode jeu : %s encore en mémoire, nouvel essai (%d/%d)", ", ".join(left),
+                    attempt, attempts)  # fmt: skip
+    if left:
+        log.error("Mode jeu : %s toujours en mémoire vidéo", ", ".join(left))
     return names
 
 
