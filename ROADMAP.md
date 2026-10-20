@@ -180,3 +180,15 @@ Idées tirées de [jarvis-OS](https://github.com/Grominet95/jarvis-OS) (AGPL-3.0
 | J9 | **Veille monde** (inspirée de World Monitor, réécrite) : titres internationaux (Le Monde, France 24) et catastrophes en cours (GDACS) ; « quoi de neuf dans le monde ? », « qu'est-ce qui peut bouger les marchés ? » relié à tes instruments par une grille fixe ; bloc « monde » joint aux analyses de Claude et ligne du briefing trading ; notification discrète pour un événement majeur ; phrases toutes faites dites telles quelles | Voir ce qui bouge les marchés | ✅ |
 | J9b | **Globe en scène plein écran** : « montre-moi ce qui se passe dans le monde » → les thèmes du moment sur leur région (couleur de l'interface pour ceux qui touchent tes marchés) et les catastrophes en cours, détail au clic, globe qui tourne une fois que Friday a parlé (MapLibre 5, même carte que les lieux) | Voir le monde d'un coup d'œil | ✅ |
 
+### Prochaines étapes — Friday prend l'initiative
+
+Friday croise ce qu'elle sait (agenda, mails, météo, rappels) et **parle d'elle-même, à voix
+haute**, quand ça vaut le coup. Garde-fous communs : heures calmes, maximum par heure, jamais
+deux fois le même sujet, rien pendant le mode jeu (gardé pour le retour), un interrupteur par
+initiative dans Réglages → Initiative.
+
+| # | Brique | Livrable | Statut |
+|---|---|---|---|
+| I1 | **Le veilleur + l'heure de départ** : pour un rendez-vous Google qui a une adresse, trajet en voiture depuis la ville par défaut (OpenStreetMap, sans bouchons : +15 % et 5 min de marge) → « Dentiste à 16 h, à La Roche-sur-Yon : environ 35 min de route, il faudrait partir vers 15 h 20, dans 15 minutes » | Ne plus partir en retard | 🚧 |
+| I2 | **Mails importants** : un mail d'une catégorie ou d'un expéditeur prioritaire arrive → une phrase | Ne rien rater d'important | ⬜ |
+| I3 | **Météo utile** croisée avec l'agenda (pluie à l'heure de sortir : la voiture plutôt que la moto) + **résumé du matin** au premier « bonjour » | Une journée préparée | ⬜ |

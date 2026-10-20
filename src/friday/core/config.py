@@ -86,6 +86,10 @@ class Settings:
     scenes: bool = True  # météo en scène plein écran plutôt qu'en fenêtre (J7)
     world: bool = True  # veille monde : actualité internationale, catastrophes (J9)
     world_alerts: bool = True  # notification discrète pour un événement majeur (J9)
+    initiative: bool = True  # Friday parle d'elle-même quand c'est utile (I1…)
+    initiative_departure: bool = True  # « il faut partir dans 15 min » pour un rendez-vous (I1)
+    initiative_quiet: str = "23-7"  # heures calmes : aucune initiative
+    initiative_per_hour: int = 4  # au plus, par heure
     game_auto: bool = True  # mode jeu tout seul quand un jeu se lance (G2)
     start_with_windows: bool = True  # lancée (cachée près de l'horloge) avec Windows (S1)
     game_ignore: tuple[str, ...] = ()  # programmes qui ne sont pas des jeux (« wallpaper64 »)
@@ -177,6 +181,10 @@ def load_settings() -> Settings:
         scenes=_bool("SCENES", True),
         world=_bool("WORLD", True),
         world_alerts=_bool("WORLD_ALERTS", True),
+        initiative=_bool("INITIATIVE", True),
+        initiative_departure=_bool("INITIATIVE_DEPARTURE", True),
+        initiative_quiet=os.getenv("INITIATIVE_QUIET", "23-7"),
+        initiative_per_hour=int(os.getenv("INITIATIVE_PER_HOUR") or 4),
         game_auto=_bool("GAME_MODE_AUTO", True),
         start_with_windows=_bool("START_WITH_WINDOWS", True),
         game_ignore=tuple(

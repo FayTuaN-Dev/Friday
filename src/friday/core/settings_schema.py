@@ -55,8 +55,9 @@ SECTIONS = (
         Field("START_WITH_WINDOWS", "Lancer Friday avec Windows", "bool", "true",
               "Elle démarre cachée près de l'horloge et vous écoute tout de suite. La croix de "
               "sa fenêtre la cache ; « Quitter Friday » (clic droit sur l'icône) l'arrête."),
-        Field("HOME_CITY", "Ville par défaut (météo)", "text",
-              help="Vide : Friday utilise la ville qu'elle a mémorisée."),
+        Field("HOME_CITY", "Ville par défaut (météo, trajets)", "text",
+              help="Vide : Friday utilise la ville qu'elle a mémorisée. C'est aussi le point "
+                   "de départ des trajets (« il faut partir dans 15 min »)."),
         Field("OLLAMA_NUM_CTX", "Mémoire de travail du modèle", "choice", "8192",
               "Plus grande = conversations et pages plus longues. Au-delà de 8 192 sur une "
               "carte de 8 Go : compression Ollama nécessaire (voir README).",
@@ -130,6 +131,19 @@ SECTIONS = (
         Field("LIBRARY_ENABLED", "Bibliothèque de documents", "bool", "true"),
         Field("TRADING_ENABLED", "Mode trading (« mode trading »)", "bool", "true",
               "Analyses par Claude après aperçu ; calculs et journal en local."),
+    )),
+    Section("Initiative", "bulb", (
+        Field("INITIATIVE", "Friday prend l'initiative", "bool", "true",
+              "Elle parle d'elle-même, à voix haute, quand c'est utile (jamais en mode jeu : "
+              "gardé pour votre retour)."),
+        Field("INITIATIVE_DEPARTURE", "Heure de départ des rendez-vous", "bool", "true",
+              "Pour un événement de l'agenda Google qui a une adresse : « il faudrait partir "
+              "dans 15 minutes ». Trajet en voiture depuis la ville par défaut, sans les "
+              "bouchons (marge de 15 % + 5 min)."),
+        Field("INITIATIVE_QUIET", "Heures calmes", "text", "23-7",
+              "Aucune initiative entre ces heures (ex. : 23-7). 0-0 : jamais calme."),
+        Field("INITIATIVE_PER_HOUR", "Initiatives par heure, au plus", "int", "4",
+              minimum=1, maximum=20),
     )),
     Section("Trading", "trending", (
         Field("TRADING_ACCOUNT_CURRENCY", "Devise du compte", "text", "EUR",
