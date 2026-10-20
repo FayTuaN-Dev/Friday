@@ -19,6 +19,7 @@ from friday.app.components import Components, describe, load_components
 from friday.app.confirmations import ConfirmationGate
 from friday.app.events import AssistantListener, AssistantState
 from friday.app.game_mode import GameMode
+from friday.app.interpreter_mode import InterpreterMode
 from friday.app.reply import Reply
 from friday.app.scene_gate import SceneGate
 from friday.app.stall_watch import StallWatch
@@ -80,6 +81,7 @@ class Assistant:
         self._interrupted = threading.Event()
         self._state: AssistantState | None = None
         self.game = GameMode(self)  # « Friday, mode jeu » : la carte graphique rendue au jeu
+        self.interpreter = InterpreterMode(self)  # « traduis la vidéo » : sous-titres (D2)
         self.inputs = VoiceInputs(settings, self)
         self._reply: Reply | None = None
         self.confirm = ConfirmationGate(listener)  # « Je lance ? » en attente de réponse
@@ -180,6 +182,7 @@ class Assistant:
 
     def shutdown(self) -> None:
         self.inputs.close()
+        self.interpreter.stop()
         self.interrupt()
         self._events.put(("stop", None))
         connectors = getattr(self.components, "connectors", None)
@@ -238,7 +241,7 @@ class Assistant:
             self.listener.on_notice("Nouvelle conversation")
         elif kind in ("text", "heard"):
             self.listener.on_user_message(str(payload), by_voice=kind == "heard")
-            if self.game.command(str(payload)):
+            if self.game.command(str(payload)) or self.interpreter.command(str(payload)):
                 return
             if not self._trading_command(str(payload)):
                 self._respond(self.attachments.wrap(str(payload)), said=str(payload))
@@ -256,6 +259,8 @@ class Assistant:
                 return
             if not self.confirm.route(text):
                 self.listener.on_user_message(text, by_voice=True)
+                if self.interpreter.command(text):
+                    return
                 if not self._trading_command(text):
                     self._respond(self.attachments.wrap(text), said=text)
 

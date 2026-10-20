@@ -14,13 +14,14 @@ log = logging.getLogger(__name__)
 
 MIN_SECONDS = 0.4
 # Phrases que Whisper invente parfois sur du silence (il a été entraîné sur des sous-titres).
-HALLUCINATIONS = ("sous-titr", "amara.org", "merci d'avoir regardé", "abonnez-vous")
+HALLUCINATIONS = ("sous-titr", "amara.org", "merci d'avoir regardé", "abonnez-vous",
+                  "thanks for watching", "thank you for watching")  # fmt: skip
 
 
 def clean_transcript(text: str) -> str:
     text = text.strip()
-    if any(h in text.lower() for h in HALLUCINATIONS):
-        return ""
+    if any(h in text.lower() for h in HALLUCINATIONS) or not any(c.isalnum() for c in text):
+        return ""  # aussi « ♪ ♪ » sur de la musique
     return text
 
 
@@ -84,6 +85,21 @@ class WhisperSTT:
             if self.model is None:  # déchargé (mode jeu) : rien à transcrire
                 return ""
             return self._transcribe(audio)
+
+    def transcribe_any(self, audio: np.ndarray, language: str | None = None) -> tuple[str, str]:
+        """(texte, langue) : pour l'interprète, la vidéo n'est pas en français. Sans
+        `language`, Whisper la devine (moins fiable sur un morceau de quelques secondes)."""
+        if audio.size < MIN_SECONDS * WHISPER_RATE:
+            return "", ""
+        with self._lock:
+            if self.model is None:
+                return "", ""
+            segments, info = self.model.transcribe(
+                audio, language=language, vad_filter=True, condition_on_previous_text=False,
+                beam_size=1,  # en direct : la recherche gloutonne, nettement plus rapide
+            )  # fmt: skip
+            text = clean_transcript(" ".join(s.text for s in segments))
+        return text, info.language
 
     def _transcribe(self, audio: np.ndarray) -> str:
         segments, _ = self.model.transcribe(
