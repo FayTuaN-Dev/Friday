@@ -9,7 +9,7 @@ from friday.google.calendar import Event
 from friday.initiative.departure import Trip, departure_text, place_name, spoken_time
 from friday.initiative.departures import Departures
 from friday.initiative.guard import Guard, is_quiet, quiet_hours
-from friday.initiative.travel import Travel
+from friday.initiative.travel import Route, Travel
 
 NOW = datetime(2026, 10, 21, 15, 30)
 
@@ -34,8 +34,8 @@ class FakeTravel:
     def __init__(self, seconds=600.0):
         self.value = seconds
 
-    def seconds(self, place):
-        return self.value
+    def route(self, place):
+        return None if self.value is None else Route(self.value, 46.7, -1.3)
 
 
 def watch(tmp_path, events, seconds=600.0, **guard):

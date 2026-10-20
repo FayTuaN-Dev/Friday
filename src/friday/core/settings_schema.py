@@ -140,6 +140,9 @@ SECTIONS = (
               "Pour un événement de l'agenda Google qui a une adresse : « il faudrait partir "
               "dans 15 minutes ». Trajet en voiture depuis la ville par défaut, sans les "
               "bouchons (marge de 15 % + 5 min)."),
+        Field("INITIATIVE_WEATHER", "Météo du trajet (voiture ou moto)", "bool", "true",
+              "Ajoutée à l'heure de départ : pluie, rafales ou verglas à l'aller ou au retour "
+              "→ « la voiture plutôt que la moto » ; sinon « la moto passe »."),
         Field("INITIATIVE_MAILS", "Mails importants", "bool", "true",
               "Un mail non lu d'un expéditeur important, ou avec un mot important dans "
               "l'objet, est annoncé dès son arrivée (vérifié toutes les 2 min)."),

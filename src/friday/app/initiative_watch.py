@@ -67,9 +67,11 @@ def sources(settings, google) -> list[Source]:
         from friday.google.calendar import GoogleCalendar
         from friday.initiative.departures import Departures
         from friday.initiative.travel import Travel
+        from friday.initiative.weather import TripWeather
 
         calendar = GoogleCalendar(lambda: google.service("calendar", "v3"))
-        found.append(Departures(calendar, Travel(settings.home_city.strip())))
+        weather = TripWeather() if settings.initiative_weather else None
+        found.append(Departures(calendar, Travel(settings.home_city.strip()), weather))
     if settings.initiative_mails:
         from friday.google.gmail import Gmail
         from friday.initiative.mails import ImportantMails, entries

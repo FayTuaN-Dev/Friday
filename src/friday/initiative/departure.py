@@ -48,7 +48,8 @@ def place_name(location: str) -> str:
     return parts[0] if parts else location
 
 
-def departure_text(trip: Trip, now: datetime) -> str:
+def departure_text(trip: Trip, now: datetime, weather: str = "") -> str:
+    """`weather` : la phrase météo du trajet (I3), ajoutée à la fin."""
     event, leave = trip.event, trip.leave_at
     minutes = round((leave - now).total_seconds() / 60)
     if minutes <= 0:
@@ -60,5 +61,5 @@ def departure_text(trip: Trip, now: datetime) -> str:
     road = duration_text(trip.seconds * MARGIN)
     return (
         f"Dis EXACTEMENT : « {event.title} à {spoken_time(event.start)}, à "
-        f"{place_name(event.location)} : environ {road} de route, {when}. »"
+        f"{place_name(event.location)} : environ {road} de route, {when}.{weather} »"
     )

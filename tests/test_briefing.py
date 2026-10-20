@@ -1,7 +1,7 @@
 from datetime import datetime
 from types import SimpleNamespace
 
-from friday.app.briefing_trigger import morning_request
+from friday.app.briefing_trigger import greeting_request, is_greeting, morning_request
 from friday.briefing import Briefing, BriefingConfig, Section, Sources
 from friday.tools.briefing import ConfigureBriefingTool, MorningBriefingTool
 
@@ -66,6 +66,7 @@ def test_lists_and_news(tmp_path):
 
 def test_automatic_briefing_once_a_day_in_the_morning_when_enabled(tmp_path):
     briefing = make(tmp_path, [Section("libre", "un conseil sport")])
+    briefing.set_on_greeting(False)  # dès le démarrage
     assert morning_request(briefing, MORNING.replace(hour=14)) is None  # l'après-midi
     request = morning_request(briefing, MORNING)
     assert "conseil sport" in request and "Message automatique" in request
@@ -78,7 +79,7 @@ def test_automatic_briefing_once_a_day_in_the_morning_when_enabled(tmp_path):
 
 def test_nothing_to_say_is_marked_done_and_silent(tmp_path):
     briefing = make(tmp_path, [Section("rappels")], agenda=FakeAgenda())
-    assert morning_request(briefing, MORNING) is None
+    assert morning_request(briefing, MORNING, greeting=True) is None
     assert briefing.config.last_run == "2026-10-05"
     assert morning_request(None) is None
 
@@ -142,3 +143,23 @@ def test_changes_refresh_the_open_sections_popup(tmp_path):
     added = tool.run("add", "mails")
     assert added.display.refresh and "Mails non lus" in str(added.display.data)
     assert tool.run("disable").display.refresh
+
+
+def test_greetings_are_recognized_but_not_requests():
+    for said in ("Bonjour !", "Friday, salut", "bonjour Friday, ça va ?", "Coucou", "hey"):
+        assert is_greeting(said), said
+    for said in ("Bonjour, mets de la musique de Daft Punk s'il te plaît", "quelle heure ?",
+                 "Friday", "saluté", ""):  # fmt: skip
+        assert not is_greeting(said), said
+
+
+def test_by_default_the_briefing_waits_for_the_first_good_morning(tmp_path):
+    briefing = make(tmp_path, [Section("libre", "un conseil sport")])
+    assert briefing.config.on_greeting
+    assert morning_request(briefing, MORNING) is None  # démarrage : on attend
+    assert briefing.config.last_run is None
+    assert greeting_request(briefing, "mets la radio", MORNING) is None
+    request = greeting_request(briefing, "Bonjour Friday !", MORNING)
+    assert "conseil sport" in request
+    assert greeting_request(briefing, "bonjour", MORNING.replace(hour=9)) is None  # déjà fait
+    assert greeting_request(None, "bonjour") is None

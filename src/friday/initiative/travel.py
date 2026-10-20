@@ -1,7 +1,9 @@
 """Durée de trajet en voiture de la maison à un lieu de l'agenda (OpenStreetMap, comme les
-itinéraires de la carte). Gardée en mémoire : le même lieu n'est demandé qu'une fois."""
+itinéraires de la carte), avec la position de l'arrivée (pour la météo du trajet). Gardée en
+mémoire : le même lieu n'est demandé qu'une fois."""
 
 import logging
+from dataclasses import dataclass
 
 import httpx
 
@@ -11,15 +13,22 @@ from friday.tools.route import PROFILES, ROUTING_URL
 log = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class Route:
+    seconds: float  # de route, sans les bouchons
+    lat: float  # l'arrivée
+    lon: float
+
+
 class Travel:
     def __init__(self, home: str, client: httpx.Client | None = None) -> None:
         self.home = home
         self.client = client or httpx.Client(timeout=15, headers=HEADERS)
-        self._known: dict[str, float | None] = {}
+        self._known: dict[str, Route | None] = {}
 
-    def seconds(self, place: str) -> float | None:
-        """Secondes de route depuis la maison (sans les bouchons), ou None : lieu introuvable,
-        pas de route, ou serveur injoignable (redemandé la fois suivante)."""
+    def route(self, place: str) -> Route | None:
+        """Le trajet depuis la maison, ou None : lieu introuvable, pas de route, ou serveur
+        injoignable (redemandé la fois suivante)."""
         key = " ".join(place.lower().split())
         if key not in self._known:
             try:
@@ -29,7 +38,11 @@ class Travel:
                 return None
         return self._known[key]
 
-    def _ask(self, place: str) -> float | None:
+    def seconds(self, place: str) -> float | None:
+        found = self.route(place)
+        return found.seconds if found else None
+
+    def _ask(self, place: str) -> Route | None:
         start, end = find_place(self.client, self.home), find_place(self.client, place)
         if start is None or end is None:
             log.info("Trajet : « %s » ou « %s » introuvable", self.home, place)
@@ -43,4 +56,4 @@ class Travel:
         data = response.json()
         if data.get("code") != "Ok" or not data.get("routes"):
             return None
-        return float(data["routes"][0]["duration"])
+        return Route(float(data["routes"][0]["duration"]), float(end["lat"]), float(end["lon"]))
