@@ -36,6 +36,7 @@ class Guard:
         self.state, self.quiet, self.per_hour = state, quiet, per_hour
         self._lock = threading.Lock()
         self._said = self._load()
+        self._spoken: list[datetime] = []  # quand Friday a pris la parole (limite par heure)
 
     def _load(self) -> dict[str, datetime]:
         try:
@@ -55,16 +56,20 @@ class Guard:
     def said(self, key: str) -> bool:
         return key in self._said
 
-    def allow(self, key: str, now: datetime) -> bool:
-        """Friday peut-elle parler de ce sujet maintenant ? Si oui, il compte comme dit."""
+    def allow(self, keys: str | tuple[str, ...], now: datetime) -> bool:
+        """Friday peut-elle parler de ce(s) sujet(s) maintenant ? Si oui, ils comptent comme
+        dits (plusieurs sujets : plusieurs mails réunis dans une phrase)."""
+        keys = (keys,) if isinstance(keys, str) else keys
         with self._lock:
-            if key in self._said or is_quiet(self.quiet, now):
+            if any(k in self._said for k in keys) or is_quiet(self.quiet, now):
                 return False
-            recent = sum(now - when < timedelta(hours=1) for when in self._said.values())
+            self._spoken = [w for w in self._spoken if now - w < timedelta(hours=1)]
+            recent = len(self._spoken)
             if recent >= self.per_hour:
-                log.info("Initiative « %s » retenue : déjà %d cette heure", key, recent)
+                log.info("Initiative « %s » retenue : déjà %d cette heure", keys[0], recent)
                 return False
             self._said = {k: w for k, w in self._said.items() if now - w < FORGET_AFTER}
-            self._said[key] = now
+            self._said.update(dict.fromkeys(keys, now))
+            self._spoken.append(now)
             self._save()
             return True

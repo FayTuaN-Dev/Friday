@@ -119,6 +119,15 @@ class Gmail:
             metadataHeaders=["From", "Subject", "Date", "Message-ID"],
         ).execute())  # fmt: skip
 
+    def ids(self, query: str, limit: int = 20) -> list[str]:
+        """Identifiants des mails trouvés, sans les lire (une seule requête)."""
+        found = self._messages().list(userId="me", q=query, maxResults=limit).execute()
+        return [m["id"] for m in found.get("messages", [])]
+
+    def header(self, mail_id: str) -> Mail:
+        """Expéditeur, objet, date et étiquettes d'un mail (sans son contenu)."""
+        return self._metadata(mail_id)
+
     def search(self, query: str, limit: int = 8) -> list[Mail]:
         """Recherche Gmail (« from:julie », « facture »…)."""
         found = self._messages().list(userId="me", q=query, maxResults=limit).execute()

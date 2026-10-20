@@ -88,6 +88,9 @@ class Settings:
     world_alerts: bool = True  # notification discrète pour un événement majeur (J9)
     initiative: bool = True  # Friday parle d'elle-même quand c'est utile (I1…)
     initiative_departure: bool = True  # « il faut partir dans 15 min » pour un rendez-vous (I1)
+    initiative_mails: bool = True  # un mail important arrive : une phrase (I2)
+    initiative_mail_senders: str = ""  # adresses, domaines (@impots.gouv.fr) ou noms
+    initiative_mail_words: str = ""  # mots de l'objet (« convocation, urgent »)
     initiative_quiet: str = "23-7"  # heures calmes : aucune initiative
     initiative_per_hour: int = 4  # au plus, par heure
     game_auto: bool = True  # mode jeu tout seul quand un jeu se lance (G2)
@@ -183,6 +186,9 @@ def load_settings() -> Settings:
         world_alerts=_bool("WORLD_ALERTS", True),
         initiative=_bool("INITIATIVE", True),
         initiative_departure=_bool("INITIATIVE_DEPARTURE", True),
+        initiative_mails=_bool("INITIATIVE_MAILS", True),
+        initiative_mail_senders=os.getenv("INITIATIVE_MAIL_SENDERS", ""),
+        initiative_mail_words=os.getenv("INITIATIVE_MAIL_WORDS", ""),
         initiative_quiet=os.getenv("INITIATIVE_QUIET", "23-7"),
         initiative_per_hour=int(os.getenv("INITIATIVE_PER_HOUR") or 4),
         game_auto=_bool("GAME_MODE_AUTO", True),
