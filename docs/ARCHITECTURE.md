@@ -168,6 +168,11 @@ src/friday/
 ├── spotify/               Spotify par son API (Premium) : connexion PKCE sans secret (auth.py,
 │                          data/spotify_token.json, hors sauvegardes), choix de ce qu'on lance
 │                          (matching.py : ses playlists d'abord), lecture sur l'appli du PC
+├── initiative/            Friday prend l'initiative (I1…)
+│   ├── guard.py           garde-fou : heures calmes, maximum par heure, jamais deux fois
+│   │                      le même sujet (data/initiative_vu.json)
+│   ├── departure.py       « il faudrait partir dans 15 min » : heure de départ d'un rendez-vous
+│   └── travel.py          durée de route maison → lieu (OpenStreetMap), gardée en mémoire
 ├── google/                compte Google de l'utilisateur
 │   ├── auth.py            GoogleAccount : autorisation OAuth (navigateur), clé dans data/
 │   ├── days.py            « jeudi », « le 12 novembre », « cette semaine » → dates (pas le LLM)
@@ -189,6 +194,8 @@ src/friday/
 │   ├── confirmations.py   ConfirmationGate : « Je lance ? » → oui / non (voix, clavier, bouton)
 │   ├── memory_keeper.py   MemoryKeeper : mémorisation automatique en arrière-plan
 │   ├── reminders.py       rappel échu → carillon + annonce par Friday
+│   ├── initiative_watch.py le veilleur des initiatives (I1) : chaque minute, ce que Friday
+│   │                      a d'utile à dire d'elle-même, à voix haute
 │   ├── trading_alerts.py  alerte de trading déclenchée : carillon, puis annonce à la voix
 │   ├── trading_briefing.py briefing trading automatique : carillon, puis lecture
 │   ├── wake_control.py    WakeControl : règles du mot d'activation (réveil, relance, stop, écho)

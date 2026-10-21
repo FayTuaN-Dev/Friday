@@ -180,3 +180,13 @@ def test_settings_prepared_before_loading_are_rebuilt_once_friday_is_ready(env, 
     w.prepare_settings()  # rien de neuf : gardé tel quel
     assert w.settings_window.components is assistant.components
     w.close()
+
+
+def test_every_settings_section_has_a_page_in_the_menu():
+    """Constaté : la section « Initiative » existait mais n'apparaissait pas dans le menu."""
+    from friday.core.settings_schema import SECTIONS
+    from friday.ui.desktop.settings.window import GROUPS, ICONS, OWN_PAGE
+
+    in_menu = {name for _, names in GROUPS for name in names}
+    assert {s.name for s in SECTIONS if s.name not in OWN_PAGE} <= in_menu
+    assert in_menu <= set(ICONS)

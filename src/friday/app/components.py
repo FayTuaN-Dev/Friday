@@ -186,6 +186,10 @@ def load_components(
         from friday.app.world_watch import WorldWatch
 
         WorldWatch(world, DATA_DIR / "monde_vu.json", on_background).start()
+    if settings.initiative and on_background is not None:
+        from friday.app.initiative_watch import start_initiatives
+
+        start_initiatives(settings, google, on_background)
     from friday.app.backup import DailyBackup
 
     components.backup = DailyBackup(DATA_DIR, Path(settings.backup_dir) if settings.backup_dir
