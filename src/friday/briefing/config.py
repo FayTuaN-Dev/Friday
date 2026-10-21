@@ -43,8 +43,9 @@ def default_sections() -> list[Section]:
 @dataclass
 class BriefingConfig:
     enabled: bool = True
-    start_hour: int = 5  # le briefing automatique a lieu au premier démarrage entre ces heures
+    start_hour: int = 5  # le briefing automatique a lieu entre ces heures
     end_hour: int = 12
+    on_greeting: bool = True  # attendre le premier « bonjour » (sinon : dès le démarrage)
     sections: list[Section] = field(default_factory=default_sections)
     last_run: str | None = None  # date (AAAA-MM-JJ) du dernier briefing automatique
 

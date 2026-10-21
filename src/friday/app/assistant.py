@@ -14,7 +14,7 @@ from pathlib import Path
 import numpy as np
 
 from friday.app.attachments import Attachments
-from friday.app.briefing_trigger import morning_request
+from friday.app.briefing_trigger import greeting_request, morning_request
 from friday.app.components import Components, describe, load_components
 from friday.app.confirmations import ConfirmationGate
 from friday.app.events import AssistantListener, AssistantState
@@ -243,7 +243,7 @@ class Assistant:
             self.listener.on_user_message(str(payload), by_voice=kind == "heard")
             if self.game.command(str(payload)) or self.interpreter.command(str(payload)):
                 return
-            if not self._trading_command(str(payload)):
+            if not self._trading_command(str(payload)) and not self._morning(str(payload)):
                 self._respond(self.attachments.wrap(str(payload)), said=str(payload))
         elif kind == "game":  # un jeu vient de se lancer (G2)
             self.game.enter(game=str(payload))
@@ -261,8 +261,15 @@ class Assistant:
                 self.listener.on_user_message(text, by_voice=True)
                 if self.interpreter.command(text):
                     return
-                if not self._trading_command(text):
+                if not self._trading_command(text) and not self._morning(text):
                     self._respond(self.attachments.wrap(text), said=text)
+
+    def _morning(self, text: str) -> bool:
+        """Premier « bonjour » du matin : le briefing répond (I3), s'il est dû."""
+        if request := greeting_request(self.components.briefing, text):
+            self._respond(request)
+            return True
+        return False
 
     def _trading_command(self, text: str) -> bool:
         """« mode trading » / « fin du mode trading » : reconnu par le code, pas le modèle."""

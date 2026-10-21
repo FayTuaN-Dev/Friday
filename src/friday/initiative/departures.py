@@ -1,5 +1,6 @@
 """La source « heure de départ » (I1) : l'agenda Google relu toutes les 10 min, le trajet de
-chaque rendez-vous qui a une adresse, et la phrase quand il est temps de prévenir."""
+chaque rendez-vous qui a une adresse, et la phrase quand il est temps de prévenir, avec la
+météo du trajet (I3) si elle est allumée."""
 
 import logging
 from collections.abc import Callable
@@ -9,6 +10,7 @@ from friday.google.calendar import Event, GoogleCalendar
 from friday.initiative.departure import Trip, departure_text, key
 from friday.initiative.source import Candidate
 from friday.initiative.travel import Travel
+from friday.initiative.weather import TripWeather, advice
 
 log = logging.getLogger(__name__)
 
@@ -17,8 +19,9 @@ AHEAD = timedelta(hours=4)  # un rendez-vous plus lointain attendra le tour suiv
 
 
 class Departures:
-    def __init__(self, calendar: GoogleCalendar, travel: Travel) -> None:
-        self.calendar, self.travel = calendar, travel
+    def __init__(self, calendar: GoogleCalendar, travel: Travel,
+                 weather: TripWeather | None = None) -> None:  # fmt: skip
+        self.calendar, self.travel, self.weather = calendar, travel, weather
         self._events: list[Event] = []
         self._read_at: datetime | None = None
 
@@ -39,10 +42,20 @@ class Departures:
             if (event.all_day or not event.location.strip() or said(key(event))
                     or not now < event.start <= now + AHEAD):  # fmt: skip
                 continue
-            seconds = self.travel.seconds(event.location)
-            if seconds is None:
+            route = self.travel.route(event.location)
+            if route is None:
                 continue
-            trip = Trip(event, seconds)
+            trip = Trip(event, route.seconds)
             if trip.due(now):
-                found.append(Candidate((key(event),), departure_text(trip, now)))
+                found.append(
+                    Candidate((key(event),), departure_text(trip, now, self.note(trip, route)))
+                )
         return found
+
+    def note(self, trip: Trip, route) -> str:
+        """La météo de l'aller et du retour au lieu du rendez-vous ("" : éteinte ou inconnue)."""
+        if self.weather is None:
+            return ""
+        back = trip.event.end + (trip.event.start - trip.leave_at)
+        return advice(self.weather.hours(route.lat, route.lon),
+                      (trip.leave_at, trip.event.start), (trip.event.end, back))  # fmt: skip

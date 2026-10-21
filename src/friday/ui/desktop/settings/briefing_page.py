@@ -38,7 +38,11 @@ class BriefingPage(QWidget):
         config = briefing.config
         self.enabled = Toggle(config.enabled)
         self.enabled.toggled.connect(briefing.set_enabled)
-        layout.addWidget(self._row("Briefing automatique au premier démarrage", self.enabled))
+        layout.addWidget(self._row("Briefing automatique le matin", self.enabled))
+        self.on_greeting = Toggle(config.on_greeting)
+        self.on_greeting.toggled.connect(briefing.set_on_greeting)
+        layout.addWidget(self._row("Attendre mon premier « bonjour » (sinon : dès le démarrage)",
+                                   self.on_greeting))  # fmt: skip
         hours = QWidget()
         between = QHBoxLayout(hours)
         between.setContentsMargins(0, 0, 0, 0)

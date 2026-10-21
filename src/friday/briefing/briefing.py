@@ -79,6 +79,9 @@ class Briefing:
     def set_enabled(self, enabled: bool) -> None:
         self._update(lambda c: setattr(c, "enabled", enabled))
 
+    def set_on_greeting(self, on_greeting: bool) -> None:
+        self._update(lambda c: setattr(c, "on_greeting", on_greeting))
+
     def add(self, kind: str, value: str = "") -> str:
         kind, value = normalize(kind).replace(" ", ""), value.strip()
         if kind not in KINDS:

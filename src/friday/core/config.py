@@ -88,6 +88,7 @@ class Settings:
     world_alerts: bool = True  # notification discrète pour un événement majeur (J9)
     initiative: bool = True  # Friday parle d'elle-même quand c'est utile (I1…)
     initiative_departure: bool = True  # « il faut partir dans 15 min » pour un rendez-vous (I1)
+    initiative_weather: bool = True  # météo du trajet : la voiture plutôt que la moto (I3)
     initiative_mails: bool = True  # un mail important arrive : une phrase (I2)
     initiative_mail_senders: str = ""  # adresses, domaines (@impots.gouv.fr) ou noms
     initiative_mail_words: str = ""  # mots de l'objet (« convocation, urgent »)
@@ -186,6 +187,7 @@ def load_settings() -> Settings:
         world_alerts=_bool("WORLD_ALERTS", True),
         initiative=_bool("INITIATIVE", True),
         initiative_departure=_bool("INITIATIVE_DEPARTURE", True),
+        initiative_weather=_bool("INITIATIVE_WEATHER", True),
         initiative_mails=_bool("INITIATIVE_MAILS", True),
         initiative_mail_senders=os.getenv("INITIATIVE_MAIL_SENDERS", ""),
         initiative_mail_words=os.getenv("INITIATIVE_MAIL_WORDS", ""),
