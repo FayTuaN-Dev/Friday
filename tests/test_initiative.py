@@ -1,10 +1,13 @@
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 
 import httpx
+from fakes import SETTINGS
 
-from friday.app.initiative_watch import InitiativeWatch
+from friday.app.initiative_watch import InitiativeWatch, sources
 from friday.google.calendar import Event
 from friday.initiative.departure import Trip, departure_text, place_name, spoken_time
+from friday.initiative.departures import Departures
 from friday.initiative.guard import Guard, is_quiet, quiet_hours
 from friday.initiative.travel import Travel
 
@@ -39,7 +42,7 @@ def watch(tmp_path, events, seconds=600.0, **guard):
     said = []
     w = InitiativeWatch(Guard(tmp_path / "vu.json", **guard),
                         lambda task, result: said.append((task, result.text)),
-                        FakeCalendar(events), FakeTravel(seconds))  # fmt: skip
+                        [Departures(FakeCalendar(events), FakeTravel(seconds))])  # fmt: skip
     return w, said
 
 
@@ -125,20 +128,44 @@ def test_the_watch_rereads_the_agenda_only_every_ten_minutes(tmp_path):
     w, _ = watch(tmp_path, [])
     for minute in range(12):
         w.check(NOW + timedelta(minutes=minute))
-    assert w.calendar.reads == 2
+    assert w.sources[0].calendar.reads == 2
 
 
 def test_an_unreachable_agenda_or_unknown_place_says_nothing(tmp_path):
     w, said = watch(tmp_path, [event()], seconds=None)
     assert w.check(NOW) == 0
     w = InitiativeWatch(Guard(tmp_path / "x.json"), lambda *a: said.append(a),
-                        FakeCalendar([], fail=True), FakeTravel())  # fmt: skip
+                        [Departures(FakeCalendar([], fail=True), FakeTravel())])  # fmt: skip
     assert w.check(NOW) == 0 and not said
 
 
-def test_without_google_or_home_town_there_is_no_departure(tmp_path):
-    w = InitiativeWatch(Guard(tmp_path / "vu.json"), lambda *a: None)
-    assert w.check(NOW) == 0
+class FakeGoogle:
+    def service(self, name, version):
+        raise AssertionError("pas d'appel réseau à la création")
+
+
+def test_sources_follow_the_settings():
+    on = replace(SETTINGS, home_city="Bazoges-en-Paillers")
+    assert sources(on, None) == []  # sans compte Google : rien
+    kinds = [type(s).__name__ for s in sources(on, FakeGoogle())]
+    assert kinds == ["Departures", "ImportantMails"]
+    no_town = [type(s).__name__ for s in sources(replace(on, home_city=" "), FakeGoogle())]
+    assert no_town == ["ImportantMails"]
+    off = replace(on, initiative_departure=False, initiative_mails=False)
+    assert sources(off, FakeGoogle()) == []
+
+
+class BrokenSource:
+    def candidates(self, now, said):
+        raise RuntimeError("panne")
+
+
+def test_a_broken_source_does_not_stop_the_others(tmp_path):
+    said = []
+    departures = Departures(FakeCalendar([event()]), FakeTravel())
+    w = InitiativeWatch(Guard(tmp_path / "vu.json"), lambda *a: said.append(a),
+                        [BrokenSource(), departures])  # fmt: skip
+    assert w.check(NOW) == 1
 
 
 # Le trajet (OpenStreetMap)

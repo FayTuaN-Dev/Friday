@@ -140,6 +140,15 @@ SECTIONS = (
               "Pour un événement de l'agenda Google qui a une adresse : « il faudrait partir "
               "dans 15 minutes ». Trajet en voiture depuis la ville par défaut, sans les "
               "bouchons (marge de 15 % + 5 min)."),
+        Field("INITIATIVE_MAILS", "Mails importants", "bool", "true",
+              "Un mail non lu d'un expéditeur important, ou avec un mot important dans "
+              "l'objet, est annoncé dès son arrivée (vérifié toutes les 2 min)."),
+        Field("INITIATIVE_MAIL_SENDERS", "Expéditeurs importants", "text", "",
+              "Séparés par des virgules : une adresse (marie@exemple.fr), un domaine "
+              "(@impots.gouv.fr) ou un nom (Banque Populaire). Vide : aucun."),
+        Field("INITIATIVE_MAIL_WORDS", "Mots importants dans l'objet", "text", "",
+              "Séparés par des virgules (ex. : convocation, urgent, colis). Sans accents ni "
+              "majuscules à respecter. Vide : aucun."),
         Field("INITIATIVE_QUIET", "Heures calmes", "text", "23-7",
               "Aucune initiative entre ces heures (ex. : 23-7). 0-0 : jamais calme."),
         Field("INITIATIVE_PER_HOUR", "Initiatives par heure, au plus", "int", "4",

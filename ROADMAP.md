@@ -190,5 +190,5 @@ initiative dans Réglages → Initiative.
 | # | Brique | Livrable | Statut |
 |---|---|---|---|
 | I1 | **Le veilleur + l'heure de départ** : pour un rendez-vous Google qui a une adresse, trajet en voiture depuis la ville par défaut (OpenStreetMap, sans bouchons : +15 % et 5 min de marge) → « Dentiste à 16 h, à La Roche-sur-Yon : environ 35 min de route, il faudrait partir vers 15 h 20, dans 15 minutes » | Ne plus partir en retard | 🚧 |
-| I2 | **Mails importants** : un mail d'une catégorie ou d'un expéditeur prioritaire arrive → une phrase | Ne rien rater d'important | ⬜ |
+| I2 | **Mails importants** : expéditeurs (adresse, @domaine ou nom) et mots de l'objet réglés soi-même dans Réglages → Initiative ; un mail non lu qui correspond → « Mail important de … : … » (plusieurs : réunis en une phrase) | Ne rien rater d'important | 🚧 |
 | I3 | **Météo utile** croisée avec l'agenda (pluie à l'heure de sortir : la voiture plutôt que la moto) + **résumé du matin** au premier « bonjour » | Une journée préparée | ⬜ |
